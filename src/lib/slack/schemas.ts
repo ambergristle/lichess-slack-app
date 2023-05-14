@@ -14,11 +14,11 @@ export const ZPostMessageRequest = z.object({
 
 import { KnownBlock } from '@slack/web-api';
 
-interface ICommandTextResponse {
+export interface ICommandTextResponse {
     response_type: 'in_channel';
     text: string;
 }
 
-interface ICommandBlockResponse extends ICommandTextResponse {
+export interface ICommandBlockResponse extends ICommandTextResponse {
     blocks: KnownBlock[];
 }
