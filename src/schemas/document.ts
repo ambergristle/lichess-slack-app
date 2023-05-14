@@ -6,6 +6,8 @@ const ZUserMetadata = z.object({
   userName: ZString,
 });
 
+export type TUserMetadata = z.infer<typeof ZUserMetadata>;
+
 const ZDocumentMetadata = z.object({
   _id: ZDocumentId,
   _createdAt: ZDate,
@@ -15,6 +17,7 @@ const ZDocumentMetadata = z.object({
 });
 
 export const ZDocument = ZDocumentMetadata.passthrough();
+export type TDocument = z.infer<typeof ZDocument>;
 
 export const documentSchemaFactory = <
     S extends z.ZodRawShape

@@ -1,12 +1,14 @@
 import { z } from 'zod';
-import { ZDate, ZString } from './primitive';
+import { ZString } from './primitive';
 import { documentSchemaFactory } from './document';
 
 export const ZUserData = z.object({
-  teamId: ZString,
-  channelId: ZString,
-  webhookUrl: ZString.url(), // does this hold?
-  puzzleScheduledAt: ZDate,
+  fullName: ZString,
+  email: ZString.email(),
+  roles: z.any(),
 });
 
+export type TUserData = z.infer<typeof ZUserData>;
+
 export const ZUser = documentSchemaFactory(ZUserData);
+export type TUser = z.infer<typeof ZUser>;
