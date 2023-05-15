@@ -1,35 +1,26 @@
-import { z } from 'zod';
-import { type TUserMetadata } from 'schemas/document';
 import { 
   Document as BaseDocument, 
   type IDocument as IBaseDocument,
 } from './base';
+import { ZDocument, type TDocumentSchema } from 'schemas/document';
 
-export type IDocument = IBaseDocument
+export interface IDocument extends IBaseDocument {}
 
-export class Document extends BaseDocument implements IDocument {
+export class Document<
+  Z extends TDocumentSchema = TDocumentSchema
+> extends BaseDocument implements IDocument {
 
-  public _id = '';
+  readonly _schema: Z;
 
-  public _createdAt: Date = new Date();
-  public _createdBy: TUserMetadata;
-    
-  public _lastUpdatedAt: Date = new Date();
-  public _lastUpdatedBy: TUserMetadata;
-
-  public readonly _schema: z.AnyZodObject;
-
-  constructor() {
+  constructor(schema: Z) {
     super();
+
+    this._schema = schema;
   }
 
-  public data() {
-    return this._schema.parse(this);
-  }
-
-
-  public init(): Document {
-    return new Document();
+  // how do we get rid of the params?
+  public init(params?: unknown): Document {
+    return new Document(ZDocument);
   }
 
 }

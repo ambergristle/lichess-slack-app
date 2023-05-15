@@ -11,4 +11,6 @@ export const ZUserData = z.object({
 export type TUserData = z.infer<typeof ZUserData>;
 
 export const ZUser = documentSchemaFactory(ZUserData);
-export type TUser = z.infer<typeof ZUser>;
+
+export type TUserSchema = typeof ZUser
+export type TUser = z.infer<TUserSchema>;

@@ -4,4 +4,9 @@ export const handleSetPuzzleTime: RequestHandler = async (req, res) => {
   // Some protection against replay attacks?
   // Can return current setting
   // Set time setting by id
+
+  return res.status(418).json({
+    success: true,
+    message: 'Set Time not yet implemented',
+  });
 };

@@ -12,4 +12,6 @@ export const ZChannelData = z.object({
 export type TChannelData = z.infer<typeof ZChannelData>;
 
 export const ZChannel = documentSchemaFactory(ZChannelData);
-export type TChannel = z.infer<typeof ZChannel>;
+
+export type TChannelSchema = typeof ZChannel
+export type TChannel = z.infer<TChannelSchema>;
