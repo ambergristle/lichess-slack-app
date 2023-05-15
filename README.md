@@ -4,7 +4,6 @@
 - Set-up grabs auth from connection request and links with Slack
 - Creates record of Slack interaction
 
-
 ## Daily Puzzle
 - Grabs + returns daily puzzle
 

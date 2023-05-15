@@ -1,4 +1,4 @@
-import { ICommandBlockResponse, ICommandTextResponse } from './schemas';
+import type { ICommandBlockResponse, ICommandTextResponse } from './schemas';
 
 export const helpCommandResponse: ICommandBlockResponse = {
   response_type: 'in_channel',

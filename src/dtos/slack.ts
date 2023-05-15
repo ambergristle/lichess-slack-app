@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ZString } from '../schemas/primitive';
+import { ZString } from 'schemas/primitive';
 
 /**
  * @see https://api.slack.com/interactivity/slash-commands

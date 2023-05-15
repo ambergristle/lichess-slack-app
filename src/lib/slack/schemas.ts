@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { ZString } from '../../schemas/primitive';
+import { ZString } from 'schemas/primitive';
+import type { KnownBlock } from '@slack/web-api';
 
 export const ZTokenRequest = z.object({
   client_id: ZString,
@@ -12,7 +13,7 @@ export const ZPostMessageRequest = z.object({
   text: z.string().optional(),
 });
 
-import { KnownBlock } from '@slack/web-api';
+
 
 export interface ICommandTextResponse {
     response_type: 'in_channel';

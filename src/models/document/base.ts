@@ -1,26 +1,32 @@
-import { z } from 'zod';
-import type { TDocument, TUserMetadata } from 'schemas/document';
-import { createObjectIdString } from '../../utils';
+import { createObjectIdString } from 'utils';
+import type { 
+  TDocument, 
+  TDocumentSchema, 
+} from 'schemas/document';
 
-
-export type IDocument = TDocument
+export interface IDocument extends TDocument {}
 
 export abstract class Document implements IDocument {
-    [k: string]: unknown;
-    abstract _schema: z.AnyZodObject;
+  
+  // leverage extension?
+  abstract _schema: TDocumentSchema;
 
-    public _id = createObjectIdString();
+  public _id = createObjectIdString();
 
-    public _createdAt: Date = new Date();
-    public _createdBy: TUserMetadata;
+  public _createdAt: Date = new Date();
+  // public _createdBy: TUserMetadata;
     
-    public _lastUpdatedAt: Date = new Date();
-    public _lastUpdatedBy: TUserMetadata;
+  public _lastUpdatedAt: Date = new Date();
+  // public _lastUpdatedBy: TUserMetadata;
 
+  abstract init(params?: unknown): Document;
 
-    abstract init(): Document;
+  public data() {
+    return this._schema.parse(this);
+  }
 
-    public data() {
-      return this._schema.parse(this);
-    }
+  public parse() {
+    this._schema.parse(this);
+    return this;
+  }
 }

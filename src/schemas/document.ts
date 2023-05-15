@@ -11,16 +11,16 @@ export type TUserMetadata = z.infer<typeof ZUserMetadata>;
 const ZDocumentMetadata = z.object({
   _id: ZDocumentId,
   _createdAt: ZDate,
-  _createdBy: ZUserMetadata,
+  // _createdBy: ZUserMetadata,
   _lastUpdatedAt: ZDate,
-  _lastUpdatedBy: ZUserMetadata,
+  // _lastUpdatedBy: ZUserMetadata,
 });
 
-export const ZDocument = ZDocumentMetadata.passthrough();
-export type TDocument = z.infer<typeof ZDocument>;
+export const ZDocument = ZDocumentMetadata;
 
-export const documentSchemaFactory = <
-    S extends z.ZodRawShape
->(schema: z.ZodObject<S>) => {
+export type TDocumentSchema = typeof ZDocument;
+export type TDocument = z.infer<TDocumentSchema>;
+
+export const documentSchemaFactory = <Z extends z.AnyZodObject>(schema: Z) => {
   return ZDocument.merge(schema);
 };

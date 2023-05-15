@@ -1,9 +1,15 @@
 import { 
   WebClient as SlackWebClient,
-  ChatPostMessageArguments,
+  type ChatPostMessageArguments,
 } from '@slack/web-api';
-import { TIncomingSlashCommand, ZIncomingSlashCommand } from '../../dtos/slack';
-import { ZPostMessageRequest, ZTokenRequest } from './schemas';
+import { 
+  ZIncomingSlashCommand, 
+  type TIncomingSlashCommand, 
+} from 'dtos/slack';
+import {
+  ZPostMessageRequest,
+  ZTokenRequest,
+} from './schemas';
 
 export class SlackClient {
   private client: SlackWebClient;
