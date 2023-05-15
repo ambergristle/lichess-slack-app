@@ -1,5 +1,5 @@
-import { Document, IDocument } from './document';
-import { TUser, ZUser } from '../schemas/user';
+import { Document, type IDocument } from './document';
+import { ZUser, type TUser } from '../schemas/user';
 
 interface IUser extends IDocument, TUser {}
 

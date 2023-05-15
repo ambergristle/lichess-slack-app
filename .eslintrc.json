@@ -37,6 +37,7 @@
         "semi": ["error", "always"],
         "space-in-parens": ["warn", "never"],
         "spaced-comment": ["warn", "always", { "markers": ["/"] }],
-        "unused-imports/no-unused-imports": "warn"
+        "unused-imports/no-unused-imports": "warn",
+        "eol-last": 2
     }
 }

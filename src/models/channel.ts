@@ -1,5 +1,5 @@
-import { Document, IDocument } from './document';
-import { TChannel, ZChannel } from '../schemas/channel';
+import { Document, type IDocument } from './document';
+import { ZChannel, type TChannel } from '../schemas/channel';
 
 interface IChannel extends IDocument, TChannel {}
 

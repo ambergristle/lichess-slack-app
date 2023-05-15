@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { TUserMetadata } from '../../schemas/document';
+import { type TUserMetadata } from 'schemas/document';
 import { 
   Document as BaseDocument, 
-  IDocument as IBaseDocument,
+  type IDocument as IBaseDocument,
 } from './base';
 
 export type IDocument = IBaseDocument

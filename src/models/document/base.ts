@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TDocument, TUserMetadata } from '../../schemas/document';
+import type { TDocument, TUserMetadata } from 'schemas/document';
 import { createObjectIdString } from '../../utils';
 
 

@@ -1,8 +1,8 @@
 import express from 'express';
-import { handleFallThrough } from './controllers/fallthrough';
-import { handleHelpCommand } from './controllers/help';
-import { handlePuzzleCommand } from './controllers/puzzle';
-import { handleAuthorize, handleSetTimeCommand } from './controllers/user';
+import { handleFallThrough } from 'controllers/fallthrough';
+import { handleHelpCommand } from 'controllers/help';
+import { handlePuzzleCommand } from 'controllers/puzzle';
+import { handleAuthorize, handleSetTimeCommand } from 'controllers/user';
 
 const app = express();
 const port = 3000;
