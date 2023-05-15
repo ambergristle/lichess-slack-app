@@ -1,27 +1,30 @@
 import express from 'express';
-import { handleFallThrough } from 'controllers/fallthrough';
-import { handleHelpCommand } from 'controllers/help';
-import { handlePuzzleCommand } from 'controllers/puzzle';
-import { handleAuthorize, handleSetTimeCommand } from 'controllers/user';
+import { handleAuthorize } from 'controllers/auth';
+import {
+  handleGetHelp,
+  handleNotFound,
+  handleGetPuzzle,
+  handleSetPuzzleTime,
+} from 'controllers/commands';
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
-// app.get('/');
-
-// app.get('/auth');
+// #region Routes
 
 app.post('/api/v1/auth', handleAuthorize);
 
-app.post('/api/v1/help', handleHelpCommand);
+app.post('/api/v1/help', handleGetHelp);
 
-app.post('/api/v1/puzzle', handlePuzzleCommand);
+app.post('/api/v1/puzzle', handleGetPuzzle);
 
-app.post('/api/v1/set-time', handleSetTimeCommand);
+app.post('/api/v1/set-time', handleSetPuzzleTime);
 
-app.all('*', handleFallThrough);
+app.all('*', handleNotFound);
+
+// #endregion
 
 app.listen(port, () => {
   console.log(`Lichess Slack App listening at port ${port}...`);
