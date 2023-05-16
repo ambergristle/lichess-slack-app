@@ -1,14 +1,14 @@
 import express from 'express';
-import { handleAuthorize } from 'controllers/auth';
+import { handleAuthorize } from 'controllers/auth/index.js';
 import {
   handleGetHelp,
   handleNotFound,
   handleGetPuzzle,
   handleSetPuzzleTime,
-} from 'controllers/commands';
+} from 'controllers/commands/index.js';
 
 const app = express();
-const port = 3000;
+const port = 8080;
 
 app.use(express.json());
 
