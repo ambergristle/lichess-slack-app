@@ -1,15 +1,15 @@
 {
   "name": "lichess-slack-app",
   "version": "1.0.0",
-  "description": "slack integration for lichess daily puzzles",
-  "main": "index.js",
-  "type": "module",
-  "exports": "./dist/src/index.js",
+  "description": "Slack integration for Lichess Daily Puzzles",
+  "main": "build/index.js",
   "scripts": {
+    "lint": "npx eslint",
     "build": "npx tsc",
-    "start": "ts-node-esm ./src/index.ts",
-    "dev": "nodemon ./src/index.ts",
-    "start:stage": "yarn build && node ./dist/src/index.js"
+    "build:watch": "npx tsc -w",
+    "start": "node -r ts-node/register/transpile-only -r tsconfig-paths/register build/index.js",
+    "dev": "nodemon src/index.ts",
+    "stage": "yarn build && node build/index.js"
   },
   "keywords": [
     "lichess",
@@ -37,7 +37,7 @@
     "nodemon": "^2.0.22",
     "prisma": "^4.10.1",
     "ts-node": "^10.9.1",
-    "tsconfig-paths": "^4.1.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.0.4"
   }
 }
