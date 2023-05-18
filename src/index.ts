@@ -3,7 +3,7 @@ import { handleAuthorize } from 'controllers/auth';
 import {
   handleGetHelp,
   handleNotFound,
-  handleGetPuzzle,
+  handleGetDailyPuzzle,
   handleSetPuzzleTime,
 } from 'controllers/commands';
 
@@ -18,7 +18,7 @@ app.post('/api/v1/auth', handleAuthorize);
 
 app.post('/api/v1/help', handleGetHelp);
 
-app.post('/api/v1/puzzle', handleGetPuzzle);
+app.post('/api/v1/puzzle', handleGetDailyPuzzle);
 
 app.post('/api/v1/set-time', handleSetPuzzleTime);
 

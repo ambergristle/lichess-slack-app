@@ -2,10 +2,7 @@ import {
   WebClient as SlackWebClient,
   type ChatPostMessageArguments,
 } from '@slack/web-api';
-import { 
-  ZIncomingSlashCommand, 
-  type TIncomingSlashCommand, 
-} from 'dtos/slack';
+import { getDailyPuzzleBlocks } from './blocks';
 import { ZPostMessageRequest, ZTokenRequest } from './schemas';
 
 
@@ -18,6 +15,10 @@ export class SlackClient {
 
   public static init() {
     return new SlackClient();
+  }
+
+  private _getDailyPuzzleBlocks({ puzzleUrl, puzzleThumbUrl }: { puzzleUrl: string, puzzleThumbUrl: string }) {
+    return getDailyPuzzleBlocks(puzzleUrl, puzzleThumbUrl);
   }
 
   public async getTokenFromOAuth(code: string) {
@@ -38,20 +39,10 @@ export class SlackClient {
     return await this.client.chat.postMessage(payload);
   }
 
-  public async processSlashCommand(body: TIncomingSlashCommand) {
-    const payload = ZIncomingSlashCommand.parse(body);
-
-    switch(payload.command) {
-        case 'help':
-          return {};
-        case 'puzzle':
-          return {};
-        case 'set-time':
-          return {};
-        default: 
-          throw new Error('Unrecognized command'); // do we want to throw?
-    }
+  get blocks() {
+    return {
+      dailyPuzzle: this._getDailyPuzzleBlocks,
+    };
   }
-
 
 }

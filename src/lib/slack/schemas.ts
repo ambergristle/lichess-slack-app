@@ -2,6 +2,12 @@ import { z } from 'zod';
 import { ZString } from 'schemas/primitive';
 import type { KnownBlock } from '@slack/web-api';
 
+export enum SlashCommand {
+  Help = 'help',
+  Puzzle = 'puzzle',
+  SetTime = 'set-time',
+}
+
 export const ZTokenRequest = z.object({
   client_id: ZString,
   client_secret: ZString,
