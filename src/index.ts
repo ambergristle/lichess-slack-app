@@ -3,14 +3,16 @@ import { handleAuthorize } from 'controllers/auth';
 import {
   handleGetHelp,
   handleNotFound,
-  handleGetPuzzle,
+  handleGetDailyPuzzle,
   handleSetPuzzleTime,
 } from 'controllers/commands';
+import { handleError } from 'middleware/handleError';
 
 const app = express();
 const port = 8080;
 
 app.use(express.json());
+app.use(handleError);
 
 // #region Routes
 
@@ -18,7 +20,7 @@ app.post('/api/v1/auth', handleAuthorize);
 
 app.post('/api/v1/help', handleGetHelp);
 
-app.post('/api/v1/puzzle', handleGetPuzzle);
+app.post('/api/v1/puzzle', handleGetDailyPuzzle);
 
 app.post('/api/v1/set-time', handleSetPuzzleTime);
 
