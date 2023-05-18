@@ -2,7 +2,7 @@ import {
   WebClient as SlackWebClient,
   type ChatPostMessageArguments,
 } from '@slack/web-api';
-import { getDailyPuzzleBlocks } from './blocks';
+import { getDailyPuzzleBlocks, getNotFoundBlocks } from './blocks';
 import { ZPostMessageRequest, ZTokenRequest } from './schemas';
 
 
@@ -17,8 +17,11 @@ export class SlackClient {
     return new SlackClient();
   }
 
-  private _getDailyPuzzleBlocks({ puzzleUrl, puzzleThumbUrl }: { puzzleUrl: string, puzzleThumbUrl: string }) {
-    return getDailyPuzzleBlocks(puzzleUrl, puzzleThumbUrl);
+  get blocks() {
+    return {
+      dailyPuzzle: getDailyPuzzleBlocks,
+      notFound: getNotFoundBlocks,
+    };
   }
 
   public async getTokenFromOAuth(code: string) {
@@ -37,12 +40,6 @@ export class SlackClient {
   public async postMessage(options: ChatPostMessageArguments) {
     const payload = ZPostMessageRequest.parse(options);
     return await this.client.chat.postMessage(payload);
-  }
-
-  get blocks() {
-    return {
-      dailyPuzzle: this._getDailyPuzzleBlocks,
-    };
   }
 
 }

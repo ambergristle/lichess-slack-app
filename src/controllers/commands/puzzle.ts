@@ -2,14 +2,13 @@ import type { RequestHandler } from 'express';
 import { LichessClient } from 'lib/lichess';
 import { SlackClient } from 'lib/slack';
 
-
 /**
  * 
  * @param req 
  * @param res 
  * @returns 
  */
-export const handleGetDailyPuzzle: RequestHandler = async (req, res) => {
+export const handleGetDailyPuzzle: RequestHandler = async (req, res, next) => {
   
   try {
 
@@ -25,7 +24,7 @@ export const handleGetDailyPuzzle: RequestHandler = async (req, res) => {
       puzzleUrl,
       puzzleThumbUrl,
     });
-
+    
     // write to slack
 
     return res.status(200).json({
@@ -35,7 +34,7 @@ export const handleGetDailyPuzzle: RequestHandler = async (req, res) => {
     });
     
   } catch (error) {
-    console.error(error);
+    return next(error);
   }
   
 };

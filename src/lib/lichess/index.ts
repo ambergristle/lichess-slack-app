@@ -20,7 +20,7 @@ export class LichessClient {
   private async _fetchDailyPuzzle() {
     console.info('Fetching daily puzzle...');
     const response = await axios.get(`${this._basePath}/api/puzzle/daily`);
-    const { game, puzzle } = ZDailyPuzzleResponse.parse(response);
+    const { game, puzzle } = ZDailyPuzzleResponse.parse(response.data);
   
     return { game, puzzle };
   }

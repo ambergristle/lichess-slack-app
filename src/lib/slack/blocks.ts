@@ -1,6 +1,15 @@
+import type { KnownBlock } from '@slack/web-api';
 
 
-export const getDailyPuzzleBlocks = (puzzleUrl: string, puzzleThumbUrl: string) => [
+interface IGetDailyPuzzleParams {
+    puzzleUrl: string;
+    puzzleThumbUrl: string;
+}
+
+export const getDailyPuzzleBlocks = ({
+  puzzleUrl,
+  puzzleThumbUrl,
+}: IGetDailyPuzzleParams): KnownBlock[] => [
   {
     type: 'image',
     title: {
@@ -17,6 +26,23 @@ export const getDailyPuzzleBlocks = (puzzleUrl: string, puzzleThumbUrl: string) 
     text: {
       type: 'mrkdwn',
       text: puzzleUrl,
+    },
+  },
+];
+
+
+interface IGetNotFoundParams {
+    command: string; 
+}
+
+export const getNotFoundBlocks = ({ 
+  command, 
+}: IGetNotFoundParams): KnownBlock[] => [
+  {
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text: `Slash command ${command} is a shout into the void`,
     },
   },
 ];
