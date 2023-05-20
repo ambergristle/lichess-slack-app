@@ -1,6 +1,8 @@
 # lichess-slack-app
  This integration's core responsibility is to relay the daily puzzle to registered players on request or schedule. Additional interactivity or configuration may be introduced post-mvp, but any enhancements should build on this foundational purpose.
 
+ https://github.com/arex1337/lichess-daily-puzzle-slack-app
+
  ## API
 
 ### `/api/v1/auth`
