@@ -46,3 +46,16 @@ export const getNotFoundBlocks = ({
     },
   },
 ];
+
+
+export const getInvalidRequestBlocks = () => [
+  {
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text: 'Your request was invalid. Make sure this app'
+        + 'is correctly installed in your workspace'
+        + 'or try /help for available commands',
+    },
+  },
+];

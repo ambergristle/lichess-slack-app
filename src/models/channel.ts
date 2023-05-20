@@ -22,7 +22,7 @@ export class Channel extends Document<TChannelSchema> implements IChannel {
   public channelId: string;
   
   public webhookUrl: string;
-  public puzzleScheduledAt: Date;
+  public puzzleScheduledAt?: Date;
 
   private constructor(params: TChannelData) {
     super(ZChannel);
@@ -37,7 +37,7 @@ export class Channel extends Document<TChannelSchema> implements IChannel {
     this.parse();
   }
 
-  public init(params: TChannelData): Channel {
+  public static init(params: TChannelData): Channel {
     return new Channel(params);
   }
 
