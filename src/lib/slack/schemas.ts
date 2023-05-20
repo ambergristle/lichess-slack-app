@@ -29,3 +29,29 @@ export interface ICommandTextResponse {
 export interface ICommandBlockResponse extends ICommandTextResponse {
     blocks: KnownBlock[];
 }
+
+
+/**
+ * Incoming request body
+ * @warning Content-type = application/x-www-form-urlencoded
+ * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
+ */
+export const ZSlashCommand = z.object({
+  // context ids
+  user_id: z.string(),
+  user_name: z.string(),
+  channel_id: z.string(),
+  channel_name: z.string(),
+  team_id: z.string(),
+  team_domain: z.string(),
+  enterprise_id: z.string().optional(),
+  enterprise_name: z.string().optional(),
+  // command data
+  command: z.string(), // slash-prefixed
+  text: z.string().optional(),
+  // command metadata
+  api_app_id: z.string(),
+  trigger_id: z.string(),
+  response_url: z.string().url(),
+  // token: z.string(), deprecated
+});

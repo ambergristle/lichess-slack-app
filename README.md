@@ -12,6 +12,7 @@
 - Post Daily Puzzle to request origin Slack channel
 
 ### Direct Install: 
+<!-- honestly, no idea what this does, or if it's necessary -->
 - Redirects to authorization?
 
 ### `/api/v1/help`
@@ -27,9 +28,14 @@
 - Sets time setting by id
 
 ### Slash Command
+<!-- this is actually get puzzle; for w/e reason the logic was just duped between the chron job + the api -->
+<!-- should also figure out how to handle ssl cert requets -->
 - Pulls the Daily Puzzle from Lichess and returns the relevant board image? iframe?
 - Configures puzzle data into Slack blocks
 
 ## Errors
+- Basic error handling + response
 
-TODO
+## References
+- [Slack Slash Commands](https://api.slack.com/interactivity/slash-commands)
+- [Slack Messaging Webhooks](https://api.slack.com/messaging/webhooks)
