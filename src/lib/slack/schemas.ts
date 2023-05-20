@@ -31,6 +31,16 @@ export interface ICommandBlockResponse extends ICommandTextResponse {
 }
 
 
+
+
+export const ZSlackHeaders = z.object({
+  'x-slack-signature': z.string(),
+  'x-slack-request-timestamp': z.string(), // date string?
+}).transform((headers) => ({
+  signature: headers['x-slack-signature'],
+  timestamp: headers['x-slack-request-timestamp'],
+}));
+
 /**
  * Incoming request body
  * @warning Content-type = application/x-www-form-urlencoded
@@ -55,3 +65,6 @@ export const ZSlashCommand = z.object({
   response_url: z.string().url(),
   // token: z.string(), deprecated
 });
+
+export type TSlashCommand = z.infer<typeof ZSlashCommand>;
+

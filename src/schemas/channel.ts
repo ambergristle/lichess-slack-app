@@ -6,7 +6,7 @@ export const ZChannelData = z.object({
   teamId: ZString,
   channelId: ZString,
   webhookUrl: ZString.url(), // does this hold?
-  puzzleScheduledAt: ZDate,
+  puzzleScheduledAt: ZDate.optional(),
 });
 
 export type TChannelData = z.infer<typeof ZChannelData>;

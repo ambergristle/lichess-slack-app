@@ -13,27 +13,36 @@ import { SlackClient } from 'lib/slack';
 export const handleGetDailyPuzzle: RequestHandler = async (req, res, next) => {
   
   try {
+    // initialize client and validate request
+    const slack = SlackClient.init();
+    const { isValid, headers, body } = slack.parseHeaders(req);  
+    
+    // return origin above?
+    // to what degree should subsequent logic be bound to this?
+
+    // handle
+    if (!isValid) throw new Error();
+
+    const { channel } = slack.parseSlashCommand(body);
+
+    // use channel to find/auth player?
+    
     // retrieve daily puzzle data from lichess api
     const lichess = LichessClient.init();
     const { puzzleUrl, puzzleThumbUrl } = await lichess.getDailyPuzzle();
   
     // generate daily puzzle blocks
-    const slack = SlackClient.init();
     const dailyPuzzleBlocks = slack.blocks.dailyPuzzle({
       puzzleUrl,
       puzzleThumbUrl,
     });
     
-    // search through db for channels awaiting notification
-    // write to slack
-    // on success, update db
+    // triggered -> search through db for channels awaiting notification
 
-    // what consumes this?
-    return res.status(200).json({
-      success: true,
-      message: 'Get Puzzle implementation in progress',
-      data: dailyPuzzleBlocks,
-    });
+    // update db
+
+    // https://api.slack.com/interactivity/slash-commands#responding_immediate_response
+    return res.status(200).json(dailyPuzzleBlocks);
     
   } catch (error) {
     return next(error);
