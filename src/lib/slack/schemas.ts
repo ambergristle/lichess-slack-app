@@ -31,6 +31,15 @@ export interface ICommandBlockResponse extends ICommandTextResponse {
 }
 
 
+const ZBaseRequest = z.object({
+  headers: z.object({}).passthrough(),
+});
+
+export const ZPostRequest = ZBaseRequest.extend({
+  body: z.object({}).passthrough(),
+});
+
+export type TBaseRequest = z.infer<typeof ZBaseRequest>;
 
 
 export const ZSlackHeaders = z.object({

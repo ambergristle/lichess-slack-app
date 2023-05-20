@@ -2,14 +2,22 @@ import {
   WebClient as SlackWebClient,
   type ChatPostMessageArguments,
 } from '@slack/web-api';
-import { getDailyPuzzleBlocks, getNotFoundBlocks } from './blocks';
+import { getDailyPuzzleBlocks, getInvalidRequestBlocks, getNotFoundBlocks } from './blocks';
 import { ZPostMessageRequest, ZSlashCommand, ZTokenRequest, type TSlashCommand, ZSlackHeaders } from './schemas';
 import { Channel } from 'models/channel';
 import { safeCompareHmacDigests, getHmacHexDigest } from './utils';
 import template from 'lodash/template';
 
+export enum SlackRequestParsers {
+  Slash = 'slashCommand'
+}
 
-export class SlackClient {
+interface ISlackClient {
+  parsers: Record<SlackRequestParsers, any>
+}
+
+
+export class SlackClient implements ISlackClient {
 
   /** 
    * @token timestamp Extracted from request headers
@@ -42,7 +50,14 @@ export class SlackClient {
   get blocks() {
     return {
       dailyPuzzle: getDailyPuzzleBlocks,
+      invalidRequest: getInvalidRequestBlocks,
       notFound: getNotFoundBlocks,
+    };
+  }
+
+  get parsers() {
+    return {
+      slashCommand: this._parseSlashCommand,
     };
   }
 
@@ -69,12 +84,12 @@ export class SlackClient {
    * @param req Incoming request, headers and body expected
    * @returns 
    */
-  private _verifySignature(req: any) {
+  private _verifyRequest(request: any) {
 
     // utf-8 encode secret?
-    const { signature, timestamp } = ZSlackHeaders.parse(req.headers);
+    const { signature, timestamp } = ZSlackHeaders.parse(request.headers);
     // utf-8 encode body? TextEncoder("utf-8").encode
-    const bodyString = JSON.stringify(req.body);
+    const bodyString = JSON.stringify(request.body);
     const signatureData = this._getSignatureData(bodyString, timestamp);
 
     const expectedSignature = getHmacHexDigest(this._clientSecret, signatureData);
@@ -82,7 +97,7 @@ export class SlackClient {
     return {
       isValid: safeCompareHmacDigests(expectedSignature, signature),
       headers: { signature, timestamp },
-      body: req.body,
+      body: request.body,
     };
   }
 
@@ -108,10 +123,15 @@ export class SlackClient {
    * 
    * @param req 
    */
-  public parseHeaders(req: any) {
-    const { isValid, headers, body } = this._verifySignature(req);
-    if (!isValid) throw new Error('Invalid signature');
-    return { isValid, headers, body };
+  public parseRequest(request: any, parser: SlackRequestParsers) {
+    // at this point we should know that headers/body are present + valid (objects)
+    const { isValid, headers, body } = this._verifyRequest(request);
+
+    return { 
+      isValid, 
+      headers, 
+      body: this.parsers[parser](body),
+    };
   } 
 
   /**
@@ -119,7 +139,7 @@ export class SlackClient {
    * @param body 
    * @returns 
    */
-  public parseSlashCommand(body: TSlashCommand) {
+  private _parseSlashCommand(body: TSlashCommand) {
     const slashCommand = ZSlashCommand.parse(body);
 
     const channel = Channel.init({
