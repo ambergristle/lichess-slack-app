@@ -3,7 +3,8 @@ import { Hono } from 'hono';
 const v1 = new Hono();
 
 const auth = v1
-  .get('/auth', (c) => c.text('auth'));
+  .get('/auth', (c) => c.text('auth'))
+  .all((c) => c.text('Invalid method', 405));
 
 const help = v1
   .get('/help', (c) => c.text('help'));

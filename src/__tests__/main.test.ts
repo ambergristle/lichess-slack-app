@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import app from '..';
 
-describe('my first test', () => {
-  it('should return a 200 response', async () => {
-    const req = new Request('http://localhost/');
+describe('main router', () => {
+  it('should return a 404 response for an unregistered route', async () => {
+    const req = new Request('http://localhost/api/v1/checkers');
     const res = await app.request(req);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(404);
   });
 });
