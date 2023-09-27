@@ -9,3 +9,15 @@ export const unix = {
     return epochSeconds * 1000
   }
 }
+
+
+
+import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz'
+
+const stripTimezone = () => {
+  return zonedTimeToUtc(date, timeZone)
+}
+
+const setTimezone = () => {
+  return utcToZonedTime(date, timeZone)
+}

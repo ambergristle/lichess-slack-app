@@ -7,7 +7,7 @@ type BotData = {
   scheduledAt?: Date;
 }
 
-class Bot {
+class Bot implements BotData {
 
   public readonly uid: string;
 
@@ -24,6 +24,10 @@ class Bot {
 
 
   }
+
+  public serialize() {}
+
+  public parse() {}
 
 
 }
