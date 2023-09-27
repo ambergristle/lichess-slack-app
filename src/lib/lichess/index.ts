@@ -1,19 +1,25 @@
 import wretch from 'wretch';
-import { parseDailyPuzzleResponse } from './schema';
+import { parseDailyPuzzleResponse } from './parsers';
 
-const BASE_PATH = 'https://lichess.org';
+const lichessApi = wretch(`https://lichess.org/api`)
 
+/**
+ * Responsible for interacting with the Lichess web api
+ */
 export default {
     
   fetchDailyPuzzle: async () => {
     console.info('Fetching daily puzzle data...');
 
-    const { puzzle } = await wretch(`${BASE_PATH}/api/puzzle/daily`)
-      .get()
+    /**
+     * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
+     */
+    const { puzzle } = await lichessApi
+      .get('/puzzle/daily')
       .json(parseDailyPuzzleResponse);
 
     return {
-      puzzleUrl: `${BASE_PATH}/training/${puzzle.id}`,
+      puzzleUrl: `https://lichess.org/training/${puzzle.id}`,
       puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzle.id}.gif`,
     };
 

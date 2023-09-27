@@ -1,10 +1,10 @@
 
 import { Hono } from 'hono';
-import v1 from './routes';
+import slack from './routes';
 
 const app = new Hono();
 
-app.route('/api/v1', v1);
+app.route('/slack', slack);
 
 app.notFound((c) => c.text('404', 404));
 
