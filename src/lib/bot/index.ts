@@ -1,77 +1,153 @@
-import wretch from 'wretch';
-import QueryStringAddon from "wretch/addons/queryString"
-import responseFactories from './responses'
-import { parseBotCredentialResponse } from '../slack/parsers';
-import { Bot } from '../../schemas';
+import type { KnownBlock } from '@slack/web-api';
 
-const slackApi = wretch('https://slack.com/api')
-  .addon(QueryStringAddon)
+/** 
+ * Generate daily puzzle blocks 
+ * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
+ * @see https://api.slack.com/block-kit
+*/
+type BlockResponse = {
+  blocks: KnownBlock[];
+};
 
-class SlackBot {
+const dailyPuzzleResponseFactory = ({
+  puzzleThumbUrl,
+  puzzleUrl
+}: {
+  puzzleThumbUrl: string;
+  puzzleUrl: string;
+}): BlockResponse => {
 
-  private static readonly _redirectUrl = '';
-
-  public static readonly commands = responseFactories;
-
-  static get #clientId() {
-    const clientId = process.env.SLACK_CLIENT_ID;
-    if (!clientId) throw new Error();
-    return clientId;
+  return {
+    blocks: [
+      {
+        type: 'image',
+        title: {
+          type: 'plain_text',
+          // can we do anything more interesting?
+          text: puzzleThumbUrl,
+        },
+        image_url: puzzleThumbUrl,
+        // let's get current date/some meta in here
+        alt_text: 'Today\'s Lichess Daily Puzzle',
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: puzzleUrl,
+        },
+      },
+    ]
   }
+};
 
-  static get #clientSecret() {
-    const secret = process.env.SLACK_CLIENT_SECRET;
-    if (!secret) throw new Error();
-    return secret
+const notFoundResponseFactory = ({ 
+  command, 
+}: {
+  command: string;
+}): BlockResponse => {
+
+  return {
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `Slash command ${command} is a shout into the void`,
+        },
+      },
+    ]
   }
+};
 
-  /**
-   * Add bot to Slack workspace and write to database
-   */
-  public static async register({
-    code,
-    createBotAccount,
-  }: {
-    code: string;
-    createBotAccount: (credentials: Bot) => void | Promise<void>;
-  }) {
-    /**
-     * @see https://api.slack.com/methods/oauth.v2.access
-     */
-    const credentials = await slackApi
-      .auth(`Basic ${this.#clientId}:${this.#clientSecret}`)
-      .query({ 
-        code,
-        redirect_uri: this._redirectUrl
-      })
-      .post('/oauth.v2.access')
-      .json(parseBotCredentialResponse)
+const invalidRequestResponseFactory = (): BlockResponse => {
 
-    await createBotAccount(credentials)
+  return {
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: 'Your request was invalid. Make sure this app'
+            + ' is correctly installed in your workspace'
+            + ' or try /help for available commands',
+        },
+      },
+    ]
   }
+};
 
-  /**
-   * Remove bot from Slack workspace and delete from database
-   */
-  public static async revoke({
-    teamId,
-    token,
-    deleteBotAccount,
-  }: {
-    teamId: string;
-    token: string;
-    deleteBotAccount: (params: Pick<Bot, 'teamId'>) => Promise<void>;
-  }) {
-    // check for existence/auth?
+const helpResponseFactory = (): BlockResponse => {
 
-    await slackApi
-      .query({ token })
-      .post('/auth.revoke')
-      .json()
-
-    await deleteBotAccount({ teamId })
+  return {
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: 'Hello world',
+        },
+      },
+      {
+        type: 'divider',
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '*Get today\'s puzzle*\n'
+            + '`/puzzle`',
+        },
+      },
+      // {
+      //   type: 'section',
+      //   text: {
+      //     type: 'mrkdwn',
+      //     text: '*Schedule*\n'
+      //       + '`/set-time`'
+      //       + '`/set-time HH:MM`',
+      //   },
+      // },
+    ]
   }
+};
 
+// this is going to be tough
+const whatever = () => {
+  const now = new Date();
+
+  const nowHours = `${now.getHours()}`.padStart(2, '0');
+  const nowMinutes = `${now.getMinutes()}`.padStart(2, '0');
+
+  return `${nowHours}:${nowMinutes}`
 }
 
-export default SlackBot;
+export const schedulingResponseFactory = (): BlockResponse => {
+  return {
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: 'whatever'
+        },
+        accessory: {
+          type: "timepicker",
+          initial_time: "10:00",
+          placeholder: {
+            type: "plain_text",
+            text: "Select time",
+            emoji: true
+          },
+          action_id: "timepicker-action"
+        }
+      }
+    ]
+  }
+}
+
+export default {
+  help: helpResponseFactory,
+  puzzle: dailyPuzzleResponseFactory,
+  schedule: schedulingResponseFactory,
+}

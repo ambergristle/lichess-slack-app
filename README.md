@@ -41,3 +41,9 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 **Slack**
 - Slash Commands: [https://api.slack.com/interactivity/slash-commands](https://api.slack.com/interactivity/slash-commands)
 - Webhooks: [https://api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks)
+
+## Todo
+- Signature state for registration
+- Return JSX for landing/signup page
+- Set up redirect flow for landing page?
+- Scheduling (collect tz info)

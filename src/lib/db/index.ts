@@ -2,7 +2,6 @@ import Db from "./abstract";
 import SqliteDb from "./sqlite";
 import { Bot } from "../../schemas";
 
-
 class Service {
 
   private db: Db;

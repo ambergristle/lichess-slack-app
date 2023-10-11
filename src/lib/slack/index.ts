@@ -1,53 +1,75 @@
+import wretch from 'wretch';
+import QueryStringAddon from "wretch/addons/queryString"
+import config from '../../config';
 import { unix } from "../../utils";
 import hmac from "../hmac";
-import { parseHeaders } from "./parsers";
+import { parseBotCredentialResponse, parseHeaders } from "./parsers";
+
+const SlackApi = wretch('https://slack.com/api')
+  .addon(QueryStringAddon)
 
 /**
  * Protect against replay attacks by enforcing X
  * @param timestamp Unix timestamp
- * @returns 
+ * @returns boolean
  */
 const validateTimestamp = (timestamp: string) => {
+  /** future dates are invalid */
   const millisecondDifference = Date.now() - unix.toDate(timestamp);
-  if (millisecondDifference < 0) throw new Error()
+  if (millisecondDifference < 0) return false;
+  /** recommended? expiration */
+  const oneMinuteMilliseconds = 1 * 60 * 1000;
+  if (millisecondDifference > oneMinuteMilliseconds) return false
 
-  const something = 1 * 60 * 1000
-  if (millisecondDifference > something) throw new Error()
+  return true
 }
 
 /**
- * Responsible for parsing and verifying requests
- * @todo should this also handle serializing responses?
- * @todo middleware?
+ * Validate signature using hmac
+ * @see https://api.slack.com/authentication/verifying-requests-from-slack
  */
+const verifyRequest = (request: {
+  headers: Headers;
+  body: ReadableStream<any> | null;
+}) => {
+  const { signature, timestamp } = parseHeaders(request.headers);
 
-export default {
-  /**
-   * Validate signature using hmac
-   * @see https://api.slack.com/authentication/verifying-requests-from-slack
-   * @todo parse body?
-   */
-  verifyRequest: (request: Request) => {
-    console.info('Verifying request')
-
-    // utf-8 encode secret?
-    const { signature, timestamp } = parseHeaders(request.headers);
-    // utf-8 encode body? TextEncoder("utf-8").encode
-    const signatureData = `v0:${timestamp}:${JSON.stringify(request.body)}`;
-
-    const clientSecret = process.env.SLACK_CLIENT_SECRET;
-    if (!clientSecret) throw new Error('SLACK_CLIENT_SECRET is required')
-    const expectedSignature = hmac.createDigest(clientSecret, signatureData);
-
-    // throw or parse return?
-
-    validateTimestamp(timestamp)
-    
-
-    return {
-      isValid: hmac.safeCompareDigests(expectedSignature, signature),
-      headers: { signature, timestamp },
-      body: request.body,
-    }
+  const signatureData = `v0:${timestamp}:${JSON.stringify(request.body)}`;
+  const expectedSignature = hmac.createDigest(config.SLACK_CLIENT_SECRET!, signatureData);
+  
+  return {
+    timestampIsValid: validateTimestamp(timestamp),
+    signatureIsValid: hmac.safeCompareDigests(expectedSignature, signature),
   }
+}
+
+const registerBot = async (code: string) => {
+  /**
+   * @see https://api.slack.com/methods/oauth.v2.access
+   */
+  return await SlackApi
+    .auth(`Basic ${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
+    .query({ 
+      code,
+      redirect_uri: config.REGISTRATION_URL
+    })
+    .post('/oauth.v2.access')
+    .json(parseBotCredentialResponse)
+}
+
+const unregisterBot = async (token: string) => {
+
+  return await SlackApi
+    .query({ token })
+    .post('/auth.revoke')
+    .json()
+}
+
+/**
+ * Use to parse and verify requests
+ */
+export default {
+  verifyRequest,
+  registerBot,
+  unregisterBot
 }

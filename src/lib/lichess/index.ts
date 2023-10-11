@@ -1,7 +1,7 @@
 import wretch from 'wretch';
 import { parseDailyPuzzleResponse } from './parsers';
 
-const lichessApi = wretch(`https://lichess.org/api`)
+const LichessApi = wretch(`https://lichess.org/api`)
 
 /**
  * Responsible for interacting with the Lichess web api
@@ -14,7 +14,7 @@ export default {
     /**
      * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
      */
-    const { puzzle } = await lichessApi
+    const { puzzle } = await LichessApi
       .get('/puzzle/daily')
       .json(parseDailyPuzzleResponse);
 

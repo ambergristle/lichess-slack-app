@@ -2,7 +2,6 @@ import { Database as BunSqlLiteDb } from "bun:sqlite";
 import { serializeBot, parseBot, Bot } from "../../schemas";
 import Db from "./abstract";
 
-
 /**
  * @see https://bun.sh/docs/api/sqlite
  */
@@ -57,7 +56,11 @@ class SqliteDb implements Db {
     const result = this.db.query(`
       UPDATE bots WHERE teamId = :teamId
       SET scheduled_at = :scheduledAt,
-    `).get({ teamId, scheduledAt })
+    `).get({ 
+      teamId,
+      // format?
+      scheduledAt: scheduledAt.toISOString()
+    })
 
     return parseBot(result)
   }
