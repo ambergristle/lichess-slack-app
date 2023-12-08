@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { unix } from "./utils";
+import { unix } from "./lib/utils";
 
 export type Bot = {
   uid: string;
@@ -42,16 +42,10 @@ export const serializeBot = (bot: Bot) => {
     })
   }))
 
-
-
   return ZBotWrite.parse(bot)
 }
 
-export const serializePartialBot = (bot: Partial<Bot>) => {
-  return ZBotWrite.extend({
-    date: z.date().transform((date) => date.toISOString())
-  })
-}
+
 
 const ZTimestamp = z.string().transform(unix.toDate)
 
@@ -65,22 +59,3 @@ const ZActionsRequest = z.object({
 
 
 
-type ActionsRequest = z.infer<typeof ZActionsRequest>;
-
-const whatever = (request: ActionsRequest) => {
-  const thing = request.actions.at(0)
-
-  // checks?
-
-
-}
-
-
-
-
-
-const userResponse = z.object({
-  user: z.object({
-    tz: z.string(), // "America/Los_Angeles"
-  })
-})

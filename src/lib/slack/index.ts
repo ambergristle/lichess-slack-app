@@ -1,7 +1,7 @@
 import wretch from 'wretch';
 import QueryStringAddon from "wretch/addons/queryString"
 import config from '../../config';
-import { unix } from "../../utils";
+import { unix } from "../utils";
 import hmac from "../hmac";
 import { parseBotCredentialResponse, parseHeaders } from "./parsers";
 
