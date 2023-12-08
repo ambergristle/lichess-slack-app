@@ -1,5 +1,8 @@
 
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import pug from 'pug';
+
 import bot from './lib/bot';
 import db from './lib/db';
 import lichess from './lib/lichess';
@@ -8,41 +11,45 @@ import {
   parseRegistrationRequest,
   parseSlashCommandRequest
 } from './lib/slack/parsers';
-import { HTTPException } from 'hono/http-exception';
 
-const STATE = '' // what is this?
+import config from './config'
 
 const app = new Hono();
+
+const compileLandingPage = pug.compileFile('./landing.pug')
 
 /** 
  * Expose app info and registration button
  */
 app.get('/', (c) => {
-    /**
-     * this returns a page with a link that has the 
-     * client id and the /register href baked into
-     * the href; on click, slack takes over the 
-     * transaction and asks the user to approve the 
-     * installation. on successful install, the provided
-     * /register route should be called, with a temporary
-     * code and a state signature
-     */
-    return c.text('Home')
+
+  /** 
+   * The registration url points to Slack, where users
+   * can authorize this app. It includes a redirect uri
+   * that will automatically return users to the /register
+   * route, along with a registration code
+  */
+
+  const landingPage = compileLandingPage({
+    registrationHref: slack.getOAuthRedirectUrl(config.STATE)
   })
+
+  return c.html(landingPage);
+});
 
 /** 
  * Process registration request
  */
 app.post('/register', async (c) => {
-    const body = await c.req.parseBody();
-    const { code } = parseRegistrationRequest(body, STATE);
+  const body = await c.req.parseBody();
+  const { code } = parseRegistrationRequest(body, config.STATE);
 
-    const bot = await slack.registerBot(code);
-    await db.createBot(bot)
+  const bot = await slack.registerBot(code);
+  await db.createBot(bot)
 
-    // redirect somewhere? return stuff?
-    return c.text('Success!');
-  })
+  // redirect somewhere? return stuff?
+  return c.text('Success!');
+})
   .all((c) => c.text('Invalid method', 405)); // ?
 
 
@@ -58,7 +65,7 @@ v1.use((c, next) => {
     const res = new Response("Unauthorized", {
       status: 401,
     });
-    
+
     throw new HTTPException(401, { res });
   }
 

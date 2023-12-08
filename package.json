@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@slack/web-api": "^6.9.0",
+    "@types/pug": "^2.0.10",
     "@typescript-eslint/eslint-plugin": "^6.4.1",
     "@typescript-eslint/parser": "^6.4.1",
     "bun-types": "latest",
@@ -31,6 +32,7 @@
     "@hono/zod-validator": "^0.1.8",
     "date-fns-tz": "^2.0.0",
     "hono": "^3.5.4",
+    "pug": "^3.0.2",
     "wretch": "^2.6.0",
     "zod": "^3.22.2"
   }

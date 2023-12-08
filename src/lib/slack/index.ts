@@ -1,12 +1,33 @@
 import wretch from 'wretch';
 import QueryStringAddon from "wretch/addons/queryString"
+
 import config from '../../config';
-import { unix } from "../utils";
+import { constructHref, unix } from "../utils";
 import hmac from "../hmac";
 import { parseBotCredentialResponse, parseHeaders } from "./parsers";
 
 const SlackApi = wretch('https://slack.com/api')
   .addon(QueryStringAddon)
+
+/**
+ * Client
+ * @see https://api.slack.com/authentication/oauth-v2#asking
+ * @returns 
+ */
+const getOAuthRedirectUrl = (uid: string) => {
+  // user tz?
+  const APP_SCOPES = [
+    'commands',
+    'incoming-webhook',
+  ];
+
+  return constructHref('https://slack.com/oauth/v2/authorize', {
+    client_id: config.SLACK_CLIENT_ID,
+    scope: APP_SCOPES.join(),
+    state: uid,
+    redirect_uri: config.REGISTRATION_URL,
+  });
+};
 
 /**
  * Protect against replay attacks by enforcing X
@@ -69,6 +90,7 @@ const unregisterBot = async (token: string) => {
  * Use to parse and verify requests
  */
 export default {
+  getOAuthRedirectUrl,
   verifyRequest,
   registerBot,
   unregisterBot
