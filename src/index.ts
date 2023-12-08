@@ -54,7 +54,7 @@ v1.use((c, next) => {
     signatureIsValid,
   } = slack.verifyRequest(c.req.raw)
 
-  if (timestampIsValid && signatureIsValid) {
+  if (!timestampIsValid || !signatureIsValid) {
     const res = new Response("Unauthorized", {
       status: 401,
     });
@@ -82,6 +82,7 @@ v1.post('/puzzle', async (c) => {
 
 /** 
  * Get or set scheduled delivery time
+ * @todo
  */
 v1.post('/schedule', async (c) => {
   // we can probably do more here
