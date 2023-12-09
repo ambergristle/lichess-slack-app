@@ -3,20 +3,20 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import pug from 'pug';
 
-import bot from './lib/bot';
-import db from './lib/db';
-import lichess from './lib/lichess';
-import slack from './lib/slack';
+import bot from '@/lib/bot';
+import db from '@/lib/db';
+import lichess from '@/lib/lichess';
+import slack from '@/lib/slack';
 import {
   parseRegistrationRequest,
   parseSlashCommandRequest
-} from './lib/slack/parsers';
+} from '@/lib/slack/parsers';
 
-import config from './config'
+import config from '@/config'
 
 const app = new Hono();
 
-const compileLandingPage = pug.compileFile('./landing.pug')
+const compileLandingPage = pug.compileFile('src/landing.pug')
 
 /** 
  * Expose app info and registration button
@@ -93,9 +93,12 @@ v1.post('/puzzle', async (c) => {
  */
 v1.post('/schedule', async (c) => {
   // we can probably do more here
-  const body = parseSlashCommandRequest(c.req.body)
-  await db.scheduleBotByTeamId(body.teamId, new Date())
-  return c.text(`schedule ${body.text}`);
+  const body = parseSlashCommandRequest(await c.req.parseBody())
+
+  const preferences = await slack.getTimeZone(body.userId)
+  // await db.scheduleBotByTeamId(body.teamId, new Date())
+
+  return c.text(JSON.stringify(preferences));
 });
 
 app.route('/slack', v1);

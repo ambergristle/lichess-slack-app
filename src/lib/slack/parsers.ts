@@ -53,8 +53,22 @@ export const parseSlashCommandRequest = (body: unknown) => {
     userId: parsed.user_id,
     command: parsed.command,
     text: parsed.text,
-    parsedoke: parsed.token,
+    token: parsed.token,
     appId: parsed.api_app_id,
     responseUrl: parsed.response_url,
   })).parse(body);
 };
+
+export const parseTimeZone = (body: unknown) => {
+  return z.object({
+    user: z.object({
+      tz: z.string(),
+      tz_label: z.string(),
+      tz_offset: z.number(),
+    })
+  }).transform(({ user }) => ({
+    tz: user.tz,
+    tzLabel: user.tz_label,
+    tzOffset: user.tz_offset
+  })).parse(body)
+}

@@ -38,7 +38,7 @@ const Puzzle = z.object({
 });
 
 const DailyPuzzleResponse = z.object({
-  game: Game,
+  // game: Game,
   puzzle: Puzzle,
 });
 

@@ -4,7 +4,11 @@ import QueryStringAddon from "wretch/addons/queryString"
 import config from '../../config';
 import { constructHref, unix } from "../utils";
 import hmac from "../hmac";
-import { parseBotCredentialResponse, parseHeaders } from "./parsers";
+import {
+  parseBotCredentialResponse,
+  parseHeaders,
+  parseTimeZone
+} from "./parsers";
 
 const SlackApi = wretch('https://slack.com/api')
   .addon(QueryStringAddon)
@@ -19,6 +23,7 @@ const getOAuthRedirectUrl = (uid: string) => {
   const APP_SCOPES = [
     'commands',
     'incoming-webhook',
+    'users:read',
   ];
 
   return constructHref('https://slack.com/oauth/v2/authorize', {
@@ -56,12 +61,20 @@ const verifyRequest = (request: {
   const { signature, timestamp } = parseHeaders(request.headers);
 
   const signatureData = `v0:${timestamp}:${JSON.stringify(request.body)}`;
-  const expectedSignature = hmac.createDigest(config.SLACK_CLIENT_SECRET!, signatureData);
+  const expectedSignature = hmac.createDigest(config.SLACK_CLIENT_SECRET, signatureData);
   
   return {
     timestampIsValid: validateTimestamp(timestamp),
     signatureIsValid: hmac.safeCompareDigests(expectedSignature, signature),
   }
+}
+
+const getTimeZone = async (userId: string) => {
+  return await SlackApi
+    .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
+    .query({ user: userId })
+    .get('/users.info')
+    .json(parseTimeZone)
 }
 
 const registerBot = async (code: string) => {
@@ -91,7 +104,8 @@ const unregisterBot = async (token: string) => {
  */
 export default {
   getOAuthRedirectUrl,
-  verifyRequest,
+  getTimeZone,
   registerBot,
-  unregisterBot
+  unregisterBot,
+  verifyRequest,
 }
