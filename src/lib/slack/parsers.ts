@@ -59,6 +59,37 @@ export const parseSlashCommandRequest = (body: unknown) => {
   })).parse(body);
 };
 
+/**
+ * @see https://api.slack.com/reference/interaction-payloads/block-actions
+ */
+export const parseTimePickerAction = (body: unknown) => {
+  const { payload } = z.object({
+    payload: z.string()
+  }).parse(body)
+
+  const json = JSON.parse(payload)
+
+  return z.object({
+    team: z.object({
+      id: z.string()
+    }),
+    user: z.object({ 
+      id: z.string(),
+    }),
+    actions: z.object({
+      action_id: z.string(),
+      block_id: z.string(),
+      selected_time: z.string()
+    }).array().min(1),
+    response_url: z.string(),
+  }).transform((parsed) => ({
+    teamId: parsed.team.id,
+    userId: parsed.user.id,
+    selectedTime: parsed.actions[0]?.selected_time,
+    responseUrl: parsed.response_url,
+  })).parse(json)
+}
+
 export const parseTimeZone = (body: unknown) => {
   return z.object({
     user: z.object({

@@ -129,18 +129,22 @@ export const schedulingResponseFactory = (): BlockResponse => {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: 'whatever'
+          text: 'When would you like to recieve your link to the daily puzzle?'
         },
-        accessory: {
+      },
+      {
+        type: 'actions',
+        block_id: "timepicker-block",
+        elements: [{
           type: "timepicker",
-          initial_time: "10:00",
+          initial_time: "10:45",
           placeholder: {
             type: "plain_text",
             text: "Select time",
             emoji: true
           },
           action_id: "timepicker-action"
-        }
+        }]
       }
     ]
   }

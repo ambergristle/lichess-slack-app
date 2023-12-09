@@ -2,15 +2,17 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import pug from 'pug';
+import wretch from 'wretch';
 
 import bot from '@/lib/bot';
 import db from '@/lib/db';
 import lichess from '@/lib/lichess';
 import slack from '@/lib/slack';
 import {
+  parseTimePickerAction,
   parseRegistrationRequest,
-  parseSlashCommandRequest
 } from '@/lib/slack/parsers';
+import { getScheduledTime, parseScheduleArguments } from '@/lib/tz';
 
 import config from '@/config'
 
@@ -20,6 +22,7 @@ const compileLandingPage = pug.compileFile('src/landing.pug')
 
 /** 
  * Expose app info and registration button
+ * @todo
  */
 app.get('/', (c) => {
 
@@ -39,6 +42,7 @@ app.get('/', (c) => {
 
 /** 
  * Process registration request
+ * @todo
  */
 app.post('/register', async (c) => {
   const body = await c.req.parseBody();
@@ -50,8 +54,7 @@ app.post('/register', async (c) => {
   // redirect somewhere? return stuff?
   return c.text('Success!');
 })
-  .all((c) => c.text('Invalid method', 405)); // ?
-
+.all((c) => c.text('Invalid method', 405)); // ?
 
 const v1 = new Hono();
 
@@ -87,18 +90,37 @@ v1.post('/puzzle', async (c) => {
   return c.json(bot.puzzle(puzzleData));
 });
 
-/** 
- * Get or set scheduled delivery time
- * @todo
- */
-v1.post('/schedule', async (c) => {
-  // we can probably do more here
-  const body = parseSlashCommandRequest(await c.req.parseBody())
+v1.post('/schedule/set', async (c) => {
+  const body = parseTimePickerAction(await c.req.parseBody())
+
+  /** @todo move to bot? */
+  const { hours, minutes } = parseScheduleArguments(body.selectedTime)
 
   const preferences = await slack.getTimeZone(body.userId)
-  // await db.scheduleBotByTeamId(body.teamId, new Date())
+  const scheduledTime = getScheduledTime(hours, minutes, preferences.tz)
 
-  return c.text(JSON.stringify(preferences));
+  /** @todo save to db */
+
+  const displayString = scheduledTime.toLocaleString('en-US', {
+    timeZone: preferences.tz
+  })
+
+  /** @todo blocks */
+  wretch(body.responseUrl).post({
+    replace_original: true,
+    text: `Your puzzle would have been scheduled at ${displayString}, but`
+      + ' I haven\'t gotten that far yet'
+  }, )
+
+  return c.text('ok')
+})
+
+/** 
+ * Get or set scheduled delivery time
+ */
+v1.post('/schedule', async (c) => {
+  /** @todo get from db */
+  return c.json(bot.schedule());
 });
 
 app.route('/slack', v1);
