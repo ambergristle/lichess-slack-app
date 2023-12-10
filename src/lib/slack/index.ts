@@ -22,7 +22,6 @@ const getOAuthRedirectUrl = (uid: string) => {
   // user tz?
   const APP_SCOPES = [
     'commands',
-    'incoming-webhook',
     'users:read',
   ];
 

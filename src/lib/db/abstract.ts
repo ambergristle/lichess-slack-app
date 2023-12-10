@@ -1,13 +1,15 @@
 import { Bot } from "../../schemas";
 
+type MaybePromise<T> = T | Promise<T>;
+
 abstract class Db {
-  abstract createBot(data: Bot): Bot | Promise<Bot>;
+  abstract addBot(data: Bot): MaybePromise<Bot>;
 
-  abstract findBotByTeamId(teamId: string): Bot | Promise<Bot>;
+  abstract getBot(teamId: string): MaybePromise<Bot | null>;
 
-  abstract scheduleBotByTeamId(teamId: string, scheduledAt: Date): Bot | Promise<Bot>;
+  abstract scheduleBot(teamId: string, scheduledAt: Date): MaybePromise<void>;
 
-  abstract deleteBotByTeamId(teamId: string): Bot | Promise<Bot>;
+  abstract deleteBot(teamId: string): MaybePromise<void>;
 }
 
-export default Db;
+export default Db

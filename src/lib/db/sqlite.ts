@@ -1,6 +1,39 @@
 import { Database as BunSqlLiteDb } from "bun:sqlite";
-import { serializeBot, parseBot, Bot } from "../../schemas";
+import { z } from 'zod';
+
+import { Bot, ZBot } from "@/schemas";
 import Db from "./abstract";
+
+const sqliteToBot = (botData: unknown): Bot => {
+  return z.object({
+    uid: z.string(),
+    team_id: z.string(),
+    token: z.string(),
+    scope: z.string(),
+    scheduled_at: z.coerce.date().nullable(),
+  }).transform((data) => ({
+    uid: data.uid,
+    teamId: data.team_id,
+    token: data.token,
+    scope: data.scope.split(','),
+    ...(data.scheduled_at && {
+      scheduledAt: data.scheduled_at
+    })
+  }))
+  .parse(botData)
+}
+
+const botToSqlite = (bot: Bot) => {
+  return ZBot.transform((bot) => ({
+    uid: bot.uid,
+    team_id: bot.teamId,
+    token: bot.token,
+    scope: bot.scope.join(','),
+    ...(bot.scheduledAt && {
+      scheduled_at: bot.scheduledAt?.toISOString(),
+    })
+  })).parse(bot)
+}
 
 /**
  * @see https://bun.sh/docs/api/sqlite
@@ -12,17 +45,19 @@ class SqliteDb implements Db {
 
   private constructor() {
     // const db = new Database("mydb.sqlite");
-    this.db = new BunSqlLiteDb(":memory:");
+    this.db = new BunSqlLiteDb("mydb.sqlite");
     this.init()
   }
 
   private init() {
+    this.db.exec("PRAGMA journal_mode = WAL;");
     this.db.run(`
       CREATE TABLE IF NOT EXISTS bots (
         uid STRING PRIMARY KEY, 
         team_id STRING,
         token STRING,
-        scope STRING
+        scope STRING,
+        scheduled_at STRING
       )
     `)
   }
@@ -35,42 +70,62 @@ class SqliteDb implements Db {
     this.db.close()
   }
 
-  public createBot(data: Bot) {
-    const botRecord = serializeBot(data);
+  public addBot(data: Bot) {
+    const botRecord = botToSqlite(data);
 
-    const result = this.db.query(`
+    this.db.query(`
       INSERT INTO bots (uid, team_id, token, scope)
-      VALUES (:uid, :teamId, :token, :scope)
-    `).get(botRecord)
+      VALUES ($uid, $team_id, $token, $scope)
+    `).run({
+      $uid: botRecord.uid,
+      $team_id: botRecord.team_id,
+      $token: botRecord.token,
+      $scope: botRecord.scope,
+    });
 
-    return parseBot(result)
-  }
-
-  public findBotByTeamId(teamId: string) {
-    const result = this.db.query('SELECT * FROM bots WHERE team_id = :teamId').get({ teamId })
-    // handle null case
-    return parseBot(result)
-  }
-
-  public scheduleBotByTeamId(teamId: string, scheduledAt: Date) {
     const result = this.db.query(`
-      UPDATE bots WHERE teamId = :teamId
-      SET scheduled_at = :scheduledAt,
-    `).get({ 
-      teamId,
-      // format?
-      scheduledAt: scheduledAt.toISOString()
-    })
+      SELECT * from bots where rowId = last_insert_rowid()
+    `).get()
+    
+    if (!result) throw new Error('Bot insertion failed');
 
-    return parseBot(result)
+    return sqliteToBot(result)
   }
 
-  public updateBotByTeamId(teamId: string) {}
+  public getBot(teamId: string) {
+    const result = this.db.query(`
+      SELECT * FROM bots WHERE team_id = $teamId
+    `).get({ $teamId: teamId })
 
-  public deleteBotByTeamId(teamId: string) {
-    const deleteBotQuery = this.db.query('DELETE FROM bots WHERE teamId = ?')
-    const result = deleteBotQuery.get(teamId) // return?
-    return parseBot(result)
+    return result === null
+      ? result
+      : sqliteToBot(result)
+  }
+
+  public listBots() {
+    const results = this.db.query(`
+      SELECT * FROM bots
+    `).all()
+
+    return results.map(sqliteToBot)
+  }
+
+  public scheduleBot(teamId: string, scheduledAt: Date) {
+    this.db.query(`
+      UPDATE bots
+      SET scheduled_at = $scheduled_at
+      WHERE team_id = $team_id
+    `).run({ 
+      $team_id: teamId,
+      // format?
+      $scheduled_at: scheduledAt.toISOString()
+    })
+  }
+
+  public deleteBot(teamId: string) {
+    this.db.query(`
+      DELETE FROM bots WHERE team_id = $team_id'
+    `).get({ $team_id: teamId })
   }
 }
 

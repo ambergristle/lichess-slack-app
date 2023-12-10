@@ -112,24 +112,29 @@ const helpResponseFactory = (): BlockResponse => {
   }
 };
 
-// this is going to be tough
-const whatever = () => {
-  const now = new Date();
+export const schedulingResponseFactory = (
+  scheduledAt: Date | undefined,
+  timeZone: string,
+): BlockResponse => {
+  const displayString = scheduledAt?.toLocaleString('en-US', {
+    timeZone
+  });
 
-  const nowHours = `${now.getHours()}`.padStart(2, '0');
-  const nowMinutes = `${now.getMinutes()}`.padStart(2, '0');
+  /** @todo default */
 
-  return `${nowHours}:${nowMinutes}`
-}
+  const infoText = displayString
+    ? `Your are scheduled to recieve the next puzzle at ${displayString}.`
+      + ' You can update or cancel at any time:'
+    : 'Select a time to recieve the Lichess Daily Puzzle';
 
-export const schedulingResponseFactory = (): BlockResponse => {
   return {
     blocks: [
+      
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: 'When would you like to recieve your link to the daily puzzle?'
+          text: infoText
         },
       },
       {
@@ -151,7 +156,9 @@ export const schedulingResponseFactory = (): BlockResponse => {
 }
 
 export default {
-  help: helpResponseFactory,
-  puzzle: dailyPuzzleResponseFactory,
-  schedule: schedulingResponseFactory,
+  responses: {
+    help: helpResponseFactory,
+    puzzle: dailyPuzzleResponseFactory,
+    schedule: schedulingResponseFactory,
+  }
 }

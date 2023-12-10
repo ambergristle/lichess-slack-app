@@ -2,7 +2,7 @@ import Db from "./abstract";
 import SqliteDb from "./sqlite";
 import { Bot } from "../../schemas";
 
-class Service {
+class Service implements Db {
 
   private db: Db;
 
@@ -10,20 +10,20 @@ class Service {
     this.db = db;
   }
 
-  public createBot(data: Bot) {
-    return this.db.createBot(data)
+  public addBot(data: Bot) {
+    return this.db.addBot(data)
   }
 
-  public findBotByTeamId(teamId: string) {
-    return this.db.findBotByTeamId(teamId)
+  public getBot(teamId: string) {
+    return this.db.getBot(teamId)
   }
 
-  public scheduleBotByTeamId(teamId: string, scheduledAt: Date) {
-    return this.db.scheduleBotByTeamId(teamId, scheduledAt)
+  public scheduleBot(teamId: string, scheduledAt: Date) {
+    return this.db.scheduleBot(teamId, scheduledAt)
   }
 
-  public deleteBotByTeamId(teamId: string) {
-    return this.db.deleteBotByTeamId(teamId)
+  public deleteBot(teamId: string) {
+    return this.db.deleteBot(teamId)
   }
   
 }

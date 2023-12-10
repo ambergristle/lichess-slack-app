@@ -11,6 +11,7 @@ import slack from '@/lib/slack';
 import {
   parseTimePickerAction,
   parseRegistrationRequest,
+  parseSlashCommandRequest,
 } from '@/lib/slack/parsers';
 import { getScheduledTime, parseScheduleArguments } from '@/lib/tz';
 
@@ -49,7 +50,7 @@ app.post('/register', async (c) => {
   const { code } = parseRegistrationRequest(body, config.STATE);
 
   const bot = await slack.registerBot(code);
-  await db.createBot(bot)
+  await db.addBot(bot)
 
   // redirect somewhere? return stuff?
   return c.text('Success!');
@@ -79,7 +80,7 @@ v1.use((c, next) => {
  * Get command details 
  */
 v1.post('/help', async (c) => {
-  return c.json(bot.help());
+  return c.json(bot.responses.help());
 });
 
 /** 
@@ -87,7 +88,7 @@ v1.post('/help', async (c) => {
  */
 v1.post('/puzzle', async (c) => {
   const puzzleData = await lichess.fetchDailyPuzzle();
-  return c.json(bot.puzzle(puzzleData));
+  return c.json(bot.responses.puzzle(puzzleData));
 });
 
 v1.post('/schedule/set', async (c) => {
@@ -99,7 +100,7 @@ v1.post('/schedule/set', async (c) => {
   const preferences = await slack.getTimeZone(body.userId)
   const scheduledTime = getScheduledTime(hours, minutes, preferences.tz)
 
-  /** @todo save to db */
+  await db.scheduleBot(body.teamId, scheduledTime)
 
   const displayString = scheduledTime.toLocaleString('en-US', {
     timeZone: preferences.tz
@@ -119,8 +120,16 @@ v1.post('/schedule/set', async (c) => {
  * Get or set scheduled delivery time
  */
 v1.post('/schedule', async (c) => {
-  /** @todo get from db */
-  return c.json(bot.schedule());
+  const body = parseSlashCommandRequest(await c.req.parseBody())
+
+  const botData = await db.getBot(body.teamId)
+  if (!botData) throw new Error('Bot could not be found')
+
+  const preferences = await slack.getTimeZone(body.userId)
+  const blocks = bot.responses
+    .schedule(botData.scheduledAt, preferences.tz)
+
+  return c.json(blocks);
 });
 
 app.route('/slack', v1);
