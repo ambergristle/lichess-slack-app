@@ -30,7 +30,7 @@ Slack offers two layers of convenience over their web api: 1\) service-specific 
 
 Assuming full responsibility for staying in sync with their api isn't ideal, but it felt like a lighter&ndash;and in some ways more resilient&ndash;solution. 
 
-<!-- should also figure out how to handle ssl cert requets -->
+<!-- should also figure out how to handle ssl cert requests -->
 
 ## References
 [https://github.com/arex1337/lichess-daily-puzzle-slack-app](https://github.com/arex1337/lichess-daily-puzzle-slack-app)
@@ -43,7 +43,12 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - Webhooks: [https://api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks)
 
 ## Todo
-- Signature state for registration
-- Return JSX for landing/signup page
-- Set up redirect flow for landing page?
-- Scheduling (collect tz info)
+- map out app
+- handle errors/invalid requests
+- fill in/finish styling landing page
+- configure slack app for distribution
+
+- clear todos
+- comments
+- figure out state; by session?
+- serialize/parse pattern
