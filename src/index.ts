@@ -19,11 +19,11 @@ import config from '@/config'
 
 const app = new Hono();
 
+/** @todo does it make sense to do this out here? */
 const compileLandingPage = pug.compileFile('src/landing.pug')
 
 /** 
  * Expose app info and registration button
- * @todo
  */
 app.get('/', (c) => {
 
@@ -59,6 +59,9 @@ app.post('/register', async (c) => {
 
 const v1 = new Hono();
 
+/**
+ * Verify slash command requests
+ */
 v1.use((c, next) => {
   const {
     timestampIsValid,
