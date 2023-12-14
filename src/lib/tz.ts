@@ -2,14 +2,36 @@ import { z } from 'zod'
 
 /** @todo where do these live? */
 
-const utcToZonedTime = (date: Date, timeZone: string) => {
+// parse Accept-Language header?
+// could use Intl.DateTimeFormat but won't know locale until runtime
+export const timeResponseData = (date: Date | undefined, timeZone: string) => {
+  /** @todo locale */
+  const timeString = date?.toLocaleTimeString([], {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  const message = timeString
+    ? `Your are scheduled to recieve the next puzzle at ${timeString}.`
+      + ' You can update or cancel at any time:'
+    : 'Select a time to recieve the Lichess Daily Puzzle';
+
+  return {
+    message,
+    initialTime: timeString ?? '12:00',
+  }
+}
+
+/** @todo locale */
+const getLocaleDateTime = (date: Date, timeZone: string) => {
   return new Date(date.toLocaleString('en-US', {
     timeZone,
   }))
 }
 
 export const getScheduledTime = (hours: number, minutes: number, timeZone: string) => {
-  const zonedDate = utcToZonedTime(new Date(), timeZone)
+  const zonedDate = getLocaleDateTime(new Date(), timeZone)
 
   zonedDate.setDate(zonedDate.getDate() + 1)
   zonedDate.setHours(hours)

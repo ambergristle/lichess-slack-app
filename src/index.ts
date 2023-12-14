@@ -13,7 +13,7 @@ import {
   parseRegistrationRequest,
   parseSlashCommandRequest,
 } from '@/lib/slack/parsers';
-import { getScheduledTime, parseScheduleArguments } from '@/lib/tz';
+import { getScheduledTime, parseScheduleArguments, timeResponseData } from '@/lib/tz';
 
 import config from '@/config'
 
@@ -129,10 +129,9 @@ v1.post('/schedule', async (c) => {
   if (!botData) throw new Error('Bot could not be found')
 
   const preferences = await slack.getTimeZone(body.userId)
-  const blocks = bot.responses
-    .schedule(botData.scheduledAt, preferences.tz)
+  const formData = timeResponseData(botData.scheduledAt, preferences.tz)
 
-  return c.json(blocks);
+  return c.json(bot.responses.schedule(formData));
 });
 
 app.route('/slack', v1);

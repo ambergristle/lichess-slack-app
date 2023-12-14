@@ -21,7 +21,6 @@ export const constructHref = (
 /**
  * A utility exposing the logic required to verify Slack signatures
  * using HMAC (Hash-based Message Authentication Code)
- * @todo update links to bun
  * @see https://nodejs.org/docs/latest-v6.x/api/crypto.html#crypto_class_hmac
  * @see https://nodejs.org/docs/latest-v6.x/api/crypto.html#crypto_crypto_timingsafeequal_a_b
  */
