@@ -34,6 +34,7 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 
 ## References
 [https://github.com/arex1337/lichess-daily-puzzle-slack-app](https://github.com/arex1337/lichess-daily-puzzle-slack-app)
+
 **Lichess**
 - Project: [https://github.com/lichess-org/lila](https://github.com/lichess-org/lila)
 - Puzzles: [https://lichess.org/api#tag/Puzzles](https://lichess.org/api#tag/Puzzles)
