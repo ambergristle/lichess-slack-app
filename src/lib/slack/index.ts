@@ -3,6 +3,7 @@ import QueryStringAddon from "wretch/addons/queryString"
 
 import config from '../../config';
 import { constructHref, hmac, unix } from "../utils";
+import blocks from './blocks'
 import {
   parseBotCredentialResponse,
   parseHeaders,
@@ -32,6 +33,7 @@ const validateTimestamp = (timestamp: string) => {
  * Use to parse and verify requests
  */
 export default {
+  blocks,
   /**
    * @see https://api.slack.com/authentication/oauth-v2#asking
    */
