@@ -1,6 +1,13 @@
 {
     "editor.codeActionsOnSave": {
-        "source.fixAll": true,
+      "source.fixAll.eslint": "explicit"
     },
-    "eslint.validate": ["javascript", "typescript"]
-}
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "files.insertFinalNewline": true,
+    "typescript.preferences.quoteStyle": "single",
+    "eslint.format.enable": true,
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
+  

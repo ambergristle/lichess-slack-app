@@ -1,50 +1,27 @@
-import axios from 'axios';
-import template from 'lodash/template';
-import { ZDailyPuzzleResponse } from './schemas';
+import wretch from 'wretch';
+import { parseDailyPuzzleResponse } from './parsers';
 
-export class LichessClient {
+const LichessApi = wretch(`https://lichess.org/api`)
 
-  private readonly _basePath = 'https://lichess.org';
+/**
+ * Responsible for interacting with the Lichess web api
+ */
+export default {
+    
+  fetchDailyPuzzle: async () => {
+    console.info('Fetching daily puzzle data...');
 
-  private readonly _puzzleThumbUrlTemplate = 'https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif';
+    /**
+     * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
+     */
+    const { puzzle } = await LichessApi
+      .get('/puzzle/daily')
+      .json(parseDailyPuzzleResponse);
 
-
-  private constructor() {
-    // 
-  }
-
-  public static init() {
-    return new LichessClient();
-  }
-
-  private async _fetchDailyPuzzle() {
-    console.info('Fetching daily puzzle...');
-    const response = await axios.get(`${this._basePath}/api/puzzle/daily`);
-    const { game, puzzle } = ZDailyPuzzleResponse.parse(response.data);
-  
-    return { game, puzzle };
-  }
-
-  private _getPuzzleUrl(puzzleId: string) {
-    return `${this._basePath}/training/${puzzleId}`;
-  }
-
-  private _getPuzzleThumbUrl(puzzleId: string) {
-    return template(this._puzzleThumbUrlTemplate)({ puzzleId });
-  }
-
-
-  public async getDailyPuzzle() {
-    console.info('Getting daily puzzle data...');
-    const { puzzle } = await this._fetchDailyPuzzle();
-
-    const puzzleUrl = this._getPuzzleUrl(puzzle.id);
-    const puzzleThumbUrl = this._getPuzzleThumbUrl(puzzle.id);
-
-    return { 
-      puzzleUrl,
-      puzzleThumbUrl,
+    return {
+      puzzleUrl: `https://lichess.org/training/${puzzle.id}`,
+      puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzle.id}.gif`,
     };
-  }
 
-}
+  }, 
+};
