@@ -5,6 +5,7 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "plugins": [
+    "@typescript-eslint",
     "unused-imports"
   ],
   "env": {
