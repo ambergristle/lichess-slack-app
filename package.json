@@ -10,10 +10,11 @@
     "node",
     "daily puzzles"
   ],
-  "module": "index.ts",
   "type": "module",
+  "module": "index.ts",
+  "main": "build/index.js",
   "scripts": {
-    "start": "bun --hot run src/index.ts"
+    "dev": "bun --hot run src/index.ts"
   },
   "devDependencies": {
     "@slack/web-api": "^6.9.0",
