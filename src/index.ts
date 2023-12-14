@@ -4,7 +4,6 @@ import { HTTPException } from 'hono/http-exception';
 import pug from 'pug';
 import wretch from 'wretch';
 
-import bot from '@/lib/bot';
 import db from '@/lib/db';
 import lichess from '@/lib/lichess';
 import slack from '@/lib/slack';
@@ -13,7 +12,12 @@ import {
   parseRegistrationRequest,
   parseSlashCommandRequest,
 } from '@/lib/slack/parsers';
-import { getScheduledTime, parseScheduleArguments, timeResponseData } from '@/lib/tz';
+
+import {
+  getScheduledTime,
+  parseScheduleArguments,
+  timeResponseData
+} from '@/lib/tz';
 
 import config from '@/config'
 
@@ -83,7 +87,7 @@ v1.use((c, next) => {
  * Get command details 
  */
 v1.post('/help', async (c) => {
-  return c.json(bot.responses.help());
+  return c.json(slack.blocks.help());
 });
 
 /** 
@@ -91,7 +95,7 @@ v1.post('/help', async (c) => {
  */
 v1.post('/puzzle', async (c) => {
   const puzzleData = await lichess.fetchDailyPuzzle();
-  return c.json(bot.responses.puzzle(puzzleData));
+  return c.json(slack.blocks.puzzle(puzzleData));
 });
 
 v1.post('/schedule/set', async (c) => {
@@ -131,7 +135,7 @@ v1.post('/schedule', async (c) => {
   const preferences = await slack.getTimeZone(body.userId)
   const formData = timeResponseData(botData.scheduledAt, preferences.tz)
 
-  return c.json(bot.responses.schedule(formData));
+  return c.json(slack.blocks.schedule(formData));
 });
 
 app.route('/slack', v1);
