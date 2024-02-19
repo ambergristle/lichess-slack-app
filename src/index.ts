@@ -5,8 +5,8 @@ import pug from 'pug';
 import wretch from 'wretch';
 
 import db from '@/lib/db';
-import lichess from '@/lib/lichess';
-import slack from '@/lib/slack';
+import Lichess from '@/lib/lichess';
+import Slack from '@/lib/slack';
 import {
   parseTimePickerAction,
   parseRegistrationRequest,
@@ -15,7 +15,7 @@ import {
 
 import {
   getScheduledTime,
-  parseScheduleArguments,
+  parseTimeString,
   timeResponseData
 } from '@/lib/tz';
 
@@ -39,7 +39,7 @@ app.get('/', (c) => {
   */
 
   const landingPage = compileLandingPage({
-    registrationHref: slack.getOAuthRedirectUrl(config.STATE)
+    registrationHref: Slack.getOAuthRedirectUrl(config.STATE)
   })
 
   return c.html(landingPage);
@@ -53,7 +53,7 @@ app.post('/register', async (c) => {
   const body = await c.req.parseBody();
   const { code } = parseRegistrationRequest(body, config.STATE);
 
-  const bot = await slack.registerBot(code);
+  const bot = await Slack.registerBot(code);
   await db.addBot(bot)
 
   // redirect somewhere? return stuff?
@@ -70,7 +70,7 @@ v1.use((c, next) => {
   const {
     timestampIsValid,
     signatureIsValid,
-  } = slack.verifyRequest(c.req.raw)
+  } = Slack.verifyRequest(c.req.raw)
 
   if (!timestampIsValid || !signatureIsValid) {
     const res = new Response("Unauthorized", {
@@ -87,24 +87,27 @@ v1.use((c, next) => {
  * Get command details 
  */
 v1.post('/help', async (c) => {
-  return c.json(slack.blocks.help());
+  return c.json(Slack.blocks.help());
 });
 
 /** 
  * Get daily puzzle (screenshot + url)
  */
 v1.post('/puzzle', async (c) => {
-  const puzzleData = await lichess.fetchDailyPuzzle();
-  return c.json(slack.blocks.puzzle(puzzleData));
+  const puzzleData = await Lichess.getDailyPuzzle();
+  return c.json(Slack.blocks.puzzle(puzzleData));
 });
 
+/** 
+ * Set scheduled delivery time
+ */
 v1.post('/schedule/set', async (c) => {
   const body = parseTimePickerAction(await c.req.parseBody())
 
   /** @todo move to bot? */
-  const { hours, minutes } = parseScheduleArguments(body.selectedTime)
+  const { hours, minutes } = parseTimeString(body.selectedTime)
 
-  const preferences = await slack.getTimeZone(body.userId)
+  const preferences = await Slack.getTimeZone(body.userId)
   const scheduledTime = getScheduledTime(hours, minutes, preferences.tz)
 
   await db.scheduleBot(body.teamId, scheduledTime)
@@ -113,18 +116,19 @@ v1.post('/schedule/set', async (c) => {
     timeZone: preferences.tz
   })
 
+  /** @todo job */
+  const message = `Your puzzle would have been scheduled at ${displayString}, but`
+    + ' I haven\'t gotten that far yet'
+
   /** @todo blocks */
-  wretch(body.responseUrl).post({
-    replace_original: true,
-    text: `Your puzzle would have been scheduled at ${displayString}, but`
-      + ' I haven\'t gotten that far yet'
-  }, )
+  wretch(body.responseUrl)
+    .post(Slack.blocks.whatever(message))
 
   return c.text('ok')
 })
 
 /** 
- * Get or set scheduled delivery time
+ * Get scheduled delivery time
  */
 v1.post('/schedule', async (c) => {
   const body = parseSlashCommandRequest(await c.req.parseBody())
@@ -132,10 +136,10 @@ v1.post('/schedule', async (c) => {
   const botData = await db.getBot(body.teamId)
   if (!botData) throw new Error('Bot could not be found')
 
-  const preferences = await slack.getTimeZone(body.userId)
+  const preferences = await Slack.getTimeZone(body.userId)
   const formData = timeResponseData(botData.scheduledAt, preferences.tz)
 
-  return c.json(slack.blocks.schedule(formData));
+  return c.json(Slack.blocks.schedule(formData));
 });
 
 app.route('/slack', v1);
