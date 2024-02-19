@@ -42,26 +42,24 @@ export const getScheduledTime = (hours: number, minutes: number, timeZone: strin
   return zonedDate
 }
 
-export const parseScheduleArguments = (args: string | undefined) => {
-  /** 
-   * https://stackoverflow.com/a/7536768
-   * https://peteroupc.github.io/
-   */
+/** 
+ * Accepts string of H:MM or HH:MM and returns
+ * hours and minutes as integers
+ */
+export const parseTimeString = (args: string | undefined) => {
+  
   const result = z
     .string()
     .trim()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .transform((timeString) => {
-      return timeString.split(':')
-    })
     .safeParse(args)
 
   if (!result.success) {
     console.error(result.error);
-    throw new Error()
+    throw new Error('Invalid time string')
   }
 
-  const [hoursString, minutesString] = result.data;
+  const [hoursString, minutesString] = result.data.split(':');
 
   const hours = Number(hoursString)
   const minutes = Number(minutesString)
