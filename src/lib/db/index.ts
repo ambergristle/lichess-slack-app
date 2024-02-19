@@ -28,4 +28,5 @@ class Service implements Db {
   
 }
 
+/** @todo db swap */
 export default new Service(SqliteDb.connect())

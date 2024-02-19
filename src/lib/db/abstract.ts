@@ -12,4 +12,4 @@ abstract class Db {
   abstract deleteBot(teamId: string): MaybePromise<void>;
 }
 
-export default Db
+export default Db;
