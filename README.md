@@ -45,9 +45,24 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 
 ## Todo
 - map out app
-- handle errors/invalid requests
+
+- handle errors/invalid requests 
+  - add explicit handlers + return blocks
+  - throw/handle explicit
+
 - fill in/finish styling landing page
+
 - configure slack app for distribution
+
+- who owns parsing?
+- who owns date/time utils
+- how to get client locale?
+
+- localization, message generation?
+
+- where should pug be compiled? so little is dynamic
+- review + test registration flow
+
 
 - clear todos
 - comments
