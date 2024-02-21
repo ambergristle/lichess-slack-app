@@ -48,6 +48,7 @@ export const getScheduledTime = (hours: number, minutes: number, timeZone: strin
  */
 export const parseTimeString = (args: string | undefined) => {
   
+  /** @todo pull out zod */
   const result = z
     .string()
     .trim()

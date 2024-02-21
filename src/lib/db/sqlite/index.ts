@@ -1,39 +1,8 @@
 import { Database as BunSqlLiteDb } from "bun:sqlite";
-import { z } from 'zod';
 
-import { Bot, ZBot } from "@/schemas";
-import Db from "./abstract";
-
-const sqliteToBot = (botData: unknown): Bot => {
-  return z.object({
-    uid: z.string(),
-    team_id: z.string(),
-    token: z.string(),
-    scope: z.string(),
-    scheduled_at: z.coerce.date().nullable(),
-  }).transform((data) => ({
-    uid: data.uid,
-    teamId: data.team_id,
-    token: data.token,
-    scope: data.scope.split(','),
-    ...(data.scheduled_at && {
-      scheduledAt: data.scheduled_at
-    })
-  }))
-  .parse(botData)
-}
-
-const botToSqlite = (bot: Bot) => {
-  return ZBot.transform((bot) => ({
-    uid: bot.uid,
-    team_id: bot.teamId,
-    token: bot.token,
-    scope: bot.scope.join(','),
-    ...(bot.scheduledAt && {
-      scheduled_at: bot.scheduledAt?.toISOString(),
-    })
-  })).parse(bot)
-}
+import type { Bot } from '@/types'
+import Db from "../abstract";
+import { botToSqlite, sqliteToBot } from './parsers';
 
 /**
  * @see https://bun.sh/docs/api/sqlite

@@ -1,10 +1,13 @@
 import wretch from 'wretch';
+
 import { parseDailyPuzzleResponse } from './parsers';
+import { DailyPuzzleMetadata } from './types';
 
 const LichessApi = wretch(`https://lichess.org/api`)
 
 export default {
-  getDailyPuzzle: async () => {
+  getDailyPuzzle: async (): Promise<DailyPuzzleMetadata> => {
+    try {
     /**
      * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
      */
@@ -12,12 +15,15 @@ export default {
       .get('/puzzle/daily')
       .json(parseDailyPuzzleResponse);
 
-    /** @todo handle error */
-    /** @todo safely construct query */
-
+    /** @todo safely construct query strings */
     return {
       puzzleUrl: `https://lichess.org/training/${puzzle.id}`,
       puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzle.id}.gif`,
     };
+
+    } catch (cause) {
+      /** @todo handle error */
+      throw cause
+    }
   }, 
 };

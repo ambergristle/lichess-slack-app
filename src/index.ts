@@ -42,6 +42,7 @@ app.get('/', (c) => {
     registrationHref: Slack.getOAuthRedirectUrl(config.STATE)
   })
 
+  // general error handling
   return c.html(landingPage);
 });
 

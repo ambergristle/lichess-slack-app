@@ -55,7 +55,10 @@ export default {
   getTimeZone: async (userId: string) => {
     return await SlackApi
       .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
-      .query({ user: userId })
+      .query({ 
+        user: userId,
+        include_locale: true,
+      })
       .get('/users.info')
       .json(parseTimeZone)
   },
@@ -72,6 +75,7 @@ export default {
       .json(parseBotCredentialResponse)
   },
 
+  /** @todo flesh out flow */
   unregisterBot: async (token: string) => {
     return await SlackApi
       .query({ token })

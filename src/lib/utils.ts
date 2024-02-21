@@ -11,6 +11,7 @@ export const constructHref = (
   Object
     .entries(params)
     .forEach(([key, value]) => {
+      /** @todo error handling */
       if (typeof value !== 'string') throw `Invalid parameter type ${typeof value}`;
       url.searchParams.set(key, value);
     });
@@ -57,7 +58,7 @@ export const unix = {
   },
   toDate: (timestamp: string) => {
     const epochSeconds = Number(timestamp);
-    if (Object.is(NaN, epochSeconds)) throw new Error('Invalid timestamp');
+    if (isNaN(epochSeconds)) throw new Error('Invalid timestamp');
     return epochSeconds * 1000
   }
 }
