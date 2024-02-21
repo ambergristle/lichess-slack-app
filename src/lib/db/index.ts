@@ -1,6 +1,6 @@
+import { Bot } from "@/types";
 import Db from "./abstract";
 import SqliteDb from "./sqlite";
-import { Bot } from "../../schemas";
 
 class Service implements Db {
 

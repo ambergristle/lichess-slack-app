@@ -1,12 +1,6 @@
-import type { KnownBlock } from '@slack/web-api';
+import { BlockResponse } from './types';
 
-type BlockResponse = {
-  blocks: KnownBlock[];
-};
-
-/** 
- * @todo who does this belong to?
- * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
+/**
  * @see https://api.slack.com/block-kit
  */
 export default {
