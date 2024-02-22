@@ -2,7 +2,7 @@ import { ZodSchema } from 'zod';
 import { ValidationError } from '../errors';
 
 type ParserFactoryOptions = {
-  documentName: string;
+  entityName: string;
   errorMessage: string;
 }
 
@@ -26,11 +26,11 @@ export const parserFactory = <
 
     const {
       errorMessage,
-      documentName
+      entityName
     } = options;
 
     throw new ValidationError(errorMessage, {
-      documentName,
+      entityName,
       errors
     })
   }

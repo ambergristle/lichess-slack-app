@@ -24,7 +24,7 @@ const ZAuthenticationHeaders = z.object({
 const parseRequestHeaders: Parser<AuthenticationHeaders> = parserFactory(
   ZAuthenticationHeaders,
   {
-    documentName: 'AuthenticationHeaders',
+    entityName: 'AuthenticationHeaders',
     errorMessage: 'Recieved invalid request headers'
   }
 )
@@ -46,7 +46,7 @@ const ZRegistrationRequest = z.object({
 export const parseRegistrationRequest: Parser<RegistrationRequest> = parserFactory(
   ZRegistrationRequest,
   {
-    documentName: 'RegistrationRequest',
+    entityName: 'RegistrationRequest',
     errorMessage: 'Recieved unprocessable request'
   }
 )
@@ -63,7 +63,7 @@ const ZRegistrationResponse = z.object({
 const parseRegistrationResponse: Parser<RegistrationResponse> = parserFactory(
   ZRegistrationResponse,
   {
-    documentName: 'RegistrationResponse',
+    entityName: 'RegistrationResponse',
     errorMessage: 'Recieved unprocessable response from Slack API'
   }
 )
@@ -93,7 +93,7 @@ const ZSlashCommandRequest = z.object({
 const parseSlashCommandRequest: Parser<SlashCommandRequest> = parserFactory(
   ZSlashCommandRequest,
   {
-    documentName: 'SlashCommandRequest',
+    entityName: 'SlashCommandRequest',
     errorMessage: 'Recieved unprocessable request'
   }
 )
@@ -145,7 +145,7 @@ const ZTimePickerActionRequest = z.preprocess(
 const parseTimePickerActionRequest: Parser<TimePickerActionRequest> = parserFactory(
   ZTimePickerActionRequest,
   {
-    documentName: 'TimePickerActionRequest',
+    entityName: 'TimePickerActionRequest',
     errorMessage: 'Recieved unprocessable request'
   }
 )
@@ -173,7 +173,7 @@ const ZUserInfoResponse = z.object({
 const parseUserInfoResponse: Parser<UserInfoResponse> = parserFactory(
   ZUserInfoResponse,
   {
-    documentName: 'UserInfoResponse',
+    entityName: 'UserInfoResponse',
     errorMessage: 'Recieved unprocessable response from Slack API'
   }
 )

@@ -103,36 +103,54 @@ export default {
    * is caught by /schedule/set
    */
   schedule: ({
-    message,
-    initialTime,
+    scheduledAt,
+    timeZone,
+    locale,
   }: {
-    message: string;
-    initialTime: string;
-  }): BlockResponse => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: message
-        },
-      },
-      {
-        type: 'actions',
-        block_id: "timepicker-block",
-        elements: [{
-          type: "timepicker",
-          initial_time: initialTime,
-          placeholder: {
-            type: "plain_text",
-            text: "Select time",
-            emoji: true
+    scheduledAt: Date | undefined;
+    timeZone: string,
+    locale: string;
+  }): BlockResponse => {
+
+    const timeString = scheduledAt?.toLocaleTimeString([locale], {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+
+    const initialTime = timeString ?? '12:00';
+
+    const message = timeString
+    ? `Your are scheduled to recieve the next puzzle at ${timeString}.`
+      + ' You can update or cancel at any time:'
+    : 'Select a time to recieve the Lichess Daily Puzzle';
+
+    return {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: message
           },
-          action_id: "timepicker-action"
-        }]
-      }
-    ]
-  }),
+        },
+        {
+          type: 'actions',
+          block_id: "timepicker-block",
+          elements: [{
+            type: "timepicker",
+            initial_time: initialTime,
+            placeholder: {
+              type: "plain_text",
+              text: "Select time",
+              emoji: true
+            },
+            action_id: "timepicker-action"
+          }]
+        }
+      ]
+    }
+  },
 
   whatever: (message: string) => ({
     replace_original: true,

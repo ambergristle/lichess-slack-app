@@ -15,9 +15,9 @@ import {
 
 import {
   getScheduledTime,
-  parseTimeString,
-  timeResponseData
+  parseScheduleData,
 } from '@/lib/tz';
+import { PersistenceError } from './lib/errors';
 
 const app = new Hono();
 
@@ -104,7 +104,7 @@ v1.post('/schedule/set', async (c) => {
   const body = parseTimePickerData(await c.req.parseBody())
 
   /** @todo move to bot? */
-  const { hours, minutes } = parseTimeString(body.selectedTime)
+  const { hours, minutes } = parseScheduleData(body.selectedTime)
 
   const preferences = await Slack.getTimeZone(body.userId)
   // how do we actually want to do this?
@@ -120,7 +120,7 @@ v1.post('/schedule/set', async (c) => {
   const message = `Your puzzle would have been scheduled at ${displayString}, but`
     + ' I haven\'t gotten that far yet'
 
-  /** @todo blocks */
+  /** @todo blocks; error handling? */
   wretch(body.responseUrl)
     .post(Slack.blocks.whatever(message))
 
@@ -132,14 +132,24 @@ v1.post('/schedule/set', async (c) => {
  */
 v1.post('/schedule', async (c) => {
   const body = parseSlashCommandData(await c.req.parseBody())
+  const teamId = body.teamId;
 
-  const botData = await db.getBot(body.teamId)
-  if (!botData) throw new Error('Bot could not be found')
+  const botData = await db.getBot(teamId)
+  if (!botData) throw new PersistenceError('Bot not found', {
+    code: 'not_found',
+    collection: 'bots',
+    filter: { teamId },
+  })
 
   const preferences = await Slack.getTimeZone(body.userId)
-  const formData = timeResponseData(botData.scheduledAt, preferences.tz)
 
-  return c.json(Slack.blocks.schedule(formData));
+  const response = Slack.blocks.schedule({
+    scheduledAt: botData.scheduledAt,
+    timeZone: preferences.tz,
+    locale: preferences.locale
+  })
+
+  return c.json(response);
 });
 
 app.route('/slack', v1);
