@@ -2,6 +2,7 @@ import wretch from 'wretch';
 
 import { parseDailyPuzzleResponse } from './parsers';
 import { DailyPuzzleMetadata } from './types';
+import { LichessError } from '../errors';
 
 const LichessApi = wretch(`https://lichess.org/api`)
 
@@ -22,8 +23,7 @@ export default {
     };
 
     } catch (cause) {
-      /** @todo handle error */
-      throw cause
+      throw new LichessError('We weren\'t able to connect to Lichess', { cause })
     }
   }, 
 };
