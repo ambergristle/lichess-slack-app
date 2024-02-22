@@ -7,6 +7,14 @@ class KnownError extends Error {
   }
 }
 
+export class AuthorizationError extends KnownError {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+
+    this.name = 'AuthorizationError';
+  }
+}
+
 interface PersistenceErrorOptions extends ErrorOptions {
   code: string;
   collection: string;
@@ -74,8 +82,12 @@ export class LichessError extends KnownError {
   }
 }
 
+interface SlackErrorOptions extends ErrorOptions {
+  code: string;
+}
+
 export class SlackError extends KnownError {
-  constructor(message: string, options?: ErrorOptions) {
+  constructor(message: string, options: SlackErrorOptions) {
     super(message, options);
 
     this.name = 'SlackError';

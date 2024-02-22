@@ -17,7 +17,7 @@ import {
   getScheduledTime,
   parseScheduleData,
 } from '@/lib/tz';
-import { PersistenceError } from './lib/errors';
+import { AuthorizationError, PersistenceError } from './lib/errors';
 
 const app = new Hono();
 
@@ -71,13 +71,8 @@ v1.use((c, next) => {
     signatureIsValid,
   } = Slack.verifyRequest(c.req.raw)
 
-  if (!timestampIsValid || !signatureIsValid) {
-    const res = new Response("Unauthorized", {
-      status: 401,
-    });
-
-    throw new HTTPException(401, { res });
-  }
+  if (!timestampIsValid) throw new AuthorizationError('Signature is expired or invalid');
+  if (!signatureIsValid) throw new AuthorizationError('Signature is invalid');
 
   return next();
 })

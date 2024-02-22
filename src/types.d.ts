@@ -1,4 +1,6 @@
 
+export type MaybePromise<T> = T | Promise<T>;
+
 export type Bot = {
   uid: string;
   teamId: string;

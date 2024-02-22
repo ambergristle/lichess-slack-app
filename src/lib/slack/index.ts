@@ -2,32 +2,17 @@ import wretch from 'wretch';
 import QueryStringAddon from "wretch/addons/queryString"
 
 import config from '../../config';
-import { constructHref, hmac, unix } from "../utils";
+import { constructHref, hmac } from "../utils";
 import blocks from './blocks'
 import {
   parseRegistrationData,
   parseSignature,
   parseUserInfo
 } from "./parsers";
+import { slackRequestFactory, validateTimestamp } from './utils';
 
 const SlackApi = wretch('https://slack.com/api')
   .addon(QueryStringAddon)
-
-/**
- * Protect against replay attacks by enforcing X
- * @param timestamp Unix timestamp
- * @returns boolean
- */
-const validateTimestamp = (timestamp: string) => {
-  /** future dates are invalid */
-  const millisecondDifference = Date.now() - unix.toDate(timestamp);
-  if (millisecondDifference < 0) return false;
-  /** recommended? expiration */
-  const oneMinuteMilliseconds = 1 * 60 * 1000;
-  if (millisecondDifference > oneMinuteMilliseconds) return false
-
-  return true
-}
 
 /**
  * Use to parse and verify requests
@@ -52,36 +37,37 @@ export default {
     });
   },
 
-  getTimeZone: async (userId: string) => {
+  getTimeZone: slackRequestFactory(async (userId: string) => {
     return await SlackApi
-      .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
-      .query({ 
-        user: userId,
-        include_locale: true,
-      })
-      .get('/users.info')
-      .json(parseUserInfo)
-  },
+    .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
+    .query({ 
+      user: userId,
+      include_locale: true,
+    })
+    .get('/users.info')
+    .json(parseUserInfo)
+  }),
 
-  registerBot: async (code: string) => {
+  registerBot: slackRequestFactory(async (code: string) => {
     /** @see https://api.slack.com/methods/oauth.v2.access */
     return await SlackApi
-      .auth(`Basic ${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
-      .query({ 
-        code,
-        redirect_uri: config.REGISTRATION_URL
-      })
-      .post('/oauth.v2.access')
-      .json(parseRegistrationData)
-  },
+    .auth(`Basic ${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
+    .query({ 
+      code,
+      redirect_uri: config.REGISTRATION_URL
+    })
+    .post('/oauth.v2.access')
+    .json(parseRegistrationData)
+  }),
 
-  /** @todo flesh out flow */
-  unregisterBot: async (token: string) => {
+  unregisterBot: slackRequestFactory(async (token: string) => {
+    /** @todo flesh out flow */
     return await SlackApi
       .query({ token })
       .post('/auth.revoke')
       .json()
-  },
+  }),
+
   /**
    * Validate signature using hmac
    * @see https://api.slack.com/authentication/verifying-requests-from-slack
