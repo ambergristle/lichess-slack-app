@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
+import { parserFactory, Parser } from '@/lib/utils';
 import { DailyPuzzleResponse } from './types';
-import { parserFactory } from '../utils';
-
-type Parser<T> = (data: unknown) => T;
 
 const ZDailyPuzzleResponse = z.object({
   puzzle: z.object({
