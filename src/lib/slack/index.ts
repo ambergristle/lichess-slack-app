@@ -5,9 +5,9 @@ import config from '../../config';
 import { constructHref, hmac, unix } from "../utils";
 import blocks from './blocks'
 import {
-  parseBotCredentialResponse,
-  parseHeaders,
-  parseTimeZone
+  parseRegistrationData,
+  parseSignature,
+  parseUserInfo
 } from "./parsers";
 
 const SlackApi = wretch('https://slack.com/api')
@@ -37,7 +37,7 @@ export default {
   /**
    * @see https://api.slack.com/authentication/oauth-v2#asking
    */
-  getOAuthRedirectUrl: (uid: string) => {
+  getOAuthRedirectUrl: () => {
     // user tz?
     const APP_SCOPES = [
       'commands',
@@ -47,7 +47,7 @@ export default {
     return constructHref('https://slack.com/oauth/v2/authorize', {
       client_id: config.SLACK_CLIENT_ID,
       scope: APP_SCOPES.join(),
-      state: uid,
+      state: config.STATE,
       redirect_uri: config.REGISTRATION_URL,
     });
   },
@@ -60,7 +60,7 @@ export default {
         include_locale: true,
       })
       .get('/users.info')
-      .json(parseTimeZone)
+      .json(parseUserInfo)
   },
 
   registerBot: async (code: string) => {
@@ -72,7 +72,7 @@ export default {
         redirect_uri: config.REGISTRATION_URL
       })
       .post('/oauth.v2.access')
-      .json(parseBotCredentialResponse)
+      .json(parseRegistrationData)
   },
 
   /** @todo flesh out flow */
@@ -90,7 +90,7 @@ export default {
     headers: Headers;
     body: ReadableStream<any> | null;
   }) => {
-    const { signature, timestamp } = parseHeaders(request.headers);
+    const { signature, timestamp } = parseSignature(request.headers);
   
     const signatureData = `v0:${timestamp}:${JSON.stringify(request.body)}`;
     const expectedSignature = hmac.createDigest(config.SLACK_CLIENT_SECRET, signatureData);

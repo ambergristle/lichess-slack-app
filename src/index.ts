@@ -8,9 +8,9 @@ import db from '@/lib/db';
 import Lichess from '@/lib/lichess';
 import Slack from '@/lib/slack';
 import {
-  parseTimePickerAction,
   parseRegistrationRequest,
-  parseSlashCommandRequest,
+  parseTimePickerData,
+  parseSlashCommandData,
 } from '@/lib/slack/parsers';
 
 import {
@@ -18,8 +18,6 @@ import {
   parseTimeString,
   timeResponseData
 } from '@/lib/tz';
-
-import config from '@/config'
 
 const app = new Hono();
 
@@ -39,7 +37,7 @@ app.get('/', (c) => {
   */
 
   const landingPage = compileLandingPage({
-    registrationHref: Slack.getOAuthRedirectUrl(config.STATE)
+    registrationHref: Slack.getOAuthRedirectUrl()
   })
 
   // general error handling
@@ -52,7 +50,7 @@ app.get('/', (c) => {
  */
 app.post('/register', async (c) => {
   const body = await c.req.parseBody();
-  const { code } = parseRegistrationRequest(body, config.STATE);
+  const { code } = parseRegistrationRequest(body);
 
   const bot = await Slack.registerBot(code);
   await db.addBot(bot)
@@ -103,12 +101,13 @@ v1.post('/puzzle', async (c) => {
  * Set scheduled delivery time
  */
 v1.post('/schedule/set', async (c) => {
-  const body = parseTimePickerAction(await c.req.parseBody())
+  const body = parseTimePickerData(await c.req.parseBody())
 
   /** @todo move to bot? */
   const { hours, minutes } = parseTimeString(body.selectedTime)
 
   const preferences = await Slack.getTimeZone(body.userId)
+  // how do we actually want to do this?
   const scheduledTime = getScheduledTime(hours, minutes, preferences.tz)
 
   await db.scheduleBot(body.teamId, scheduledTime)
@@ -132,7 +131,7 @@ v1.post('/schedule/set', async (c) => {
  * Get scheduled delivery time
  */
 v1.post('/schedule', async (c) => {
-  const body = parseSlashCommandRequest(await c.req.parseBody())
+  const body = parseSlashCommandData(await c.req.parseBody())
 
   const botData = await db.getBot(body.teamId)
   if (!botData) throw new Error('Bot could not be found')

@@ -2,7 +2,7 @@ import { Database as BunSqlLiteDb } from "bun:sqlite";
 
 import type { Bot } from '@/types'
 import Db from "../abstract";
-import { botToSqlite, sqliteToBot } from './parsers';
+import { botToSqlite, sqliteToBot } from './adapters';
 
 /**
  * @see https://bun.sh/docs/api/sqlite

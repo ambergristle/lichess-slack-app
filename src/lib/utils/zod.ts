@@ -6,7 +6,9 @@ type ParserFactoryOptions = {
   errorMessage: string;
 }
 
-export const parserFactory = <Z extends ZodSchema>(schema: Z, options: ParserFactoryOptions) => {
+export const parserFactory = <
+ Z extends ZodSchema,
+>(schema: Z, options: ParserFactoryOptions) => {
   return (data: unknown): Z['_output'] => {
     const result = schema.safeParse(data)
     if (result.success) return result.data;

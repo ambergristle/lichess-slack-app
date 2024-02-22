@@ -1,5 +1,10 @@
 import type { KnownBlock } from '@slack/web-api';
 
+export type AuthenticationHeaders = {
+  'x-slack-signature': string;
+  'x-slack-request-timestamp': string;
+}
+
 /**
  * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
  */
@@ -21,6 +26,17 @@ export type RegistrationData = {
   token: string;
   scope: string[];
   teamId: string;
+}
+
+export type RegistrationRequest = {
+  code: string;
+  state: string;
+}
+
+export type SlackSignature = {
+  signature: string;
+  /** Date string */
+  timestamp: string;
 }
 
 /**
@@ -71,11 +87,6 @@ export type TimePickerData = {
   userId: string;
   selectedTime: string | undefined;
   responseUrl: string;
-}
-
-export type TriggerRegistrationRequest = {
-  code: string;
-  state: string;
 }
 
 /**

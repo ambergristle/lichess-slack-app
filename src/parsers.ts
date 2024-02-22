@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parserFactory } from './lib/utils';
 
 export const ZBot = z.object({
   uid: z.string(),
@@ -7,3 +8,11 @@ export const ZBot = z.object({
   scope: z.string().array(),
   scheduledAt: z.date().optional(),
 })
+
+export const parseBot = parserFactory(
+  ZBot,
+  {
+    documentName: 'Bot',
+    errorMessage: 'Invalid Bot'
+  }
+)
