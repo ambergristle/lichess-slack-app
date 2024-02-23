@@ -4,40 +4,19 @@ import { BlockResponse } from './types';
  * @see https://api.slack.com/block-kit
  */
 export default {
-  /** A 404 error response */
-  notFound: ({ 
-    command, 
-  }: {
-    command: string;
-  }): BlockResponse => ({
+  error: (message: string) => ({
     blocks: [
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          /** @todo does this make sense? */
-          text: `Slash command ${command} is a shout into the void`,
-        },
-      },
-    ]
-  }),
-  /** A generic request error response */
-  invalidRequest: (): BlockResponse => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'Your request was invalid. Make sure this app'
-            + ' is correctly installed in your workspace'
-            + ' or try /help for available commands',
+          text: `${message} Please try again later, or contact support.`,
         },
       },
     ]
   }),
   /** 
-   * @todo A link to the project + a brief enumeration of
-   * available commands. Bot deletion
+   * @todo A link to the project, tl;dr, and an enumeration of commands
    */
   help: (): BlockResponse => ({
     blocks: [
@@ -45,7 +24,14 @@ export default {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: 'Hello world',
+          text: 'Lichess Daily Puzzle Bot',
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: 'Get the Lichess Daily puzzle right in Slack!',
         },
       },
       {
@@ -59,14 +45,14 @@ export default {
             + '`/puzzle`',
         },
       },
-      // {
-      //   type: 'section',
-      //   text: {
-      //     type: 'mrkdwn',
-      //     text: '*View and set schedule*\n'
-      //       + '`/set-time`',
-      //   },
-      // },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '*View and set schedule*\n'
+            + '`/schedule`',
+        },
+      },
     ]
   }),
   /** A thumbnail of + link to the daily puzzle */
@@ -152,7 +138,7 @@ export default {
     }
   },
 
-  whatever: (message: string) => ({
+  replaceWithText: (message: string) => ({
     replace_original: true,
     text: message,
   })
