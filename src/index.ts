@@ -180,7 +180,7 @@ commands.post('/schedule/set', async (c) => {
 
   /** @todo blocks; error handling? */
   wretch(body.responseUrl)
-    .post(await Slack.blocks(locale).replaceWithText(message));
+    .post(Slack.blocks(locale).replaceWithText(message));
 
   /** @todo response? */
   return c.text('ok');
