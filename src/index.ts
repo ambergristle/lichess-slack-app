@@ -1,9 +1,9 @@
 
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import pug from 'pug';
 import wretch from 'wretch';
 
+import config from '@/config';
 import db from '@/lib/db';
 import {
   AuthorizationError,
@@ -18,50 +18,57 @@ import {
   parseTimePickerData,
   parseSlashCommandData,
 } from '@/lib/slack/parsers';
+import { getIsBrowser, logError } from '@/lib/utils';
 
 import {
   getScheduledTime,
   parseScheduleData,
 } from '@/lib/tz';
-import config from './config';
+
+import {
+  compileErrorPage,
+  compileLandingPage,
+  compileNotFoundPage,
+  compileRegistrationErrorPage,
+  compileRegistrationOkPage
+} from '@/pug';
 
 const app = new Hono();
-
-const compileLandingPage = pug.compileFile('src/landing.pug')
 
 /** 
  * Expose app info and registration button
  */
 app.get('/', (c) => {
+  try {
+    /** 
+     * The registration url points to Slack, where users
+     * can authorize this app. It includes a redirect uri
+     * that will automatically return users to the /slack/register
+     * route, along with a registration code
+    */
 
-  /**
-   * @todo localize
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language
-   */
+    const landingPage = compileLandingPage({
+      registrationHref: Slack.getOAuthRedirectUrl()
+    })
 
-  /** 
-   * The registration url points to Slack, where users
-   * can authorize this app. It includes a redirect uri
-   * that will automatically return users to the /slack/register
-   * route, along with a registration code
-  */
+    return c.html(landingPage);
+  } catch (error) {
+    logError(error)
 
-  const landingPage = compileLandingPage({
-    registrationHref: Slack.getOAuthRedirectUrl()
-  })
-
-  /** @todo return error page */
-  return c.html(landingPage);
+    const errorPage = compileErrorPage({
+      homeRef: config.BASE_URL
+    })
+    return c.html(errorPage)
+  }
 })
 .all((c) => c.text('Invalid method', 405));
 
 const slack = new Hono();
 
-/** 
- * Process registration request
- * @todo
- */
+/** Process registration request */
 slack.get('/register', async (c) => {
+  const isBrowser = getIsBrowser(c.req.headers);
+
   try {
     const { code, state } = parseRegistrationRequest(c.req.query());
     if (state !== config.STATE) throw new AuthorizationError('Invalid Key')
@@ -69,21 +76,28 @@ slack.get('/register', async (c) => {
     const bot = await Slack.registerBot(code);
     await db.addBot(bot)
 
-    /** @todo return success page */
-    return c.text('Success!');
+    if (isBrowser) {
+      const registrationOkPage = compileRegistrationOkPage()
+      return c.html(registrationOkPage);
+    }
+
+    return c.text('App registration succeeded!')
   } catch (error) {
-    console.error(error)
-    /** @todo return error page */
-    return c.text('error')
+    logError(error)
+
+    if (isBrowser) {
+      const registrationErrorPage = compileRegistrationErrorPage()
+      return c.html(registrationErrorPage)
+    }
+
+    return c.text('Error: Registration failed')
   }
 })
 .all((c) => c.text('Invalid method', 405));
 
 const commands = new Hono();
 
-/**
- * Verify slash command requests
- */
+/**  Verify slash command requests */
 commands.use((c, next) => {
   try {
     const userAgent = c.req.headers.get('user-agent')
@@ -121,24 +135,18 @@ commands.use((c, next) => {
   }
 })
 
-/** 
- * Get command details 
- */
+/** Get command details  */
 commands.post('/help', async (c) => {
   return c.json(Slack.blocks.help());
 }).all((c) => c.text('Invalid method', 405));
 
-/** 
- * Get daily puzzle (screenshot + url)
- */
+/** Get daily puzzle (screenshot + url) */
 commands.post('/puzzle', async (c) => {
   const puzzleData = await Lichess.getDailyPuzzle();
   return c.json(Slack.blocks.puzzle(puzzleData));
 }).all((c) => c.text('Invalid method', 405));
 
-/** 
- * Set scheduled delivery time
- */
+/** Set scheduled delivery time */
 commands.post('/schedule/set', async (c) => {
   const body = parseTimePickerData(await c.req.parseBody())
 
@@ -196,24 +204,33 @@ slack.route('/commands', commands);
 
 app.route('/slack', slack);
 
-/** @todo slack blocks? */
-app.notFound((c) => c.text('Not Found', 404));
+app.notFound((c) => {
+  const isBrowser = getIsBrowser(c.req.headers);
 
-// check headers.host? user-agent?
-// is there an origin prop?
+  if (isBrowser) {
+    const errorPage = compileNotFoundPage({
+      homeRef: config.BASE_URL
+    })
 
-// switch on c.req.path & c.req.error?
-// seems simpler to do in handler
-
-// error block responses should be ephemeral
-// string messages are ok
-
-const logError = (error: unknown) => {
-  if (error instanceof KnownError) {
-    console.error(error.json())
-  } else {
-    console.error(error)
+    return c.html(errorPage, 404);
   }
+
+  return c.text('Not Found', 404)
+});
+
+
+const commandPaths = [
+  '/slack/commands/help',
+  '/slack/commands/puzzle',
+  '/slack/commands/schedule',
+  '/slack/commands/schedule/set'
+];
+
+const errorMessages: Record<typeof commandPaths[number], string> = {
+  '/slack/commands/help': 'Failed to retrieve app documentation.',
+  '/slack/commands/puzzle': 'The daily puzzle is currently unavailable.',
+  '/slack/commands/schedule': 'Your scheduling preferences could not be retrieved.',
+  '/slack/commands/schedule/set': 'Puzzle delivery could not be scheduled.'
 }
 
 app.onError((error, c) => {
@@ -246,18 +263,3 @@ app.onError((error, c) => {
 });
 
 export default app;
-
-
-const commandPaths = [
-  '/slack/commands/help',
-  '/slack/commands/puzzle',
-  '/slack/commands/schedule',
-  '/slack/commands/schedule/set'
-];
-
-const errorMessages: Record<typeof commandPaths[number], string> = {
-  '/slack/commands/help': 'Failed to retrieve app documentation.',
-  '/slack/commands/puzzle': 'The daily puzzle is currently unavailable.',
-  '/slack/commands/schedule': 'Your scheduling preferences could not be retrieved.',
-  '/slack/commands/schedule/set': 'Puzzle delivery could not be scheduled.'
-}
