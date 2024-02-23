@@ -11,28 +11,28 @@ const blocks = (locale: string) => {
      * An ephemeral error message with support details
      */
     error: async (command: Command | undefined) => {
-      const localizations = await getLocalizations(locale)
+      const localizations = await getLocalizations(locale);
 
       const defaultMessage = localizations.somethingWentWrong;
 
       const message = command
         ? localizations.commandErrors[command] ?? defaultMessage
-        : defaultMessage
+        : defaultMessage;
 
       const text = interpolate(localizations.blocks.error, {
-        message
-      })
+        message,
+      });
 
       return {
         response_type: 'ephemeral',
         text,
-      }
+      };
     },
     /** 
      * @todo A link to the project, tl;dr, and an enumeration of commands
      */
     help: async (): Promise<BlockResponse> => {
-      const localizations = await getLocalizations(locale)
+      const localizations = await getLocalizations(locale);
 
       return {
         blocks: [
@@ -61,7 +61,7 @@ const blocks = (locale: string) => {
             },
           },
         ],
-      }
+      };
     },
     /** A thumbnail of + link to the daily puzzle */
     puzzle: async ({
@@ -71,7 +71,7 @@ const blocks = (locale: string) => {
       puzzleThumbUrl: string;
       puzzleUrl: string;
     }): Promise<BlockResponse> => {
-      const localizations = await getLocalizations(locale)
+      const localizations = await getLocalizations(locale);
 
       return {
         /** @todo get creative */
@@ -83,7 +83,7 @@ const blocks = (locale: string) => {
               text: puzzleThumbUrl,
             },
             image_url: puzzleThumbUrl,
-            alt_text: localizations.blocks.puzzleTitle
+            alt_text: localizations.blocks.puzzleTitle,
           },
           {
             type: 'section',
@@ -93,7 +93,7 @@ const blocks = (locale: string) => {
             },
           },
         ],
-      }
+      };
     },
     /** 
      * A message with the user's current scheduled time (if any)
@@ -109,7 +109,7 @@ const blocks = (locale: string) => {
       timeZone: string,
       locale: string;
     }): Promise<BlockResponse> => {
-      const localizations = await getLocalizations(locale)
+      const localizations = await getLocalizations(locale);
 
       const timeString = scheduledAt?.toLocaleTimeString([locale], {
         timeZone,
@@ -121,7 +121,7 @@ const blocks = (locale: string) => {
 
       const message = timeString
         ? interpolate(localizations.blocks.scheduleInfo, {
-          timeString
+          timeString,
         })
         : localizations.blocks.schedulePrompt;
 
@@ -157,9 +157,9 @@ const blocks = (locale: string) => {
       return {
         replace_original: true,
         text: message,
-      }
+      };
     },
-  }
-}
+  };
+};
 
 export default blocks;

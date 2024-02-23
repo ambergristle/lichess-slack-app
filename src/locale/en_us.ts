@@ -46,6 +46,6 @@ const locale = {
     notFound: 'Not Found',
     unauthorized: 'Unauthorized',
   },
-}
+};
 
 export default locale;

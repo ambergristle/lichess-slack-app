@@ -1,6 +1,6 @@
 import pug from 'pug';
 
-export { localize } from './utils'
+export { localize } from './utils';
 
 export const compileLandingPage = pug.compileFile('src/pug/landing.pug');
 

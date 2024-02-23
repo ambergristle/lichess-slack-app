@@ -8,12 +8,12 @@ import { getLocalizations } from '@/lib/utils/locale';
 export const localize = async (
   template: pug.compileTemplate, 
   locale: string, 
-  tokens?: Record<string, string>
+  tokens?: Record<string, string>,
 ) => {
-  const localizations = await getLocalizations(locale)
+  const localizations = await getLocalizations(locale);
   
   return template({
     ...localizations,
-    ...tokens
-  })
-}
+    ...tokens,
+  });
+};

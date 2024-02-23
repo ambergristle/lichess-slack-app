@@ -21,7 +21,7 @@ import { Command } from '@/lib/slack/types';
 import {
   getIsBrowser,
   logError,
-  getLocalePreference
+  getLocalePreference,
 } from '@/lib/utils';
 
 import {
@@ -44,7 +44,7 @@ const app = new Hono();
  * Expose app info and registration button
  */
 app.get('/', async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
 
   try {
     /** 
@@ -55,7 +55,7 @@ app.get('/', async (c) => {
     */
     const landingPage = await localize(compileLandingPage, locale, {
       registrationHref: Slack.getOAuthRedirectUrl(),
-    })
+    });
 
     return c.html(landingPage);
   } catch (error) {
@@ -63,7 +63,7 @@ app.get('/', async (c) => {
 
     const errorPage = await localize(compileErrorPage, locale, {
       homeHref: config.BASE_URL,
-    })
+    });
 
     return c.html(errorPage);
   }
@@ -74,7 +74,7 @@ const slack = new Hono();
 
 /** Process registration request */
 slack.get('/register', async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
   const isBrowser = getIsBrowser(c.req.headers);
 
   try {
@@ -85,7 +85,7 @@ slack.get('/register', async (c) => {
     await db.addBot(bot);
 
     if (isBrowser) {
-      const registrationOkPage = await localize(compileRegistrationOkPage, locale)
+      const registrationOkPage = await localize(compileRegistrationOkPage, locale);
       return c.html(registrationOkPage);
     }
 
@@ -94,7 +94,7 @@ slack.get('/register', async (c) => {
     logError(error);
 
     if (isBrowser) {
-      const registrationErrorPage = await localize(compileRegistrationErrorPage, locale)
+      const registrationErrorPage = await localize(compileRegistrationErrorPage, locale);
       return c.html(registrationErrorPage);
     }
 
@@ -145,20 +145,20 @@ commands.use((c, next) => {
 
 /** Get command details  */
 commands.post('/help', async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
   return c.json(await Slack.blocks(locale).help());
 }).all((c) => c.text('Invalid method', 405));
 
 /** Get daily puzzle (screenshot + url) */
 commands.post('/puzzle', async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
   const puzzleData = await Lichess.getDailyPuzzle();
   return c.json(await Slack.blocks(locale).puzzle(puzzleData));
 }).all((c) => c.text('Invalid method', 405));
 
 /** Set scheduled delivery time */
 commands.post('/schedule/set', async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
   const body = parseTimePickerData(await c.req.parseBody());
 
   /** @todo move to bot? */
@@ -190,7 +190,7 @@ commands.post('/schedule/set', async (c) => {
  * Get scheduled delivery time
  */
 commands.post('/schedule', async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
   const body = parseSlashCommandData(await c.req.parseBody());
   const teamId = body.teamId;
 
@@ -217,13 +217,13 @@ slack.route('/commands', commands);
 app.route('/slack', slack);
 
 app.notFound(async (c) => {
-  const locale = getLocalePreference(c.req.headers)
+  const locale = getLocalePreference(c.req.headers);
   const isBrowser = getIsBrowser(c.req.headers);
 
   if (isBrowser) {
     const notFoundPage = await localize(compileNotFoundPage, locale, {
       homeHref: config.BASE_URL,
-    })
+    });
 
     return c.html(notFoundPage, 404);
   }
@@ -236,7 +236,7 @@ const commandNames: Record<string, Command> = {
   '/slack/commands/puzzle': 'puzzle',
   '/slack/commands/schedule': 'schedule',
   '/slack/commands/schedule/set': 'set',
-}
+};
 
 app.onError(async (error, c) => {
   /** if error has already been processed, return response */
@@ -252,7 +252,7 @@ app.onError(async (error, c) => {
    * @todo schedule/set is an edge case
    */
   if (Object.keys(commandNames).includes(c.req.path)) {
-    const locale = getLocalePreference(c.req.headers)
+    const locale = getLocalePreference(c.req.headers);
     return c.json(await Slack.blocks(locale).error(commandNames[c.req.path]));
   }
 
