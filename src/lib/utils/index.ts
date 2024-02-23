@@ -1,4 +1,9 @@
 
+export {
+  getIsBrowser,
+  logError
+} from './api'
+
 export { unix } from './dates'
 
 export { default as hmac } from './hmac'
