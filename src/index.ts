@@ -5,6 +5,12 @@ import pug from 'pug';
 import wretch from 'wretch';
 
 import db from '@/lib/db';
+import {
+  AuthorizationError,
+  KnownError,
+  PersistenceError,
+  ValidationError
+} from '@/lib/errors';
 import Lichess from '@/lib/lichess';
 import Slack from '@/lib/slack';
 import {
@@ -17,7 +23,7 @@ import {
   getScheduledTime,
   parseScheduleData,
 } from '@/lib/tz';
-import { AuthorizationError, PersistenceError } from './lib/errors';
+import config from './config';
 
 const app = new Hono();
 
@@ -28,6 +34,8 @@ const compileLandingPage = pug.compileFile('src/landing.pug')
  * Expose app info and registration button
  */
 app.get('/', (c) => {
+
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language
 
   /** 
    * The registration url points to Slack, where users
@@ -40,54 +48,77 @@ app.get('/', (c) => {
     registrationHref: Slack.getOAuthRedirectUrl()
   })
 
-  // general error handling
+  /** @todo return error page? */
   return c.html(landingPage);
 });
+
+const slack = new Hono();
+
+// user agent include browser names?
+// accept text/html
+// user-agent Slackbot 1.0 (+https://api.slack.com/robots)
 
 /** 
  * Process registration request
  * @todo
  */
-app.post('/register', async (c) => {
-  const body = await c.req.parseBody();
-  const { code } = parseRegistrationRequest(body);
+slack.get('/register', async (c) => {
+  const { code, state } = parseRegistrationRequest(c.req.query());
+  if (state !== config.STATE) throw new AuthorizationError('Invalid Key')
 
   const bot = await Slack.registerBot(code);
   await db.addBot(bot)
 
-  // redirect somewhere? return stuff?
+  /** @todo throw http error */
+
+  // return success page
   return c.text('Success!');
 })
 .all((c) => c.text('Invalid method', 405)); // ?
 
-const v1 = new Hono();
+const commands = new Hono();
 
 /**
  * Verify slash command requests
  */
-v1.use((c, next) => {
-  const {
-    timestampIsValid,
-    signatureIsValid,
-  } = Slack.verifyRequest(c.req.raw)
+commands.use((c, next) => {
+  try {
+    const {
+      timestampIsValid,
+      signatureIsValid,
+    } = Slack.verifyRequest(c.req.raw)
+  
+    if (!timestampIsValid) throw new AuthorizationError('Signature is expired or invalid');
+    if (!signatureIsValid) throw new AuthorizationError('Signature is invalid');
+  
+    return next();
+  } catch (cause) {
+    if (cause instanceof AuthorizationError || cause instanceof ValidationError) {
+      console.error(cause);
+      const res = new Response("Unauthorized", {
+        status: 403,
+      });
+  
+      throw new HTTPException(401, { res });
+    }
 
-  if (!timestampIsValid) throw new AuthorizationError('Signature is expired or invalid');
-  if (!signatureIsValid) throw new AuthorizationError('Signature is invalid');
+    throw cause;
+  }
 
-  return next();
+  /** @todo return slack blocks */
 })
 
 /** 
  * Get command details 
  */
-v1.post('/help', async (c) => {
+commands.post('/help', async (c) => {
   return c.json(Slack.blocks.help());
 });
 
 /** 
  * Get daily puzzle (screenshot + url)
  */
-v1.post('/puzzle', async (c) => {
+commands.post('/puzzle', async (c) => {
   const puzzleData = await Lichess.getDailyPuzzle();
   return c.json(Slack.blocks.puzzle(puzzleData));
 });
@@ -95,7 +126,7 @@ v1.post('/puzzle', async (c) => {
 /** 
  * Set scheduled delivery time
  */
-v1.post('/schedule/set', async (c) => {
+commands.post('/schedule/set', async (c) => {
   const body = parseTimePickerData(await c.req.parseBody())
 
   /** @todo move to bot? */
@@ -125,7 +156,7 @@ v1.post('/schedule/set', async (c) => {
 /** 
  * Get scheduled delivery time
  */
-v1.post('/schedule', async (c) => {
+commands.post('/schedule', async (c) => {
   const body = parseSlashCommandData(await c.req.parseBody())
   const teamId = body.teamId;
 
@@ -147,10 +178,55 @@ v1.post('/schedule', async (c) => {
   return c.json(response);
 });
 
-app.route('/slack', v1);
+slack.route('/commands', commands);
+
+app.route('/slack', slack);
 
 app.notFound((c) => c.text('404', 404));
 
-app.onError((error, c) => c.text(JSON.stringify(error), 500));
+app.onError((error, c) => {
+  if (error instanceof HTTPException) {
+    return error.getResponse();
+  }
+
+  // check headers.host? user-agent?
+  // is there an origin prop?
+
+  // switch on c.req.path & c.req.error?
+  // seems simpler to do in handler
+
+  // error block responses should be ephemeral
+  // string messages are ok
+
+  if (error instanceof KnownError) {
+    console.error(error.json())
+
+    const data = errorData[error.name];
+
+    if (!data) return new Response('Something went wrong', {
+      status: 500,
+    });
+
+    return new Response(data.message, {
+      status: data.status,
+    });
+  }
+
+  console.error(error)
+  // get rid of this after dev
+  return c.text(JSON.stringify(error), 500)
+});
 
 export default app;
+
+
+const errorData: Record<string, { message: string; status: number }> = {
+  'AuthorizationError': {
+    message: 'Unauthorized',
+    status: 403,
+  },
+  'SlackError': {
+    message: 'We are unable to complete your request at this time',
+    status: 500,
+  }
+}

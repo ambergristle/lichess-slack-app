@@ -10,13 +10,13 @@ const ZBotDocument = z.object({
   team_id: z.string(),
   token: z.string(),
   scope: z.string(),
-  scheduled_at: z.string().optional(), // time string; optional?
+  scheduled_at: z.string().nullable(), // time string; optional?
 })
 
 const parseBotData = parserFactory(
   ZBotDocument,
   {
-    documentName: 'BotDocument',
+    entityName: 'BotDocument',
     errorMessage: 'Invalid BotDocument'
   }
 )
@@ -53,8 +53,6 @@ export const botToSqlite = (data: Bot): BotDocument => {
     team_id: bot.teamId,
     token: bot.token,
     scope: bot.scope.join(','),
-    ...(bot.scheduledAt && {
-      scheduled_at: bot.scheduledAt?.toISOString(),
-    })
+    scheduled_at: bot.scheduledAt?.toISOString() ?? null
   })
 }

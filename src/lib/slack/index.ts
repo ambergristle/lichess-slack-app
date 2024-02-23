@@ -1,4 +1,5 @@
 import wretch from 'wretch';
+import FormUrlAddon from "wretch/addons/formUrl"
 import QueryStringAddon from "wretch/addons/queryString"
 
 import config from '../../config';
@@ -10,6 +11,7 @@ import {
   parseUserInfo
 } from "./parsers";
 import { slackRequestFactory, validateTimestamp } from './utils';
+import { SlackError } from '../errors';
 
 const SlackApi = wretch('https://slack.com/api')
   .addon(QueryStringAddon)
@@ -50,14 +52,25 @@ export default {
 
   registerBot: slackRequestFactory(async (code: string) => {
     /** @see https://api.slack.com/methods/oauth.v2.access */
+    const authToken = btoa(`${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
+
     return await SlackApi
-    .auth(`Basic ${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
-    .query({ 
-      code,
-      redirect_uri: config.REGISTRATION_URL
-    })
-    .post('/oauth.v2.access')
-    .json(parseRegistrationData)
+      .addon(FormUrlAddon)
+      .auth(`Basic ${authToken}`)
+      .formUrl({
+        code,
+        redirect_uri: config.REGISTRATION_URL
+      })
+      .post('', '/oauth.v2.access')
+      .json((response) => {
+        if (!response.ok) {
+          throw new SlackError('Registration Failed', {
+            code: response.error 
+          })
+        }
+
+        return parseRegistrationData(response)
+      })
   }),
 
   unregisterBot: slackRequestFactory(async (token: string) => {

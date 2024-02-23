@@ -1,9 +1,13 @@
 
-class KnownError extends Error {
+export class KnownError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
 
     this.name = 'KnownError';
+  }
+
+  public json() {
+    return JSON.parse(JSON.stringify(this))
   }
 }
 
@@ -12,6 +16,8 @@ export class AuthorizationError extends KnownError {
     super(message, options);
 
     this.name = 'AuthorizationError';
+
+    Error.captureStackTrace(this, AuthorizationError);
   }
 }
 
@@ -41,6 +47,8 @@ export class PersistenceError extends KnownError {
     this.code = code;
     this.collection = collection;
     this.filter = filter;
+
+    Error.captureStackTrace(this, PersistenceError);
   }
 }
 
@@ -71,6 +79,8 @@ export class ValidationError extends KnownError {
 
     this.entityName = entityName;
     this.errors = errors;
+
+    Error.captureStackTrace(this, ValidationError);
   }
 }
 
@@ -79,6 +89,8 @@ export class LichessError extends KnownError {
     super(message, options);
 
     this.name = 'LichessError';
+
+    Error.captureStackTrace(this, LichessError);
   }
 }
 
@@ -87,9 +99,17 @@ interface SlackErrorOptions extends ErrorOptions {
 }
 
 export class SlackError extends KnownError {
+  public readonly code: string;
+
   constructor(message: string, options: SlackErrorOptions) {
-    super(message, options);
+    const { code, ..._options } = options;
+
+    super(message, _options);
 
     this.name = 'SlackError';
+    
+    this.code = code;
+
+    Error.captureStackTrace(this, SlackError);
   }
 }
