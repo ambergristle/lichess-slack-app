@@ -2,7 +2,7 @@ doctype html
 html(lang="en")
   head 
     meta(name="slack-app-id", content="A05RL3UQ3H6")
-    title Lichess Slack App
+    title #{title}
     link(
       rel="preload"
       href="https://lichess1.org/assets/_3h5UES/font/noto-sans-v14-latin-regular.woff2"
@@ -15,10 +15,8 @@ html(lang="en")
   body
     main
       div(class="container")
-        h1 Lichess Daily Puzzle Slack App
-        p
-          | Schedule daily puzzle delivery, or get it on demand, directly in the Slack 
-          | channel of your choice.
+        h1 #{pageTitle}
+        p #{appDescription}
         a(href=registrationHref, class="register-button")
           svg(
             xmlns="http://www.w3.org/2000/svg"
@@ -41,11 +39,9 @@ html(lang="en")
               d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z"
               fill="#ecb22e"
             )
-          | Add to Slack
-        p 
-          | Note: Re
-        p 
-          | Source code: 
+          | #{addToSlack}
+        p #{sourceCode}:
           a(
             href="https://github.com/ambergristle/lichess-slack-app"
-          ) https://github.com/ambergristle/lichess-slack-app
+          )
+            |  https://github.com/ambergristle/lichess-slack-app

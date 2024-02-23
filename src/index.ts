@@ -17,7 +17,12 @@ import {
   parseTimePickerData,
   parseSlashCommandData,
 } from '@/lib/slack/parsers';
-import { getIsBrowser, logError } from '@/lib/utils';
+import { Command } from '@/lib/slack/types';
+import {
+  getIsBrowser,
+  logError,
+  getLocalePreference,
+} from '@/lib/utils';
 
 import {
   getScheduledTime,
@@ -30,6 +35,7 @@ import {
   compileNotFoundPage,
   compileRegistrationErrorPage,
   compileRegistrationOkPage,
+  localize,
 } from '@/pug';
 
 const app = new Hono();
@@ -37,7 +43,9 @@ const app = new Hono();
 /** 
  * Expose app info and registration button
  */
-app.get('/', (c) => {
+app.get('/', async (c) => {
+  const locale = getLocalePreference(c.req.headers);
+
   try {
     /** 
      * The registration url points to Slack, where users
@@ -45,8 +53,7 @@ app.get('/', (c) => {
      * that will automatically return users to the /slack/register
      * route, along with a registration code
     */
-
-    const landingPage = compileLandingPage({
+    const landingPage = await localize(compileLandingPage, locale, {
       registrationHref: Slack.getOAuthRedirectUrl(),
     });
 
@@ -54,9 +61,10 @@ app.get('/', (c) => {
   } catch (error) {
     logError(error);
 
-    const errorPage = compileErrorPage({
+    const errorPage = await localize(compileErrorPage, locale, {
       homeHref: config.BASE_URL,
     });
+
     return c.html(errorPage);
   }
 })
@@ -66,6 +74,7 @@ const slack = new Hono();
 
 /** Process registration request */
 slack.get('/register', async (c) => {
+  const locale = getLocalePreference(c.req.headers);
   const isBrowser = getIsBrowser(c.req.headers);
 
   try {
@@ -76,7 +85,7 @@ slack.get('/register', async (c) => {
     await db.addBot(bot);
 
     if (isBrowser) {
-      const registrationOkPage = compileRegistrationOkPage();
+      const registrationOkPage = await localize(compileRegistrationOkPage, locale);
       return c.html(registrationOkPage);
     }
 
@@ -85,7 +94,7 @@ slack.get('/register', async (c) => {
     logError(error);
 
     if (isBrowser) {
-      const registrationErrorPage = compileRegistrationErrorPage();
+      const registrationErrorPage = await localize(compileRegistrationErrorPage, locale);
       return c.html(registrationErrorPage);
     }
 
@@ -136,17 +145,20 @@ commands.use((c, next) => {
 
 /** Get command details  */
 commands.post('/help', async (c) => {
-  return c.json(Slack.blocks.help());
+  const locale = getLocalePreference(c.req.headers);
+  return c.json(await Slack.blocks(locale).help());
 }).all((c) => c.text('Invalid method', 405));
 
 /** Get daily puzzle (screenshot + url) */
 commands.post('/puzzle', async (c) => {
+  const locale = getLocalePreference(c.req.headers);
   const puzzleData = await Lichess.getDailyPuzzle();
-  return c.json(Slack.blocks.puzzle(puzzleData));
+  return c.json(await Slack.blocks(locale).puzzle(puzzleData));
 }).all((c) => c.text('Invalid method', 405));
 
 /** Set scheduled delivery time */
 commands.post('/schedule/set', async (c) => {
+  const locale = getLocalePreference(c.req.headers);
   const body = parseTimePickerData(await c.req.parseBody());
 
   /** @todo move to bot? */
@@ -158,7 +170,7 @@ commands.post('/schedule/set', async (c) => {
 
   await db.scheduleBot(body.teamId, scheduledTime);
 
-  const displayString = scheduledTime.toLocaleString('en-US', {
+  const displayString = scheduledTime.toLocaleString(locale, {
     timeZone: preferences.tz,
   });
 
@@ -168,7 +180,7 @@ commands.post('/schedule/set', async (c) => {
 
   /** @todo blocks; error handling? */
   wretch(body.responseUrl)
-    .post(Slack.blocks.replaceWithText(message));
+    .post(Slack.blocks(locale).replaceWithText(message));
 
   /** @todo response? */
   return c.text('ok');
@@ -178,6 +190,7 @@ commands.post('/schedule/set', async (c) => {
  * Get scheduled delivery time
  */
 commands.post('/schedule', async (c) => {
+  const locale = getLocalePreference(c.req.headers);
   const body = parseSlashCommandData(await c.req.parseBody());
   const teamId = body.teamId;
 
@@ -190,7 +203,7 @@ commands.post('/schedule', async (c) => {
 
   const preferences = await Slack.getTimeZone(body.userId);
 
-  const response = Slack.blocks.schedule({
+  const response = await Slack.blocks(locale).schedule({
     scheduledAt: botData.scheduledAt,
     timeZone: preferences.tz,
     locale: preferences.locale,
@@ -203,36 +216,29 @@ slack.route('/commands', commands);
 
 app.route('/slack', slack);
 
-app.notFound((c) => {
+app.notFound(async (c) => {
+  const locale = getLocalePreference(c.req.headers);
   const isBrowser = getIsBrowser(c.req.headers);
 
   if (isBrowser) {
-    const errorPage = compileNotFoundPage({
+    const notFoundPage = await localize(compileNotFoundPage, locale, {
       homeHref: config.BASE_URL,
     });
 
-    return c.html(errorPage, 404);
+    return c.html(notFoundPage, 404);
   }
 
   return c.text('Not Found', 404);
 });
 
-
-const commandPaths = [
-  '/slack/commands/help',
-  '/slack/commands/puzzle',
-  '/slack/commands/schedule',
-  '/slack/commands/schedule/set',
-];
-
-const errorMessages: Record<typeof commandPaths[number], string> = {
-  '/slack/commands/help': 'Failed to retrieve app documentation.',
-  '/slack/commands/puzzle': 'The daily puzzle is currently unavailable.',
-  '/slack/commands/schedule': 'Your scheduling preferences could not be retrieved.',
-  '/slack/commands/schedule/set': 'Puzzle delivery could not be scheduled.',
+const commandNames: Record<string, Command> = {
+  '/slack/commands/help': 'help',
+  '/slack/commands/puzzle': 'puzzle',
+  '/slack/commands/schedule': 'schedule',
+  '/slack/commands/schedule/set': 'set',
 };
 
-app.onError((error, c) => {
+app.onError(async (error, c) => {
   /** if error has already been processed, return response */
   if (error instanceof HTTPException) {
     return error.getResponse();
@@ -245,9 +251,9 @@ app.onError((error, c) => {
    * don't come from slack; return slack blocks on service failure
    * @todo schedule/set is an edge case
    */
-  if (commandPaths.includes(c.req.path)) {
-    const errorMessage = errorMessages[c.req.path] ?? 'Something went wrong';
-    return c.json(Slack.blocks.error(errorMessage));
+  if (Object.keys(commandNames).includes(c.req.path)) {
+    const locale = getLocalePreference(c.req.headers);
+    return c.json(await Slack.blocks(locale).error(commandNames[c.req.path]));
   }
 
   if (error instanceof AuthorizationError) {
