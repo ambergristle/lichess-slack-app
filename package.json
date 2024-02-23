@@ -14,7 +14,9 @@
   "module": "index.ts",
   "main": "build/index.js",
   "scripts": {
-    "dev": "bun --hot run src/index.ts"
+    "dev": "bun --hot run src/index.ts",
+    "build": "bun build --target=bun --entrypoints src/index.ts --outdir dist",
+    "start": "bun run dist/index.js"
   },
   "devDependencies": {
     "@slack/web-api": "^6.9.0",
