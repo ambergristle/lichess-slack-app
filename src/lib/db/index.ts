@@ -1,6 +1,6 @@
-import { Bot } from "@/types";
-import Db from "./abstract";
-import SqliteDb from "./sqlite";
+import { Bot } from '@/types';
+import Db from './abstract';
+import SqliteDb from './sqlite';
 
 class Service implements Db {
 
@@ -11,22 +11,22 @@ class Service implements Db {
   }
 
   public addBot(data: Bot) {
-    return this.db.addBot(data)
+    return this.db.addBot(data);
   }
 
   public getBot(teamId: string) {
-    return this.db.getBot(teamId)
+    return this.db.getBot(teamId);
   }
 
   public scheduleBot(teamId: string, scheduledAt: Date) {
-    return this.db.scheduleBot(teamId, scheduledAt)
+    return this.db.scheduleBot(teamId, scheduledAt);
   }
 
   public deleteBot(teamId: string) {
-    return this.db.deleteBot(teamId)
+    return this.db.deleteBot(teamId);
   }
   
 }
 
 /** @todo db swap */
-export default new Service(SqliteDb.connect())
+export default new Service(SqliteDb.connect());

@@ -12,22 +12,22 @@ import {
   TimePickerActionRequest,
   RegistrationResponse,
   AuthenticationHeaders,
-  SlackSignature
+  SlackSignature,
 } from './types';
 import config from '@/config';
 
 const ZAuthenticationHeaders = z.object({
   'x-slack-signature': z.string(),
   'x-slack-request-timestamp': z.string(), // date string?
-})
+});
 
 const parseRequestHeaders: Parser<AuthenticationHeaders> = parserFactory(
   ZAuthenticationHeaders,
   {
     entityName: 'AuthenticationHeaders',
-    errorMessage: 'Recieved invalid request headers'
-  }
-)
+    errorMessage: 'Recieved invalid request headers',
+  },
+);
 
 export const parseSignature: Parser<SlackSignature> = (data) => {
   const headers = parseRequestHeaders(data);
@@ -35,21 +35,21 @@ export const parseSignature: Parser<SlackSignature> = (data) => {
   return {
     signature: headers['x-slack-signature'],
     timestamp: headers['x-slack-request-timestamp'],
-  }
-}
+  };
+};
 
 const ZRegistrationRequest = z.object({
   code: z.string(),
   state: z.literal(config.STATE),
-})
+});
 
 export const parseRegistrationRequest: Parser<RegistrationRequest> = parserFactory(
   ZRegistrationRequest,
   {
     entityName: 'RegistrationRequest',
-    errorMessage: 'Recieved unprocessable request'
-  }
-)
+    errorMessage: 'Recieved unprocessable request',
+  },
+);
 
 const ZRegistrationResponse = z.object({
   bot_user_id: z.string(),
@@ -58,26 +58,26 @@ const ZRegistrationResponse = z.object({
   team: z.object({
     id: z.string(),
   }),
-})
+});
 
 const parseRegistrationResponse: Parser<RegistrationResponse> = parserFactory(
   ZRegistrationResponse,
   {
     entityName: 'RegistrationResponse',
-    errorMessage: 'Recieved unprocessable response from Slack API'
-  }
-)
+    errorMessage: 'Recieved unprocessable response from Slack API',
+  },
+);
 
 export const parseRegistrationData: Parser<RegistrationData> = (data) => {
-  const response = parseRegistrationResponse(data)
+  const response = parseRegistrationResponse(data);
 
   return {
     uid: response.bot_user_id,
     token: response.access_token,
     scope: response.scope.split(','),
     teamId: response.team.id,
-  }
-}
+  };
+};
 
 const ZSlashCommandRequest = z.object({
   team_id: z.string(),
@@ -88,18 +88,18 @@ const ZSlashCommandRequest = z.object({
   token: z.string(),
   api_app_id: z.string(),
   response_url: z.string(),
-})
+});
 
 const parseSlashCommandRequest: Parser<SlashCommandRequest> = parserFactory(
   ZSlashCommandRequest,
   {
     entityName: 'SlashCommandRequest',
-    errorMessage: 'Recieved unprocessable request'
-  }
-)
+    errorMessage: 'Recieved unprocessable request',
+  },
+);
 
 export const parseSlashCommandData: Parser<SlashCommandData> = (data) => {
-  const request = parseSlashCommandRequest(data)
+  const request = parseSlashCommandRequest(data);
 
   return {
     teamId: request.team_id,
@@ -110,21 +110,21 @@ export const parseSlashCommandData: Parser<SlashCommandData> = (data) => {
     token: request.token,
     appId: request.api_app_id,
     responseUrl: request.response_url,
-  }
-}
+  };
+};
 
 const ZTimePickerActionRequest = z.preprocess(
   (data) => {
     const { payload } = z.object({
       payload: z.string()
-        .transform((data) => JSON.parse(data))
-    }).parse(data)
+        .transform((data) => JSON.parse(data)),
+    }).parse(data);
 
-    return payload
+    return payload;
   },
   z.object({
     team: z.object({
-      id: z.string()
+      id: z.string(),
     }),
     user: z.object({ 
       id: z.string(),
@@ -133,10 +133,10 @@ const ZTimePickerActionRequest = z.preprocess(
     actions: z.object({
       action_id: z.string(),
       block_id: z.string(),
-      selected_time: z.string()
+      selected_time: z.string(),
     }).array().min(1),
-  })
-)
+  }),
+);
 
 /**
  * @see https://api.slack.com/reference/interaction-payloads/block-actions
@@ -146,20 +146,20 @@ const parseTimePickerActionRequest: Parser<TimePickerActionRequest> = parserFact
   ZTimePickerActionRequest,
   {
     entityName: 'TimePickerActionRequest',
-    errorMessage: 'Recieved unprocessable request'
-  }
-)
+    errorMessage: 'Recieved unprocessable request',
+  },
+);
 
 export const parseTimePickerData: Parser<TimePickerData> = (data) => {
-  const request = parseTimePickerActionRequest(data)
+  const request = parseTimePickerActionRequest(data);
 
   return {
     teamId: request.team.id,
     userId: request.user.id,
     selectedTime: request.actions[0]?.selected_time,
     responseUrl: request.response_url,
-  }
-}
+  };
+};
 
 const ZUserInfoResponse = z.object({
   user: z.object({
@@ -167,27 +167,27 @@ const ZUserInfoResponse = z.object({
     tz_label: z.string(),
     tz_offset: z.number(),
     locale: z.string(),
-  })
+  }),
 });
 
 const parseUserInfoResponse: Parser<UserInfoResponse> = parserFactory(
   ZUserInfoResponse,
   {
     entityName: 'UserInfoResponse',
-    errorMessage: 'Recieved unprocessable response from Slack API'
-  }
-)
+    errorMessage: 'Recieved unprocessable response from Slack API',
+  },
+);
 
 /** 
  * @note Locale is only included if specified in request search params 
  */
 export const parseUserInfo: Parser<UserInfo> = (data) => {
-  const { user } = parseUserInfoResponse(data)
+  const { user } = parseUserInfoResponse(data);
 
   return {
     tz: user.tz,
     tzLabel: user.tz_label,
     tzOffset: user.tz_offset,
     locale: user.locale,
-  }
-}
+  };
+};

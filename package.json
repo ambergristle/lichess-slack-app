@@ -12,8 +12,9 @@
   ],
   "type": "module",
   "module": "index.ts",
-  "main": "build/index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "lint:fix": "bun --bun eslint --fix src",
     "dev": "bun --hot run src/index.ts",
     "build": "bun build --target=bun --entrypoints src/index.ts --outdir dist",
     "start": "bun run dist/index.js"
@@ -26,10 +27,8 @@
     "bun-types": "latest",
     "eslint": "^8.48.0",
     "eslint-plugin-import": "^2.28.1",
-    "eslint-plugin-unused-imports": "^3.0.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.1.8",
@@ -37,5 +36,5 @@
     "pug": "^3.0.2",
     "wretch": "^2.6.0",
     "zod": "^3.22.2"
-  }
+  },
 }

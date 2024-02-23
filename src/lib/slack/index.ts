@@ -1,20 +1,20 @@
 import wretch from 'wretch';
-import FormUrlAddon from "wretch/addons/formUrl"
-import QueryStringAddon from "wretch/addons/queryString"
+import FormUrlAddon from 'wretch/addons/formUrl';
+import QueryStringAddon from 'wretch/addons/queryString';
 
 import config from '../../config';
-import { constructHref, hmac } from "../utils";
-import blocks from './blocks'
+import { constructHref, hmac } from '../utils';
+import blocks from './blocks';
 import {
   parseRegistrationData,
   parseSignature,
-  parseUserInfo
-} from "./parsers";
+  parseUserInfo,
+} from './parsers';
 import { slackRequestFactory, validateTimestamp } from './utils';
 import { SlackError } from '../errors';
 
 const SlackApi = wretch('https://slack.com/api')
-  .addon(QueryStringAddon)
+  .addon(QueryStringAddon);
 
 /**
  * Use to parse and verify requests
@@ -41,36 +41,36 @@ export default {
 
   getTimeZone: slackRequestFactory(async (userId: string) => {
     return await SlackApi
-    .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
-    .query({ 
-      user: userId,
-      include_locale: true,
-    })
-    .get('/users.info')
-    .json(parseUserInfo)
+      .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
+      .query({ 
+        user: userId,
+        include_locale: true,
+      })
+      .get('/users.info')
+      .json(parseUserInfo);
   }),
 
   registerBot: slackRequestFactory(async (code: string) => {
     /** @see https://api.slack.com/methods/oauth.v2.access */
-    const authToken = btoa(`${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
+    const authToken = btoa(`${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`);
 
     return await SlackApi
       .addon(FormUrlAddon)
       .auth(`Basic ${authToken}`)
       .formUrl({
         code,
-        redirect_uri: config.REGISTRATION_URL
+        redirect_uri: config.REGISTRATION_URL,
       })
       .post('', '/oauth.v2.access')
       .json((response) => {
         if (!response.ok) {
           throw new SlackError('Registration Failed', {
-            code: response.error 
-          })
+            code: response.error, 
+          });
         }
 
-        return parseRegistrationData(response)
-      })
+        return parseRegistrationData(response);
+      });
   }),
 
   unregisterBot: slackRequestFactory(async (token: string) => {
@@ -78,7 +78,7 @@ export default {
     return await SlackApi
       .query({ token })
       .post('/auth.revoke')
-      .json()
+      .json();
   }),
 
   /**
@@ -97,6 +97,6 @@ export default {
     return {
       timestampIsValid: validateTimestamp(timestamp),
       signatureIsValid: hmac.safeCompareDigests(expectedSignature, signature),
-    }
+    };
   },
-}
+};

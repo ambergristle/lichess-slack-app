@@ -5,17 +5,17 @@ const browsers = [
   'AppleWebKit',
   'Chrome',
   'Safari',
-  'Edge'
-]
+  'Edge',
+];
 
 export const getIsBrowser = (headers: Headers) => {
-  const accepts = headers.get('accepts')
-  const userAgent = headers.get('user-agent')
+  const accepts = headers.get('accepts');
+  const userAgent = headers.get('user-agent');
 
   if (userAgent) {
     const isBrowserAgent = browsers.some((browser) => {
-      return userAgent?.includes(browser)
-    })
+      return userAgent?.includes(browser);
+    });
 
     return isBrowserAgent;
   }
@@ -23,12 +23,12 @@ export const getIsBrowser = (headers: Headers) => {
   if (accepts) return accepts.includes('html');
 
   return false;
-}
+};
 
 export const logError = (error: unknown) => {
   if (error instanceof KnownError) {
-    console.error(error.json())
+    console.error(error.json());
   } else {
-    console.error(error)
+    console.error(error);
   }
-}
+};

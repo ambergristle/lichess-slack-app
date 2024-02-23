@@ -11,13 +11,13 @@ const ZDailyPuzzleResponse = z.object({
     rating: z.number(),
     solution: z.string().array(),
     themes: z.string().array(),
-  })
-})
+  }),
+});
 
 export const parseDailyPuzzleResponse: Parser<DailyPuzzleResponse> = parserFactory(
   ZDailyPuzzleResponse, 
   {
     entityName: 'DailyPuzzleResponse',
-    errorMessage: 'Recieved unprocessable response from Lichess API'
-  }
-)
+    errorMessage: 'Recieved unprocessable response from Lichess API',
+  },
+);

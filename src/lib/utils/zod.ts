@@ -10,7 +10,7 @@ export const parserFactory = <
  Z extends ZodSchema,
 >(schema: Z, options: ParserFactoryOptions) => {
   return (data: unknown): Z['_output'] => {
-    const result = schema.safeParse(data)
+    const result = schema.safeParse(data);
     if (result.success) return result.data;
 
     const errors = result.error.issues.map((issue) => {
@@ -21,17 +21,17 @@ export const parserFactory = <
       return {
         path,
         message: issue.message,
-      }
-    })
+      };
+    });
 
     const {
       errorMessage,
-      entityName
+      entityName,
     } = options;
 
     throw new ValidationError(errorMessage, {
       entityName,
-      errors
-    })
-  }
-}
+      errors,
+    });
+  };
+};

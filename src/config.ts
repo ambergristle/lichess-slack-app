@@ -1,10 +1,10 @@
 /** @todo */
 const STATE = 'WHAT_IS_THIS';
 
-const BASE_URL = process.env.BASE_URL
+const BASE_URL = process.env.BASE_URL;
 
 if (!BASE_URL) {
-  throw new Error('Base URL unconfigured')
+  throw new Error('Base URL unconfigured');
 }
 
 const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;

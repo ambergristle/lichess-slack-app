@@ -7,7 +7,7 @@ export class KnownError extends Error {
   }
 
   public json() {
-    return JSON.parse(JSON.stringify(this))
+    return JSON.parse(JSON.stringify(this));
   }
 }
 

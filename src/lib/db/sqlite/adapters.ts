@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { parserFactory } from '@/lib/utils';
-import { parseBot } from "@/parsers";
-import type { Bot } from '@/types'
+import { parseBot } from '@/parsers';
+import type { Bot } from '@/types';
 import { BotDocument } from './types';
 
 const ZBotDocument = z.object({
@@ -11,24 +11,24 @@ const ZBotDocument = z.object({
   token: z.string(),
   scope: z.string(),
   scheduled_at: z.string().nullable(), // time string; optional?
-})
+});
 
 const parseBotData = parserFactory(
   ZBotDocument,
   {
     entityName: 'BotDocument',
-    errorMessage: 'Invalid BotDocument'
-  }
-)
+    errorMessage: 'Invalid BotDocument',
+  },
+);
 
 // is this what we want?
 const dateFromString = (dateString: string) => {
-  return new Date(dateString)
-}
+  return new Date(dateString);
+};
 
 export const sqliteToBot = (data: unknown): Bot => {
 
-  const botData = parseBotData(data)
+  const botData = parseBotData(data);
 
   const scheduledAt = botData.scheduled_at
     ? dateFromString(botData.scheduled_at)
@@ -40,10 +40,10 @@ export const sqliteToBot = (data: unknown): Bot => {
     token: botData.token,
     scope: botData.scope.split(','),
     ...(scheduledAt && {
-      scheduledAt
-    })
-  }
-}
+      scheduledAt,
+    }),
+  };
+};
 
 export const botToSqlite = (data: Bot): BotDocument => {
   const bot = parseBot(data);
@@ -53,6 +53,6 @@ export const botToSqlite = (data: Bot): BotDocument => {
     team_id: bot.teamId,
     token: bot.token,
     scope: bot.scope.join(','),
-    scheduled_at: bot.scheduledAt?.toISOString() ?? null
-  })
-}
+    scheduled_at: bot.scheduledAt?.toISOString() ?? null,
+  });
+};

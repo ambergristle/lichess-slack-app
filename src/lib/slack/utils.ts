@@ -1,5 +1,5 @@
 import { SlackError } from '@/lib/errors';
-import { unix } from "@/lib/utils";
+import { unix } from '@/lib/utils';
 
 /**
  * Protect against replay attacks by enforcing X
@@ -12,17 +12,17 @@ export const validateTimestamp = (timestamp: string) => {
   if (millisecondDifference < 0) return false;
   /** recommended? expiration */
   const oneMinuteMilliseconds = 1 * 60 * 1000;
-  if (millisecondDifference > oneMinuteMilliseconds) return false
+  if (millisecondDifference > oneMinuteMilliseconds) return false;
 
-  return true
-}
+  return true;
+};
 
 export const slackRequestFactory = <A extends any[], R>(
   fn: (...args: A) => R,
 ) => {
   return (..._args: A) => {
     try {
-      return fn(..._args)
+      return fn(..._args);
     } catch (cause) {
       const code = (cause as any).code;
 
@@ -32,7 +32,7 @@ export const slackRequestFactory = <A extends any[], R>(
       throw new SlackError('Slack API request failed', {
         code,
         cause,
-      })
+      });
     }
-  }
-}
+  };
+};

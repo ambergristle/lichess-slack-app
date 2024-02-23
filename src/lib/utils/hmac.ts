@@ -30,7 +30,7 @@ const hmac = {
     const hmacBufferB = Buffer.from(hmacDigestB);
    
     return timingSafeEqual(hmacBufferA, hmacBufferB);
-  }
-}
+  },
+};
 
-export default hmac
+export default hmac;

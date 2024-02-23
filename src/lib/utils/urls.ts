@@ -1,7 +1,7 @@
 
 export const constructHref = (
   baseUrl: string, 
-  params?: Record<string, string>
+  params?: Record<string, string>,
 ) => {
   const url = new URL(baseUrl);
     
