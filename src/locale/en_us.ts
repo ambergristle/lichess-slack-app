@@ -24,21 +24,21 @@ const locale = {
   blocks: {
     /** @token message */
     error: '${message} Please try again later, or contact support.',
-    helpTitle: 'Lichess Daily Puzzle Bot',
     helpInfo: 'Get the Lichess Daily puzzle right in Slack!',
     helpPuzzle: '*Get today\'s puzzle*\n`/puzzle`',
     helpSchedule: '*View and set schedule*\n`/schedule`',
     puzzleTitle: 'Today\'s Lichess Daily Puzzle',
     scheduleInfo: 'Your are scheduled to recieve the next puzzle at ${timeString}.'
       + ' You can update or cancel at any time:',
-    schedulePrompt: 'Select a time to recieve the Lichess Daily Puzzle'
+    schedulePrompt: 'Select a time to recieve the Lichess Daily Puzzle',
+    scheduleSelectTime: 'Select time',
   },
 
   commandErrors: {
     help: 'Failed to retrieve app documentation.',
     puzzle: 'The daily puzzle is currently unavailable.',
     schedule: 'Your scheduling preferences could not be retrieved.',
-    setSchedule: 'Puzzle delivery could not be scheduled.',
+    set: 'Puzzle delivery could not be scheduled.',
   },
 
   httpErrors: {

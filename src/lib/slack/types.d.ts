@@ -1,5 +1,7 @@
 import type { KnownBlock } from '@slack/web-api';
 
+export type Command = 'help' | 'puzzle' | 'schedule' | 'set';
+
 export type AuthenticationHeaders = {
   'x-slack-signature': string;
   'x-slack-request-timestamp': string;

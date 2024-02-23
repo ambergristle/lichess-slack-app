@@ -1,141 +1,165 @@
-import { BlockResponse } from './types';
+import { getLocalizations } from '@/lib/utils/locale';
+import { interpolate } from '@/lib/utils/strings';
+import { BlockResponse, Command } from './types';
 
 /**
  * @see https://api.slack.com/block-kit
  */
-export default {
-  /**
-   * An ephemeral error message with support details
-   */
-  error: (message: string) => ({
-    response_type: 'ephemeral',
-    text: `${message} Please try again later, or contact support.`,
-  }),
-  /** 
-   * @todo A link to the project, tl;dr, and an enumeration of commands
-   */
-  help: (): BlockResponse => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'Lichess Daily Puzzle Bot',
-        },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'Get the Lichess Daily puzzle right in Slack!',
-        },
-      },
-      {
-        type: 'divider',
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: '*Get today\'s puzzle*\n'
-            + '`/puzzle`',
-        },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: '*View and set schedule*\n'
-            + '`/schedule`',
-        },
-      },
-    ],
-  }),
-  /** A thumbnail of + link to the daily puzzle */
-  puzzle: ({
-    puzzleThumbUrl,
-    puzzleUrl,
-  }: {
-    puzzleThumbUrl: string;
-    puzzleUrl: string;
-  }): BlockResponse => ({
-    /** @todo get creative */
-    blocks: [
-      {
-        type: 'image',
-        title: {
-          type: 'plain_text',
-          text: puzzleThumbUrl,
-        },
-        image_url: puzzleThumbUrl,
-        alt_text: 'Today\'s Lichess Daily Puzzle',
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: puzzleUrl,
-        },
-      },
-    ],
-  }),
-  /** 
-   * A message with the user's current scheduled time (if any)
-   * + a time-picker initialized to the same. Picker action
-   * is caught by /schedule/set
-   */
-  schedule: ({
-    scheduledAt,
-    timeZone,
-    locale,
-  }: {
-    scheduledAt: Date | undefined;
-    timeZone: string,
-    locale: string;
-  }): BlockResponse => {
+const blocks = (locale: string) => {
+  return {
+    /**
+     * An ephemeral error message with support details
+     */
+    error: async (command: Command | undefined) => {
+      const localizations = await getLocalizations(locale)
 
-    const timeString = scheduledAt?.toLocaleTimeString([locale], {
-      timeZone,
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+      const defaultMessage = localizations.somethingWentWrong;
 
-    const initialTime = timeString ?? '12:00';
+      const message = command
+        ? localizations.commandErrors[command] ?? defaultMessage
+        : defaultMessage
 
-    const message = timeString
-      ? `Your are scheduled to recieve the next puzzle at ${timeString}.`
-      + ' You can update or cancel at any time:'
-      : 'Select a time to recieve the Lichess Daily Puzzle';
+      const text = interpolate(localizations.blocks.error, {
+        message
+      })
 
-    return {
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: message,
-          },
-        },
-        {
-          type: 'actions',
-          block_id: 'timepicker-block',
-          elements: [{
-            type: 'timepicker',
-            initial_time: initialTime,
-            placeholder: {
-              type: 'plain_text',
-              text: 'Select time',
-              emoji: true,
+      return {
+        response_type: 'ephemeral',
+        text,
+      }
+    },
+    /** 
+     * @todo A link to the project, tl;dr, and an enumeration of commands
+     */
+    help: async (): Promise<BlockResponse> => {
+      const localizations = await getLocalizations(locale)
+
+      return {
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: localizations.blocks.helpInfo,
             },
-            action_id: 'timepicker-action',
-          }],
-        },
-      ],
-    };
-  },
+          },
+          {
+            type: 'divider',
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: localizations.blocks.helpPuzzle,
+            },
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: localizations.blocks.helpSchedule,
+            },
+          },
+        ],
+      }
+    },
+    /** A thumbnail of + link to the daily puzzle */
+    puzzle: async ({
+      puzzleThumbUrl,
+      puzzleUrl,
+    }: {
+      puzzleThumbUrl: string;
+      puzzleUrl: string;
+    }): Promise<BlockResponse> => {
+      const localizations = await getLocalizations(locale)
 
-  replaceWithText: (message: string) => ({
-    replace_original: true,
-    text: message,
-  }),
-};
+      return {
+        /** @todo get creative */
+        blocks: [
+          {
+            type: 'image',
+            title: {
+              type: 'plain_text',
+              text: puzzleThumbUrl,
+            },
+            image_url: puzzleThumbUrl,
+            alt_text: localizations.blocks.puzzleTitle
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: puzzleUrl,
+            },
+          },
+        ],
+      }
+    },
+    /** 
+     * A message with the user's current scheduled time (if any)
+     * + a time-picker initialized to the same. Picker action
+     * is caught by /schedule/set
+     */
+    schedule: async ({
+      scheduledAt,
+      timeZone,
+      locale,
+    }: {
+      scheduledAt: Date | undefined;
+      timeZone: string,
+      locale: string;
+    }): Promise<BlockResponse> => {
+      const localizations = await getLocalizations(locale)
+
+      const timeString = scheduledAt?.toLocaleTimeString([locale], {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const initialTime = timeString ?? '12:00';
+
+      const message = timeString
+        ? interpolate(localizations.blocks.scheduleInfo, {
+          timeString
+        })
+        : localizations.blocks.schedulePrompt;
+
+      return {
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: message,
+            },
+          },
+          {
+            type: 'actions',
+            block_id: 'timepicker-block',
+            elements: [{
+              type: 'timepicker',
+              initial_time: initialTime,
+              placeholder: {
+                type: 'plain_text',
+                text: localizations.blocks.scheduleSelectTime,
+                emoji: true,
+              },
+              action_id: 'timepicker-action',
+            }],
+          },
+        ],
+      };
+    },
+
+    /** An ephemeral error message */
+    replaceWithText: (message: string) => {
+      return {
+        replace_original: true,
+        text: message,
+      }
+    },
+  }
+}
+
+export default blocks;
