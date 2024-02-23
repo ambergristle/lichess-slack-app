@@ -1,9 +1,6 @@
 import pug from 'pug';
 
-/**
- * @todo localize
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language
- */
+export { localize } from './utils'
 
 export const compileLandingPage = pug.compileFile('src/pug/landing.pug');
 

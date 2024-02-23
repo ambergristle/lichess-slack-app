@@ -30,6 +30,7 @@ import {
   compileNotFoundPage,
   compileRegistrationErrorPage,
   compileRegistrationOkPage,
+  localize,
 } from '@/pug';
 
 const app = new Hono();
@@ -37,7 +38,8 @@ const app = new Hono();
 /** 
  * Expose app info and registration button
  */
-app.get('/', (c) => {
+app.get('/', async (c) => {
+
   try {
     /** 
      * The registration url points to Slack, where users
@@ -45,10 +47,9 @@ app.get('/', (c) => {
      * that will automatically return users to the /slack/register
      * route, along with a registration code
     */
-
-    const landingPage = compileLandingPage({
+    const landingPage = await localize(compileLandingPage, 'en-US', {
       registrationHref: Slack.getOAuthRedirectUrl(),
-    });
+    })
 
     return c.html(landingPage);
   } catch (error) {

@@ -23,7 +23,7 @@ export default {
       };
 
     } catch (cause) {
-      throw new LichessError('We weren\'t able to connect to Lichess', { cause });
+      throw new LichessError('Failed to connect to Lichess', { cause });
     }
   }, 
 };
