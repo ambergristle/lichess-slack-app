@@ -4,16 +4,12 @@ import { BlockResponse } from './types';
  * @see https://api.slack.com/block-kit
  */
 export default {
+  /**
+   * An ephemeral error message with support details
+   */
   error: (message: string) => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `${message} Please try again later, or contact support.`,
-        },
-      },
-    ]
+    response_type: "ephemeral",
+    text: `${message} Please try again later, or contact support.`
   }),
   /** 
    * @todo A link to the project, tl;dr, and an enumeration of commands
