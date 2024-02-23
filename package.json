@@ -15,6 +15,7 @@
   "main": "dist/index.js",
   "scripts": {
     "lint:fix": "bun --bun eslint --fix src",
+    "tsc": "bunx tsc",
     "dev": "bun --hot run src/index.ts",
     "build": "bun build --target=bun --entrypoints src/index.ts --outdir dist",
     "start": "bun run dist/index.js"
@@ -36,5 +37,5 @@
     "pug": "^3.0.2",
     "wretch": "^2.6.0",
     "zod": "^3.22.2"
-  },
+  }
 }

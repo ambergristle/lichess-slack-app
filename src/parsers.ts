@@ -12,7 +12,7 @@ export const ZBot = z.object({
 export const parseBot = parserFactory(
   ZBot,
   {
-    documentName: 'Bot',
+    entityName: 'Bot',
     errorMessage: 'Invalid Bot',
   },
 );

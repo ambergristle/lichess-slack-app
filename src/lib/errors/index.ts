@@ -24,6 +24,7 @@ export class AuthorizationError extends KnownError {
 interface PersistenceErrorOptions extends ErrorOptions {
   code: string;
   collection: string;
+  /** @todo typing */
   filter: Record<string, any>;
 }
 

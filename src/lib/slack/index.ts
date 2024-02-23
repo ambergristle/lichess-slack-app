@@ -87,7 +87,7 @@ export default {
    */
   verifyRequest: (request: {
     headers: Headers;
-    body: ReadableStream<any> | null;
+    body: ReadableStream<unknown> | null;
   }) => {
     const { signature, timestamp } = parseSignature(request.headers);
   

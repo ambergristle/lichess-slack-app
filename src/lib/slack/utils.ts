@@ -17,6 +17,8 @@ export const validateTimestamp = (timestamp: string) => {
   return true;
 };
 
+// Any type required for generic spread
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const slackRequestFactory = <A extends any[], R>(
   fn: (...args: A) => R,
 ) => {
@@ -24,9 +26,9 @@ export const slackRequestFactory = <A extends any[], R>(
     try {
       return fn(..._args);
     } catch (cause) {
+      /** @todo find a better way to distinguish fetch errors */
       const code = (cause as any).code;
 
-      /** @todo find a better way to distinguish fetch errors */
       if (!code) throw cause;
 
       throw new SlackError('Slack API request failed', {
