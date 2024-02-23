@@ -4,40 +4,15 @@ import { BlockResponse } from './types';
  * @see https://api.slack.com/block-kit
  */
 export default {
-  /** A 404 error response */
-  notFound: ({ 
-    command, 
-  }: {
-    command: string;
-  }): BlockResponse => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          /** @todo does this make sense? */
-          text: `Slash command ${command} is a shout into the void`,
-        },
-      },
-    ]
-  }),
-  /** A generic request error response */
-  invalidRequest: (): BlockResponse => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'Your request was invalid. Make sure this app'
-            + ' is correctly installed in your workspace'
-            + ' or try /help for available commands',
-        },
-      },
-    ]
+  /**
+   * An ephemeral error message with support details
+   */
+  error: (message: string) => ({
+    response_type: 'ephemeral',
+    text: `${message} Please try again later, or contact support.`,
   }),
   /** 
-   * @todo A link to the project + a brief enumeration of
-   * available commands. Bot deletion
+   * @todo A link to the project, tl;dr, and an enumeration of commands
    */
   help: (): BlockResponse => ({
     blocks: [
@@ -45,7 +20,14 @@ export default {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: 'Hello world',
+          text: 'Lichess Daily Puzzle Bot',
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: 'Get the Lichess Daily puzzle right in Slack!',
         },
       },
       {
@@ -59,20 +41,20 @@ export default {
             + '`/puzzle`',
         },
       },
-      // {
-      //   type: 'section',
-      //   text: {
-      //     type: 'mrkdwn',
-      //     text: '*View and set schedule*\n'
-      //       + '`/set-time`',
-      //   },
-      // },
-    ]
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '*View and set schedule*\n'
+            + '`/schedule`',
+        },
+      },
+    ],
   }),
   /** A thumbnail of + link to the daily puzzle */
   puzzle: ({
     puzzleThumbUrl,
-    puzzleUrl
+    puzzleUrl,
   }: {
     puzzleThumbUrl: string;
     puzzleUrl: string;
@@ -95,7 +77,7 @@ export default {
           text: puzzleUrl,
         },
       },
-    ]
+    ],
   }),
   /** 
    * A message with the user's current scheduled time (if any)
@@ -103,39 +85,57 @@ export default {
    * is caught by /schedule/set
    */
   schedule: ({
-    message,
-    initialTime,
+    scheduledAt,
+    timeZone,
+    locale,
   }: {
-    message: string;
-    initialTime: string;
-  }): BlockResponse => ({
-    blocks: [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: message
-        },
-      },
-      {
-        type: 'actions',
-        block_id: "timepicker-block",
-        elements: [{
-          type: "timepicker",
-          initial_time: initialTime,
-          placeholder: {
-            type: "plain_text",
-            text: "Select time",
-            emoji: true
-          },
-          action_id: "timepicker-action"
-        }]
-      }
-    ]
-  }),
+    scheduledAt: Date | undefined;
+    timeZone: string,
+    locale: string;
+  }): BlockResponse => {
 
-  whatever: (message: string) => ({
+    const timeString = scheduledAt?.toLocaleTimeString([locale], {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const initialTime = timeString ?? '12:00';
+
+    const message = timeString
+      ? `Your are scheduled to recieve the next puzzle at ${timeString}.`
+      + ' You can update or cancel at any time:'
+      : 'Select a time to recieve the Lichess Daily Puzzle';
+
+    return {
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: message,
+          },
+        },
+        {
+          type: 'actions',
+          block_id: 'timepicker-block',
+          elements: [{
+            type: 'timepicker',
+            initial_time: initialTime,
+            placeholder: {
+              type: 'plain_text',
+              text: 'Select time',
+              emoji: true,
+            },
+            action_id: 'timepicker-action',
+          }],
+        },
+      ],
+    };
+  },
+
+  replaceWithText: (message: string) => ({
     replace_original: true,
     text: message,
-  })
-}
+  }),
+};

@@ -7,5 +7,5 @@ export type BotDocument = {
   team_id: string;
   token: string;
   scope: string;
-  scheduled_at?: DateTimeString;
+  scheduled_at: DateTimeString | null;
 }

@@ -1,4 +1,4 @@
-import { Bot } from "../../schemas";
+import { Bot } from '@/types';
 
 type MaybePromise<T> = T | Promise<T>;
 

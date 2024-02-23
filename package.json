@@ -12,9 +12,13 @@
   ],
   "type": "module",
   "module": "index.ts",
-  "main": "build/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "bun --hot run src/index.ts"
+    "lint:fix": "bun --bun eslint --fix src",
+    "tsc": "bunx tsc",
+    "dev": "bun --hot run src/index.ts",
+    "build": "bun build --target=bun --entrypoints src/index.ts --outdir dist",
+    "start": "bun run dist/index.js"
   },
   "devDependencies": {
     "@slack/web-api": "^6.9.0",
@@ -24,10 +28,8 @@
     "bun-types": "latest",
     "eslint": "^8.48.0",
     "eslint-plugin-import": "^2.28.1",
-    "eslint-plugin-unused-imports": "^3.0.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.1.8",

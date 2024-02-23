@@ -1,33 +1,20 @@
 import wretch from 'wretch';
-import QueryStringAddon from "wretch/addons/queryString"
+import FormUrlAddon from 'wretch/addons/formUrl';
+import QueryStringAddon from 'wretch/addons/queryString';
 
 import config from '../../config';
-import { constructHref, hmac, unix } from "../utils";
-import blocks from './blocks'
+import { constructHref, hmac } from '../utils';
+import blocks from './blocks';
 import {
-  parseBotCredentialResponse,
-  parseHeaders,
-  parseTimeZone
-} from "./parsers";
+  parseRegistrationData,
+  parseSignature,
+  parseUserInfo,
+} from './parsers';
+import { slackRequestFactory, validateTimestamp } from './utils';
+import { SlackError } from '../errors';
 
 const SlackApi = wretch('https://slack.com/api')
-  .addon(QueryStringAddon)
-
-/**
- * Protect against replay attacks by enforcing X
- * @param timestamp Unix timestamp
- * @returns boolean
- */
-const validateTimestamp = (timestamp: string) => {
-  /** future dates are invalid */
-  const millisecondDifference = Date.now() - unix.toDate(timestamp);
-  if (millisecondDifference < 0) return false;
-  /** recommended? expiration */
-  const oneMinuteMilliseconds = 1 * 60 * 1000;
-  if (millisecondDifference > oneMinuteMilliseconds) return false
-
-  return true
-}
+  .addon(QueryStringAddon);
 
 /**
  * Use to parse and verify requests
@@ -37,7 +24,7 @@ export default {
   /**
    * @see https://api.slack.com/authentication/oauth-v2#asking
    */
-  getOAuthRedirectUrl: (uid: string) => {
+  getOAuthRedirectUrl: () => {
     // user tz?
     const APP_SCOPES = [
       'commands',
@@ -47,12 +34,12 @@ export default {
     return constructHref('https://slack.com/oauth/v2/authorize', {
       client_id: config.SLACK_CLIENT_ID,
       scope: APP_SCOPES.join(),
-      state: uid,
+      state: config.STATE,
       redirect_uri: config.REGISTRATION_URL,
     });
   },
 
-  getTimeZone: async (userId: string) => {
+  getTimeZone: slackRequestFactory(async (userId: string) => {
     return await SlackApi
       .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
       .query({ 
@@ -60,37 +47,49 @@ export default {
         include_locale: true,
       })
       .get('/users.info')
-      .json(parseTimeZone)
-  },
+      .json(parseUserInfo);
+  }),
 
-  registerBot: async (code: string) => {
+  registerBot: slackRequestFactory(async (code: string) => {
     /** @see https://api.slack.com/methods/oauth.v2.access */
-    return await SlackApi
-      .auth(`Basic ${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`)
-      .query({ 
-        code,
-        redirect_uri: config.REGISTRATION_URL
-      })
-      .post('/oauth.v2.access')
-      .json(parseBotCredentialResponse)
-  },
+    const authToken = btoa(`${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`);
 
-  /** @todo flesh out flow */
-  unregisterBot: async (token: string) => {
+    return await SlackApi
+      .addon(FormUrlAddon)
+      .auth(`Basic ${authToken}`)
+      .formUrl({
+        code,
+        redirect_uri: config.REGISTRATION_URL,
+      })
+      .post('', '/oauth.v2.access')
+      .json((response) => {
+        if (!response.ok) {
+          throw new SlackError('Registration Failed', {
+            code: response.error, 
+          });
+        }
+
+        return parseRegistrationData(response);
+      });
+  }),
+
+  unregisterBot: slackRequestFactory(async (token: string) => {
+    /** @todo flesh out flow */
     return await SlackApi
       .query({ token })
       .post('/auth.revoke')
-      .json()
-  },
+      .json();
+  }),
+
   /**
    * Validate signature using hmac
    * @see https://api.slack.com/authentication/verifying-requests-from-slack
    */
   verifyRequest: (request: {
     headers: Headers;
-    body: ReadableStream<any> | null;
+    body: ReadableStream<unknown> | null;
   }) => {
-    const { signature, timestamp } = parseHeaders(request.headers);
+    const { signature, timestamp } = parseSignature(request.headers);
   
     const signatureData = `v0:${timestamp}:${JSON.stringify(request.body)}`;
     const expectedSignature = hmac.createDigest(config.SLACK_CLIENT_SECRET, signatureData);
@@ -98,6 +97,6 @@ export default {
     return {
       timestampIsValid: validateTimestamp(timestamp),
       signatureIsValid: hmac.safeCompareDigests(expectedSignature, signature),
-    }
+    };
   },
-}
+};
