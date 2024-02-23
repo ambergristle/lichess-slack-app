@@ -7,7 +7,6 @@ import config from '@/config';
 import db from '@/lib/db';
 import {
   AuthorizationError,
-  KnownError,
   PersistenceError,
   ValidationError
 } from '@/lib/errors';
@@ -56,7 +55,7 @@ app.get('/', (c) => {
     logError(error)
 
     const errorPage = compileErrorPage({
-      homeRef: config.BASE_URL
+      homeHref: config.BASE_URL
     })
     return c.html(errorPage)
   }
@@ -209,7 +208,7 @@ app.notFound((c) => {
 
   if (isBrowser) {
     const errorPage = compileNotFoundPage({
-      homeRef: config.BASE_URL
+      homeHref: config.BASE_URL,
     })
 
     return c.html(errorPage, 404);
