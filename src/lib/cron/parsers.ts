@@ -11,12 +11,12 @@ const ZSignatureTokenData = z.object({
   // aud
   // iat
   // jti
-})
+});
 
 export const parseTokenData = parserFactory(
   ZSignatureTokenData,
   {
     entityName: 'SignatureTokenData',
-    errorMessage: 'Invalid token'
-  }
-)
+    errorMessage: 'Invalid token',
+  },
+);

@@ -15,8 +15,8 @@ export const getBotContext = async (teamId: string, userId: string) => {
 
   const preferences = await getUserInfo(bot.token, userId);
 
-  const locale = preferences.locale
-  const timeZone = preferences.tz
+  const locale = preferences.locale;
+  const timeZone = preferences.tz;
 
   return {
     ...bot,
@@ -26,7 +26,7 @@ export const getBotContext = async (teamId: string, userId: string) => {
       if (!bot.schedule) return;
 
       const cron = fromCron(bot.schedule.cron);
-      return getValidCronTime(cron)
-    }
-  }
-}
+      return getValidCronTime(cron);
+    },
+  };
+};

@@ -10,7 +10,7 @@ export {
   fromCron,
   getValidCronTime,
   toCron,
-} from './cron'
+} from './cron';
 
 export { 
   formatTimeInput,
@@ -19,19 +19,19 @@ export {
   unix,
   utcTimeToZoned,
   zonedTimeToUtc,
- } from './dates';
+} from './dates';
 
 export { default as hmac } from './hmac';
 
 export { 
-  interpolate
-} from './strings'
+  interpolate,
+} from './strings';
 
 export {
   isNumber,
   isString,
   type Parser,
-} from './types'
+} from './types';
 
 export { constructHref } from './urls';
 

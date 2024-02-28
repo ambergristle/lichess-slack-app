@@ -27,9 +27,9 @@ export const getIsBrowser = (headers: Headers) => {
 };
 
 export const isDevRequest = (headers: Headers) => {
-  const devSecret = headers.get('x-dev-secret')
+  const devSecret = headers.get('x-dev-secret');
   return devSecret === config.DEVELOPMENT_SECRET;
-}
+};
 
 const locales = [
   'en',

@@ -22,19 +22,19 @@ const SlackApi = wretch('https://slack.com/api')
 * @see https://api.slack.com/authentication/oauth-v2#asking
 */
 export const getOAuthRedirectUrl = () => {
- const APP_SCOPES = [
-   'commands',
-   'incoming-webhook',
-   'users:read',
- ];
+  const APP_SCOPES = [
+    'commands',
+    'incoming-webhook',
+    'users:read',
+  ];
 
- return constructHref('https://slack.com/oauth/v2/authorize', {
-   client_id: config.SLACK_CLIENT_ID,
-   scope: APP_SCOPES.join(),
-   state: config.STATE,
-   redirect_uri: config.REGISTRATION_URL,
- });
-}
+  return constructHref('https://slack.com/oauth/v2/authorize', {
+    client_id: config.SLACK_CLIENT_ID,
+    scope: APP_SCOPES.join(),
+    state: config.STATE,
+    redirect_uri: config.REGISTRATION_URL,
+  });
+};
 
 export const getUserInfo = slackRequestFactory(async (token: string, userId: string) => {
   return await SlackApi
@@ -45,7 +45,7 @@ export const getUserInfo = slackRequestFactory(async (token: string, userId: str
     })
     .get('/users.info')
     .json(parseUserInfo);
-})
+});
 
 export const registerBot = slackRequestFactory(async (code: string) => {
   /** @see https://api.slack.com/methods/oauth.v2.access */
@@ -68,15 +68,15 @@ export const registerBot = slackRequestFactory(async (code: string) => {
 
       return parseRegistrationData(response);
     });
-})
+});
 
-const unregisterBot = slackRequestFactory(async (token: string) => {
+export const unregisterBot = slackRequestFactory(async (token: string) => {
   /** @todo flesh out flow */
   return await SlackApi
     .query({ token })
     .post('/auth.revoke')
     .json();
-})
+});
 
 /**
  * Validate signature with hmac
@@ -98,6 +98,6 @@ export const verifyRequest = (request: {
     };
 
   } catch (cause) {
-    throw new AuthorizationError('Signature verification failed', { cause })
+    throw new AuthorizationError('Signature verification failed', { cause });
   }
-}
+};

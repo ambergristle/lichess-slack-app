@@ -7,7 +7,7 @@ export type AuthenticationHeaders = {
   'x-slack-request-timestamp': string;
 }
 
-export type { KnownBlock }
+export type { KnownBlock };
 
 /**
  * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response

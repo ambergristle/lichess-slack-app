@@ -66,7 +66,7 @@ const ZRegistrationResponse = z.object({
   incoming_webhook: z.object({
     channel_id: z.string(),
     url: z.string(),
-  })
+  }),
 });
 
 const parseRegistrationResponse: Parser<RegistrationResponse> = parserFactory(
@@ -172,9 +172,9 @@ export const parseTimePickerData: Parser<TimePickerData> = (data) => {
     entityName: 'TimePickerActionRequest',
     errors: [{ 
       path: 'actions.selected_time', 
-      message: ''
-    }]
-  })
+      message: '',
+    }],
+  });
 
   const [hours, minutes] = selectedTime.split(':');
 

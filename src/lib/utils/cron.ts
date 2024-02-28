@@ -1,7 +1,7 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-import { parserFactory } from './zod'
-import { isNumber, isString,  } from './types';
+import { parserFactory } from './zod';
+import { isNumber, isString } from './types';
 
 type CronData = {
   /** 0-59 */
@@ -24,15 +24,15 @@ const ZCronData = z.object({
   day: z.number().min(1).max(31).optional(),
   month: z.number().min(1).max(12).optional(),
   weekday: z.number().min(0).max(6).optional(),
-})
+});
 
 const parseCronData = parserFactory(
   ZCronData,
   {
     entityName: 'CronExpression',
-    errorMessage: 'Invalid Cron Expression'
-  }
-)
+    errorMessage: 'Invalid Cron Expression',
+  },
+);
 
 export const toCron = (data: CronData) => {
   const expression = parseCronData(data);
@@ -41,22 +41,22 @@ export const toCron = (data: CronData) => {
     const value = expression[prop];
 
     return isNumber(value)
-    ? value.toString().padStart(2, '0')
-    : '*'
-  }).join(' ')
-}
+      ? value.toString().padStart(2, '0')
+      : '*';
+  }).join(' ');
+};
 
 /** todo *\/2 */
 const CronRegex = /^(\*|[0-5]?\d)\s(\*|[01]?\d|2[0-3])\s(\*|[0-2]?\d|3[01])\s(\*|0?[1-9]|1[0-2])\s(\*|0?[0-6])$/;
 
 const isValidCron = (arg: unknown): arg is string => {
-  return isString(arg) && CronRegex.test(arg)
-}
+  return isString(arg) && CronRegex.test(arg);
+};
 
 export const fromCron = (cronString: string): CronData => {
   if (!isValidCron(cronString)) {
     /** @todo error handling */
-    throw new Error('Invalid cron string')
+    throw new Error('Invalid cron string');
   }
 
   const expression = cronString
@@ -74,12 +74,12 @@ export const fromCron = (cronString: string): CronData => {
       weekday: undefined,
     });
 
-  return parseCronData(expression)
-}
+  return parseCronData(expression);
+};
 
 export const getValidCronTime = (cron: CronData | undefined) => {
   const { hour, minute } = cron ?? {};
 
   if (!isNumber(hour) || !isNumber(minute)) return;
-  return { hour, minute }
-}
+  return { hour, minute };
+};

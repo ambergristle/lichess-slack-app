@@ -31,9 +31,9 @@ export const sqliteToBot = (data: unknown): Bot => {
   const schedule = botData.schedule_id && botData.cron
     ? {
       scheduleId: botData.schedule_id,
-      cron: botData.cron
+      cron: botData.cron,
     }
-    : undefined
+    : undefined;
 
   return {
     uid: botData.uid,
@@ -42,7 +42,7 @@ export const sqliteToBot = (data: unknown): Bot => {
     scope: botData.scope.split(','),
     channelId: botData.channel_id,
     webhookUrl: botData.webhook_url,
-    ...(schedule && { schedule })
+    ...(schedule && { schedule }),
   };
 };
 
@@ -58,7 +58,7 @@ export const botToSqlite = (data: Bot): BotDocument => {
     webhook_url: bot.webhookUrl,
     schedule_id: bot.schedule?.scheduleId ?? null,
     cron: bot.schedule?.cron ?? null,
-  }
+  };
 
   return parseBotData(document);
 };

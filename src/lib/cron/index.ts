@@ -1,26 +1,26 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 import { createHash } from 'crypto';
-import wretch from 'wretch'
-import { z } from 'zod'
+import wretch from 'wretch';
+import { z } from 'zod';
 
-import config from '@/config'
-import { parserFactory } from '../utils'
-import { parseTokenData } from './parsers'
-import { AuthorizationError } from '../errors'
+import config from '@/config';
+import { parserFactory } from '../utils';
+import { parseTokenData } from './parsers';
+import { AuthorizationError } from '../errors';
 
-const QStash = wretch('https://qstash.upstash.io/v2')
+const QStash = wretch('https://qstash.upstash.io/v2');
 
 const ZCreateScheduleResponse = z.object({
   scheduleId: z.string(),
-})
+});
 
 const parseCreateScheduleResponse = parserFactory(
   ZCreateScheduleResponse,
   {
     entityName: 'CreateScheduleResponse',
-    errorMessage: 'Recieved invalid response'
-  }
-)
+    errorMessage: 'Recieved invalid response',
+  },
+);
 
 type CreateScheduleOptions = {
   service: string;
@@ -34,27 +34,28 @@ type CreateScheduleOptions = {
 export const createSchedule = async ({
   service,
   cron,
-  data
+  data,
 }: CreateScheduleOptions) => {
   // Upstash-Forward-My-Header
-  return  await QStash
+  return await QStash
     .auth(`Bearer ${config.QSTASH_TOKEN}`)
     .headers({ 
-      'upstash-cron': cron
+      'upstash-cron': cron,
     })
     .post(data, `/schedules/${config.BASE_URL}${service}`)
-    .json(parseCreateScheduleResponse)
-}
+    .json(parseCreateScheduleResponse);
+};
 
 export const deleteSchedule = async (scheduleId: string) => {
   await QStash
     .auth(`Bearer ${config.QSTASH_TOKEN}`)
     .delete(`/schedules/${scheduleId}`)
-    .res()
-}
+    .res();
+};
 
 type ValidResult = {
   valid: true;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
 }
 
@@ -67,67 +68,67 @@ type VerificationResult = ValidResult | InvalidResult;
 
 const isValidResult = (result: VerificationResult): result is ValidResult => {
   return result.valid;
-}
+};
 
 const isInvalidResult = (result: VerificationResult): result is InvalidResult => {
   return result.valid;
-}
+};
 
 const verifyToken = (
   path: string,
   body: string, 
   token: string, 
-  secret: string
+  secret: string,
 ): VerificationResult => {
   try {
     const payload = jwt.verify(token, secret);
-    const data = parseTokenData(payload)
+    const data = parseTokenData(payload);
 
     if (data.sub !== `${config.BASE_URL}${path}`) {
       /** @todo error type */
-      throw new AuthorizationError('Path does not match claim')
+      throw new AuthorizationError('Path does not match claim');
     }
 
     // nbf token is already valid
     const hash = createHash('sha256')
       .update(body)
-      .digest('base64url')
+      .digest('base64url');
 
     if (data.body !== `${hash}=`) {
       /** @todo error type */
-      throw new AuthorizationError('Raw body does not match claim')
+      throw new AuthorizationError('Raw body does not match claim');
     }
 
     return {
       valid: true,
       data,
-    }
+    };
   } catch (error) {
     return {
       valid: false,
-      error
-    }
+      error,
+    };
   }
-}
+};
 
 export const verifyRequest = (
   path: string,
   body: string,
   token: string | undefined, 
-  ) => {
-  if (!token) throw new AuthorizationError('Token is required')
+) => {
+  if (!token) throw new AuthorizationError('Token is required');
 
   const results = [
     config.QSTASH_CURRENT_SIGNING_KEY,
-    config.QSTASH_NEXT_SIGNING_KEY
-  ].map((secret) => verifyToken(path, body, token, secret))
+    config.QSTASH_NEXT_SIGNING_KEY,
+  ].map((secret) => verifyToken(path, body, token, secret));
 
   const payload = results
-    .find(isValidResult)
+    .find(isValidResult);
   if (payload) return payload;
 
   const cause = results
-    .find(isInvalidResult)
+    .find(isInvalidResult);
     
-  throw new AuthorizationError('Invalid signature', { cause })
-}
+  throw new AuthorizationError('Invalid signature', { cause });
+};

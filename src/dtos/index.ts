@@ -5,13 +5,13 @@ export type ScheduledPuzzleData = z.infer<typeof ZScheduledPuzzleData>;
 const ZScheduledPuzzleData = z.object({
   uid: z.string(),
   locale: z.string(),
-})
+});
 
 export const parseScheduledPuzzleData = parserFactory(
   ZScheduledPuzzleData,
   {
     entityName: 'ScheduledPuzzleData',
-    errorMessage: 'Invalid job data'
-  }
-)
+    errorMessage: 'Invalid job data',
+  },
+);
 

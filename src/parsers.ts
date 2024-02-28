@@ -6,7 +6,7 @@ import { Bot } from '@/types';
 const ZSchedule = z.object({
   scheduleId: z.string(),
   cron: z.string(), // schema?
-})
+});
 
 export const ZBot = z.object({
   uid: z.string(),
@@ -15,8 +15,8 @@ export const ZBot = z.object({
   token: z.string(),
   scope: z.string().array(),
   webhookUrl: z.string(),
-  schedule: ZSchedule.optional()
-})
+  schedule: ZSchedule.optional(),
+});
 
 export const parseBot: Parser<Bot> = parserFactory(
   ZBot,

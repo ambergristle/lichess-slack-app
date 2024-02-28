@@ -65,7 +65,7 @@ class SqliteDb implements Db {
     if (!result) throw new PersistenceError('Bot insertion failed', {
       code: 'unknown',
       collection: 'bots',
-      op: 'write'
+      op: 'write',
     });
 
     return sqliteToBot(result);

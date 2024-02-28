@@ -1,9 +1,9 @@
 import {
   formatTimeInput,
   interpolate,
-  localizeZonedTime
-} from '@/lib/utils'
-import { getLocalizations } from '@/lib/utils/locale'
+  localizeZonedTime,
+} from '@/lib/utils';
+import { getLocalizations } from '@/lib/utils/locale';
 import { BlockResponse, Command } from './types';
 
 /**
@@ -115,8 +115,8 @@ const blocks = (locale: string) => {
       const localizations = await getLocalizations(locale);
 
       const initialTime = scheduledAt
-       ? formatTimeInput(scheduledAt)
-       : '12:00'
+        ? formatTimeInput(scheduledAt)
+        : '12:00';
       
       const message = scheduledAt
         ? interpolate(localizations.blocks.scheduleInfo, {
