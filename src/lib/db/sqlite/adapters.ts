@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { parserFactory } from '@/lib/utils';
+import { Parser, parserFactory } from '@/lib/utils';
 import { parseBot } from '@/parsers';
 import type { Bot } from '@/types';
 import { BotDocument } from './types';
@@ -10,10 +10,11 @@ const ZBotDocument = z.object({
   team_id: z.string(),
   token: z.string(),
   scope: z.string(),
-  scheduled_at: z.string().nullable(), // time string; optional?
+  schedule_id: z.string().nullable(),
+  cron: z.string().nullable(),
 });
 
-const parseBotData = parserFactory(
+const parseBotData: Parser<BotDocument> = parserFactory(
   ZBotDocument,
   {
     entityName: 'BotDocument',
@@ -21,27 +22,23 @@ const parseBotData = parserFactory(
   },
 );
 
-// is this what we want?
-const dateFromString = (dateString: string) => {
-  return new Date(dateString);
-};
-
 export const sqliteToBot = (data: unknown): Bot => {
 
   const botData = parseBotData(data);
 
-  const scheduledAt = botData.scheduled_at
-    ? dateFromString(botData.scheduled_at)
-    : undefined;
+  const schedule = botData.schedule_id && botData.cron
+    ? {
+      scheduleId: botData.schedule_id,
+      cron: botData.cron
+    }
+    : undefined
 
   return {
     uid: botData.uid,
     teamId: botData.team_id,
     token: botData.token,
     scope: botData.scope.split(','),
-    ...(scheduledAt && {
-      scheduledAt,
-    }),
+    ...schedule
   };
 };
 
@@ -53,6 +50,7 @@ export const botToSqlite = (data: Bot): BotDocument => {
     team_id: bot.teamId,
     token: bot.token,
     scope: bot.scope.join(','),
-    scheduled_at: bot.scheduledAt?.toISOString() ?? null,
+    schedule_id: bot.scheduleId ?? null,
+    cron: bot.cron ?? null,
   });
 };

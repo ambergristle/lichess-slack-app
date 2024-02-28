@@ -76,6 +76,7 @@ export type TimePickerActionRequest = {
   user: {
     id: string;
   }
+  token: string;
   actions: {
     action_id: string;
     block_id: string;
@@ -87,7 +88,11 @@ export type TimePickerActionRequest = {
 export type TimePickerData = {
   teamId: string;
   userId: string;
-  selectedTime: string | undefined;
+  token: string;
+  selectedTime: {
+    hours: number;
+    minutes: number;
+  };
   responseUrl: string;
 }
 

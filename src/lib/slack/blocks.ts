@@ -1,9 +1,16 @@
-import { getLocalizations } from '@/lib/utils/locale';
-import { interpolate } from '@/lib/utils/strings';
+import {
+  formatTimeInput,
+  getRawTimeString,
+  interpolate,
+  localizeZonedTime
+} from '@/lib/utils'
+import { getLocalizations } from '@/lib/utils/locale'
 import { BlockResponse, Command } from './types';
+import { getValidCronTime } from '../utils/cron';
 
 /**
  * @see https://api.slack.com/block-kit
+ * @todo inject tz
  */
 const blocks = (locale: string) => {
   return {
@@ -103,25 +110,19 @@ const blocks = (locale: string) => {
     schedule: async ({
       scheduledAt,
       timeZone,
-      locale,
     }: {
-      scheduledAt: Date | undefined;
+      scheduledAt: { hour: number; minute: number; } | undefined;
       timeZone: string,
-      locale: string;
     }): Promise<BlockResponse> => {
       const localizations = await getLocalizations(locale);
 
-      const timeString = scheduledAt?.toLocaleTimeString([locale], {
-        timeZone,
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-
-      const initialTime = timeString ?? '12:00';
-
-      const message = timeString
+      const initialTime = scheduledAt
+       ? formatTimeInput(scheduledAt)
+       : '12:00'
+      
+      const message = scheduledAt
         ? interpolate(localizations.blocks.scheduleInfo, {
-          timeString,
+          timeString: localizeZonedTime(scheduledAt, timeZone, locale),
         })
         : localizations.blocks.schedulePrompt;
 

@@ -15,6 +15,7 @@ import {
   SlackSignature,
 } from './types';
 import config from '@/config';
+import { ValidationError } from '../errors';
 
 const ZAuthenticationHeaders = z.object({
   'x-slack-signature': z.string(),
@@ -129,11 +130,14 @@ const ZTimePickerActionRequest = z.preprocess(
     user: z.object({ 
       id: z.string(),
     }),
+    token: z.string(),
     response_url: z.string(),
     actions: z.object({
       action_id: z.string(),
       block_id: z.string(),
-      selected_time: z.string(),
+      selected_time: z.string()
+        .trim()
+        .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     }).array().min(1),
   }),
 );
@@ -153,10 +157,25 @@ const parseTimePickerActionRequest: Parser<TimePickerActionRequest> = parserFact
 export const parseTimePickerData: Parser<TimePickerData> = (data) => {
   const request = parseTimePickerActionRequest(data);
 
+  const selectedTime = request.actions[0]?.selected_time;
+  if (!selectedTime) throw new ValidationError('No time selected', { 
+    entityName: 'TimePickerActionRequest',
+    errors: [{ 
+      path: 'actions.selected_time', 
+      message: ''
+    }]
+  })
+
+  const [hoursString, minutesString] = selectedTime.split(':');
+
   return {
     teamId: request.team.id,
     userId: request.user.id,
-    selectedTime: request.actions[0]?.selected_time,
+    token: request.token,
+    selectedTime: { 
+      hours: Number(hoursString), 
+      minutes: Number(minutesString),
+    },
     responseUrl: request.response_url,
   };
 };

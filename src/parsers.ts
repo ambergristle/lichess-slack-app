@@ -1,15 +1,25 @@
 import { z } from 'zod';
-import { parserFactory } from './lib/utils';
+
+import { Parser, parserFactory } from '@/lib/utils';
+import { Bot } from '@/types';
+
+const ZString = z.string().min(1)
+
+const ZSchedule = z.object({
+  scheduleId: ZString,
+  cron: ZString, // schema?
+})
 
 export const ZBot = z.object({
-  uid: z.string(),
-  teamId: z.string(),
-  token: z.string(),
-  scope: z.string().array(),
-  scheduledAt: z.date().optional(),
-});
+  uid: ZString,
+  teamId: ZString,
+  token: ZString,
+  scope: ZString.array(),
+}).and(
+  z.union([ZSchedule, z.object({})])
+);
 
-export const parseBot = parserFactory(
+export const parseBot: Parser<Bot> = parserFactory(
   ZBot,
   {
     entityName: 'Bot',

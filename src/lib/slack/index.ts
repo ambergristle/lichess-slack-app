@@ -39,7 +39,7 @@ export default {
     });
   },
 
-  getTimeZone: slackRequestFactory(async (userId: string) => {
+  getUserInfo: slackRequestFactory(async (userId: string) => {
     return await SlackApi
       .auth(`Bearer ${config.SLACK_BOT_TOKEN}`)
       .query({ 

@@ -1,6 +1,6 @@
 import { Database as BunSqlLiteDb } from 'bun:sqlite';
 
-import type { Bot } from '@/types';
+import type { Bot, Schedule } from '@/types';
 import Db from '../abstract';
 import { botToSqlite, sqliteToBot } from './adapters';
 
@@ -79,15 +79,15 @@ class SqliteDb implements Db {
     return results.map(sqliteToBot);
   }
 
-  public scheduleBot(teamId: string, scheduledAt: Date) {
+  public scheduleBot(teamId: string, schedule: Schedule) {
     this.db.query(`
       UPDATE bots
-      SET scheduled_at = $scheduled_at
+      SET schedule_id = $schedule_id, cron = $cron
       WHERE team_id = $team_id
     `).run({ 
       $team_id: teamId,
-      // format?
-      $scheduled_at: scheduledAt.toISOString(),
+      $schedule_id: schedule.scheduleId,
+      $cron: schedule.cron,
     });
   }
 
