@@ -9,6 +9,9 @@ export type Schedule = {
 export type Bot = {
   uid: string;
   teamId: string;
-  token: string;
+  channelId: string;
   scope: string[];
-} & Partial<Schedule>
+  token: string;
+  webhookUrl: string;
+  schedule?: Schedule;
+}

@@ -7,12 +7,14 @@ export type AuthenticationHeaders = {
   'x-slack-request-timestamp': string;
 }
 
+export type { KnownBlock }
+
 /**
  * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
  */
 export type BlockResponse = {
   blocks: KnownBlock[];
-};
+}
 
 export type RegistrationResponse = {
   bot_user_id: string;
@@ -21,6 +23,10 @@ export type RegistrationResponse = {
   team: {
     id: string;
   }
+  incoming_webhook: {
+    channel_id: string;
+    url: string;
+  }
 }
 
 export type RegistrationData = {
@@ -28,6 +34,8 @@ export type RegistrationData = {
   token: string;
   scope: string[];
   teamId: string;
+  channelId: string;
+  webhookUrl: string;
 }
 
 export type RegistrationRequest = {
@@ -90,8 +98,8 @@ export type TimePickerData = {
   userId: string;
   token: string;
   selectedTime: {
-    hours: number;
-    minutes: number;
+    hour: number;
+    minute: number;
   };
   responseUrl: string;
 }

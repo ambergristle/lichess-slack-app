@@ -52,6 +52,10 @@ export const parseRegistrationRequest: Parser<RegistrationRequest> = parserFacto
   },
 );
 
+/**
+ * Scope-dependent
+ * @see https://api.slack.com/methods/oauth.v2.access
+ */
 const ZRegistrationResponse = z.object({
   bot_user_id: z.string(),
   access_token: z.string(),
@@ -59,6 +63,10 @@ const ZRegistrationResponse = z.object({
   team: z.object({
     id: z.string(),
   }),
+  incoming_webhook: z.object({
+    channel_id: z.string(),
+    url: z.string(),
+  })
 });
 
 const parseRegistrationResponse: Parser<RegistrationResponse> = parserFactory(
@@ -77,6 +85,8 @@ export const parseRegistrationData: Parser<RegistrationData> = (data) => {
     token: response.access_token,
     scope: response.scope.split(','),
     teamId: response.team.id,
+    channelId: response.incoming_webhook.channel_id,
+    webhookUrl: response.incoming_webhook.url,
   };
 };
 
@@ -166,15 +176,15 @@ export const parseTimePickerData: Parser<TimePickerData> = (data) => {
     }]
   })
 
-  const [hoursString, minutesString] = selectedTime.split(':');
+  const [hours, minutes] = selectedTime.split(':');
 
   return {
     teamId: request.team.id,
     userId: request.user.id,
     token: request.token,
     selectedTime: { 
-      hours: Number(hoursString), 
-      minutes: Number(minutesString),
+      hour: Number(hours), 
+      minute: Number(minutes),
     },
     responseUrl: request.response_url,
   };

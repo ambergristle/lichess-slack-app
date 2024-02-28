@@ -17,13 +17,13 @@ const padDigits = (num: number) => {
 }
 
 export const zonedTimeToUtc = (
-  { hours, minutes }: { hours:  number; minutes: number; }, 
+  { hour, minute }: { hour:  number; minute: number; }, 
   timeZone: string
 ) => {
-  const hh = padDigits(hours);
-  const mm = padDigits(minutes);
+  const hh = padDigits(hour);
+  const mm = padDigits(minute);
 
-  const dateTimeString = `2024-12-31T${hh}:${mm}:00.000`;
+  const dateTimeString = `1969-12-31T${hh}:${mm}:00.000`;
   const utcDate = zonedToUtc(dateTimeString, timeZone);
 
   return {
@@ -38,25 +38,31 @@ export const getRawTimeString = (date: Date) => {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'UTC',
     })
 }
 
 export const utcTimeToZoned = (
-  { hours, minutes }: { hours:  number; minutes: number; }, 
+  { hour, minute }: { hour:  number; minute: number; }, 
   timeZone: string
 ) => {
-  const hh = padDigits(hours);
-  const mm = padDigits(minutes);
+  const hh = padDigits(hour);
+  const mm = padDigits(minute);
 
   const dateTimeString = `1969-12-31T${hh}:${mm}:00.000Z`;
   const zonedDate = utcToZoned(dateTimeString, timeZone);
 
-  const [hoursDigits, minutesDigits] = getRawTimeString(zonedDate)
-    .split(':');
+  const [hours, minutes] = zonedDate
+    .toLocaleTimeString(['en-US'], {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone
+    }).split(':');
 
   return {
-    hours: Number(hoursDigits),
-    minutes: Number(minutesDigits),
+    hour: Number(hours),
+    minute: Number(minutes),
   };
 }
 
@@ -68,7 +74,7 @@ export const localizeZonedTime = (
   const hh = padDigits(hour);
   const mm = padDigits(minute);
 
-  const dateTimeString = `2024-12-31T${hh}:${mm}:00.000`;
+  const dateTimeString = `1969-12-31T${hh}:${mm}:00.000`;
   const utcDate = zonedToUtc(dateTimeString, timeZone);
 
   return utcDate.toLocaleTimeString(locale, {
@@ -82,5 +88,11 @@ export const formatTimeInput = ({ hour, minute }: { hour:  number; minute: numbe
   const mm = padDigits(minute);
 
   const dateTimeString = `1969-12-31T${hh}:${mm}:00.000Z`;
-  return getRawTimeString(new Date(dateTimeString))
+
+  return new Date(dateTimeString).toLocaleTimeString(['en-US'], {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  })
 }

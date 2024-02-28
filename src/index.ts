@@ -7,14 +7,16 @@ import { logger } from 'hono/logger'
 import wretch from 'wretch';
 
 import config from '@/config';
+import { getBotContext } from '@/controllers'
 
+import { createSchedule, verifyRequest } from '@/lib/cron'
 import db from '@/lib/db';
 import {
   AuthorizationError,
   PersistenceError,
 } from '@/lib/errors';
-import Lichess from '@/lib/lichess';
-import Slack from '@/lib/slack';
+import * as  Lichess from '@/lib/lichess';
+import * as Slack from '@/lib/slack';
 import {
   parseRegistrationRequest,
   parseTimePickerData,
@@ -26,10 +28,10 @@ import {
   getIsBrowser,
   getLocalePreference,
   getValidCronTime,
-  isDevRequest,
   localizeZonedTime,
   logError,
   toCron,
+  utcTimeToZoned,
   zonedTimeToUtc,
 } from '@/lib/utils';
 
@@ -41,6 +43,7 @@ import {
   compileRegistrationOkPage,
   localize,
 } from '@/pug';
+import { ScheduledPuzzleData, parseScheduledPuzzleData } from './dtos';
 
 const app = new Hono();
 
@@ -55,7 +58,7 @@ app.use('*', logger())
  */
 app.get('/', async (c) => {
   /** @todo accepts html? */
-  const isBrowser = getIsBrowser(c.req.raw.headers);
+  // const isBrowser = getIsBrowser(c.req.raw.headers);
 
   const locale = accepts(c, {
     header: 'Accept-Language',
@@ -95,7 +98,6 @@ slack.get('/register', async (c) => {
     header: 'Accept-Language',
     supports: ['en', 'en-US'],
     default: 'en-US'
-    // match fn
   })
 
   try {
@@ -127,17 +129,10 @@ const commands = new Hono();
  * Verify slash command requests 
  */
 commands.use('*', async (c, next) => {
-
-  if (isDevRequest(c.req.raw.headers)) {
-    return await next()
-  }
-
   const userAgent = c.req.header('user-agent');
   if (!userAgent?.includes('Slackbot 1.0 (+https://api.slack.com/robots)')) {
     /** @todo */
     console.log('no slackbot');
-  } else {
-    console.log('slackbot')
   }
 
   const accept = c.req.header('accept');
@@ -146,10 +141,21 @@ commands.use('*', async (c, next) => {
     console.log('no accept')
   }
 
+  // excludes files and other possible FormData
+  const formData = await c.req.formData();
+  const dataEntries = [...formData.entries()]
+    .reduce((entries, [key, value]) => {
+      if (typeof value === 'string') entries.push([key, value])
+      return entries
+  }, [] as string[][])
+
   const {
     timestampIsValid,
     signatureIsValid,
-  } = Slack.verifyRequest(c.req.raw);
+  } = Slack.verifyRequest({
+    headers: c.req.raw.headers.toJSON(),
+    body: new URLSearchParams(dataEntries).toString()
+  });
 
   if (!timestampIsValid) throw new AuthorizationError('Signature is expired or invalid');
   if (!signatureIsValid) throw new AuthorizationError('Signature is invalid');
@@ -157,16 +163,16 @@ commands.use('*', async (c, next) => {
   await next()
 })
 
-commands.use('*', async (_, next) => {
-  console.log('context')
-  await next()
-})
-
 /** 
  * Get command details
  */
 commands.post('/help', async (c) => {
-  const response = await Slack.blocks('en-US').help();
+  const body = await c.req.parseBody();
+  const { teamId, userId } = parseSlashCommandData(body);
+
+  const { locale } = await getBotContext(teamId, userId);
+
+  const response = await Slack.blocks(locale).help();
   return c.json(response);
 }).all((c) => c.text('Invalid method', 405))
 
@@ -174,9 +180,14 @@ commands.post('/help', async (c) => {
  * Get daily puzzle (screenshot + url) 
  */
 commands.post('/puzzle', async (c) => {
+  const body = await c.req.parseBody();
+  const { teamId, userId } = parseSlashCommandData(body);
+
+  const { locale } = await getBotContext(teamId, userId);
+
   const puzzleData = await Lichess.getDailyPuzzle();
 
-  const response = await Slack.blocks('en-US').puzzle(puzzleData);
+  const response = await Slack.blocks(locale).puzzle(puzzleData);
   return c.json(response);
 }).all((c) => c.text('Invalid method', 405));
 
@@ -184,59 +195,67 @@ commands.post('/puzzle', async (c) => {
  * Set scheduled delivery time
  */
 commands.post('/schedule/set', async (c) => {
-  const body = parseTimePickerData(await c.req.parseBody());
-  const preferences = await Slack.getUserInfo(body.userId);
+  const body = await c.req.parseBody();
+  const {
+    teamId,
+    userId,
+    selectedTime,
+    responseUrl
+  } = parseTimePickerData(body);
 
-  const cronData = zonedTimeToUtc(body.selectedTime, preferences.tz)
+  const { locale, timeZone } = await getBotContext(teamId, userId);
+
+  const cronData = zonedTimeToUtc(selectedTime, timeZone)
   const cron = toCron(cronData);
 
+  const data: ScheduledPuzzleData = {
+    uid: teamId,
+    locale,
+  }
+
   const { scheduleId } = await createSchedule({
-    service: '/api/whatever', 
+    service: '/api/deliver', 
     cron,
-    data: {}
+    data,
   })
 
-  /** @todo db retry */
-  await db.scheduleBot(body.teamId, {
+  /** @todo db retry or session */
+  await db.scheduleBot(teamId, {
     scheduleId,
     cron,
   });
 
-  const timeString = localizeZonedTime(cronData, preferences.tz, preferences.locale)
+  const timeString = localizeZonedTime(selectedTime, timeZone, locale)
+  /** @todo locale */
   const message = `The daily puzzle will now be delivered at ${timeString}`
 
   /** @todo response queue? */
-  const response = Slack.blocks(preferences.locale)
+  const response = Slack.blocks(locale)
     .replaceWithText(message)
 
-  /** @todo blocks; error handling? */
-  wretch(body.responseUrl)
-    .post(response);
+  /** @todo blocks; error handling? webhook url */
+  wretch(responseUrl).post(response);
 
   /** @todo response? */
   return c.text('ok');
 }).all((c) => c.text('Invalid method', 405));
 
-/** Get and set scheduled delivery time */
+/** 
+ * Get and set scheduled delivery time 
+ */
 commands.post('/schedule', async (c) => {
-  const { teamId, userId } = parseSlashCommandData(await c.req.parseBody());
+  const body = await c.req.parseBody()
+  const { teamId, userId } = parseSlashCommandData(body);
 
-  const botData = await db.getBot(teamId);
-  if (!botData) throw new PersistenceError('Bot not found', {
-    code: 'not_found',
-    collection: 'bots',
-    filter: { teamId },
-  });
+  const { locale, timeZone, ...bot } = await getBotContext(teamId, userId);
 
-  const preferences = await Slack.getUserInfo(userId);
+  const scheduledAt = bot.getScheduledAt()
 
-  const scheduledAt = botData.cron
-    ? fromCron(botData.cron)
-    : undefined;
-
-  const response = await Slack.blocks(preferences.locale).schedule({
-    scheduledAt: getValidCronTime(scheduledAt),
-    timeZone: preferences.tz,
+  const response = await Slack.blocks(locale).schedule({
+    scheduledAt: scheduledAt
+      ? utcTimeToZoned(scheduledAt, timeZone)
+      : undefined,
+    timeZone,
   });
 
   return c.json(response);
@@ -246,9 +265,51 @@ slack.route('/commands', commands)
 
 app.route('/slack', slack)
 
+const cron = new Hono();
+
+cron.use(async (c, next) => {
+  // upstash-schedule-id
+  const token = c.req.header('upstash-signature');
+  
+  const arrayBuffer = await c.req.arrayBuffer();
+  c.req.bodyCache.arrayBuffer = arrayBuffer;
+
+  const body = await new Response(arrayBuffer).text()
+  verifyRequest(c.req.path, body, token)
+
+  await next()
+})
+
+/**
+ * Dispatch scheduled puzzle delivery
+ */
+cron.post('/deliver', async (c) => {
+  const body = await c.req.json()
+  const { uid: teamId, locale } = parseScheduledPuzzleData(body)
+  
+  const bot = await db.getBot(teamId);
+  if (!bot) throw new PersistenceError('Bot not found', {
+    code: 'not_found',
+    collection: 'bots',
+    op: 'read',
+    filter: { teamId },
+  });
+
+  const puzzleData = await Lichess.getDailyPuzzle();
+
+  const response = await Slack.blocks(locale).puzzle(puzzleData);
+  wretch(bot.webhookUrl).post(response)
+
+  /** @todo response? */
+  return c.text('ok');
+}).all((c) => c.text('Invalid Method', 405));
+
+app.route('/cron', cron)
+
 app.notFound(async (c) => {
-  const locale = getLocalePreference(c.req.raw.headers);
-  const isBrowser = getIsBrowser(c.req.raw.headers);
+  const headers = c.req.raw.headers;
+  const locale = getLocalePreference(headers);
+  const isBrowser = getIsBrowser(headers);
 
   if (isBrowser) {
     const notFoundPage = await localize(compileNotFoundPage, locale, {
@@ -282,9 +343,10 @@ app.onError(async (error, c) => {
    * @todo unauth error response
    * @todo schedule/set is an edge case
    */
-  if (Object.keys(commandNames).includes(c.req.path)) {
+  const path = c.req.path;
+  if (Object.keys(commandNames).includes(path)) {
     const locale = getLocalePreference(c.req.raw.headers);
-    return c.json(await Slack.blocks(locale).error(commandNames[c.req.path]));
+    return c.json(await Slack.blocks(locale).error(commandNames[path]));
   }
 
   if (error instanceof AuthorizationError) {
