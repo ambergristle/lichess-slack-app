@@ -1,4 +1,4 @@
-import { Bot } from '@/types';
+import { Bot, Schedule } from '@/types';
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -7,7 +7,7 @@ abstract class Db {
 
   abstract getBot(teamId: string): MaybePromise<Bot | null>;
 
-  abstract scheduleBot(teamId: string, scheduledAt: Date): MaybePromise<void>;
+  abstract scheduleBot(teamId: string, schedule: Schedule): MaybePromise<void>;
 
   abstract deleteBot(teamId: string): MaybePromise<void>;
 }

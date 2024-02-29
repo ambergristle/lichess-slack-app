@@ -1,9 +1,14 @@
+import {
+  formatTimeInput,
+  interpolate,
+  localizeZonedTime,
+} from '@/lib/utils';
 import { getLocalizations } from '@/lib/utils/locale';
-import { interpolate } from '@/lib/utils/strings';
 import { BlockResponse, Command } from './types';
 
 /**
  * @see https://api.slack.com/block-kit
+ * @todo inject tz
  */
 const blocks = (locale: string) => {
   return {
@@ -103,25 +108,19 @@ const blocks = (locale: string) => {
     schedule: async ({
       scheduledAt,
       timeZone,
-      locale,
     }: {
-      scheduledAt: Date | undefined;
+      scheduledAt: { hour: number; minute: number; } | undefined;
       timeZone: string,
-      locale: string;
     }): Promise<BlockResponse> => {
       const localizations = await getLocalizations(locale);
 
-      const timeString = scheduledAt?.toLocaleTimeString([locale], {
-        timeZone,
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-
-      const initialTime = timeString ?? '12:00';
-
-      const message = timeString
+      const initialTime = scheduledAt
+        ? formatTimeInput(scheduledAt)
+        : '12:00';
+      
+      const message = scheduledAt
         ? interpolate(localizations.blocks.scheduleInfo, {
-          timeString,
+          timeString: localizeZonedTime(scheduledAt, timeZone, locale),
         })
         : localizations.blocks.schedulePrompt;
 
@@ -152,13 +151,29 @@ const blocks = (locale: string) => {
       };
     },
 
-    /** An ephemeral error message */
-    replaceWithText: (message: string) => {
+    /** 
+     * A confirmation message that replaces the dispatching form
+     */
+    scheduleConfirmation: async ({
+      scheduledAt,
+      timeZone,
+    }: {
+      scheduledAt: { hour: number; minute: number; };
+      timeZone: string,
+    }) => {
+      const timeString = localizeZonedTime(scheduledAt, timeZone, locale);
+      const localizations = await getLocalizations(locale);
+
+      const message = interpolate(localizations.blocks.scheduleConfirmation, {
+        timeString,
+      });
+
       return {
         replace_original: true,
         text: message,
       };
     },
+    
   };
 };
 

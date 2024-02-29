@@ -1,17 +1,38 @@
 
 export {
   getIsBrowser,
+  getLocalePreference,
   logError,
 } from './api';
 
-export { unix } from './dates';
+export {
+  fromCron,
+  getValidCronTime,
+  toCron,
+} from './cron';
+
+export { 
+  formatTimeInput,
+  getRawTimeString,
+  localizeZonedTime,
+  unix,
+  utcTimeToZoned,
+  zonedTimeToUtc,
+} from './dates';
 
 export { default as hmac } from './hmac';
 
-export { getLocalePreference } from './api';
+export { 
+  interpolate,
+} from './strings';
 
-export type { Parser } from './types';
+export {
+  isNumber,
+  isString,
+  type Parser,
+} from './types';
+
+export { constructHref } from './urls';
 
 export { parserFactory } from './zod';
 
-export { constructHref } from './urls';

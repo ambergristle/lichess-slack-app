@@ -11,7 +11,10 @@ export const constructHref = (
     .entries(params)
     .forEach(([key, value]) => {
       /** @todo error handling */
-      if (typeof value !== 'string') throw `Invalid parameter type ${typeof value}`;
+      if (typeof value !== 'string') {
+        throw new Error(`Invalid parameter type ${typeof value}`);
+      }
+      
       url.searchParams.set(key, value);
     });
 

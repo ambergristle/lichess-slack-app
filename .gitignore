@@ -50,7 +50,7 @@ jspm_packages/
 web_modules/
 
 # TypeScript cache
-\*.tsbuildinfo
+*.tsbuildinfo
 
 # Optional npm cache directory
 .npm
@@ -146,3 +146,8 @@ dist
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+.obsidian
+
+docs
+bruno

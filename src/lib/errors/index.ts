@@ -24,19 +24,22 @@ export class AuthorizationError extends KnownError {
 interface PersistenceErrorOptions extends ErrorOptions {
   code: string;
   collection: string;
+  op: 'read' | 'write';
   /** @todo typing */
-  filter: Record<string, any>;
+  filter?: Record<string, any>;
 }
 
 export class PersistenceError extends KnownError {
   public readonly code: string;
   public readonly collection: string;
-  public readonly filter: Record<string, any>;
+  public readonly op: 'read' | 'write';
+  public readonly filter?: Record<string, any>;
 
   constructor(message: string, options: PersistenceErrorOptions) {
     const {
       code,
       collection, 
+      op,
       filter,
       ..._options 
     } = options;
@@ -47,6 +50,7 @@ export class PersistenceError extends KnownError {
 
     this.code = code;
     this.collection = collection;
+    this.op = op;
     this.filter = filter;
 
     Error.captureStackTrace(this, PersistenceError);

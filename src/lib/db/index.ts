@@ -1,4 +1,4 @@
-import { Bot } from '@/types';
+import { Bot, Schedule } from '@/types';
 import Db from './abstract';
 import SqliteDb from './sqlite';
 
@@ -18,8 +18,8 @@ class Service implements Db {
     return this.db.getBot(teamId);
   }
 
-  public scheduleBot(teamId: string, scheduledAt: Date) {
-    return this.db.scheduleBot(teamId, scheduledAt);
+  public scheduleBot(teamId: string, schedule: Schedule) {
+    return this.db.scheduleBot(teamId, schedule);
   }
 
   public deleteBot(teamId: string) {

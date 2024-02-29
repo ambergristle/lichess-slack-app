@@ -1,17 +1,22 @@
-
 import { Hono } from 'hono';
+import { accepts } from 'hono/accepts';
+// import { cors } from 'hono/cors'
+// import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception';
+import { logger } from 'hono/logger';
 import wretch from 'wretch';
 
 import config from '@/config';
+import { getBotContext } from '@/controllers';
+
+import { createSchedule, deleteSchedule, verifyRequest } from '@/lib/cron';
 import db from '@/lib/db';
 import {
   AuthorizationError,
   PersistenceError,
-  ValidationError,
 } from '@/lib/errors';
-import Lichess from '@/lib/lichess';
-import Slack from '@/lib/slack';
+import * as Lichess from '@/lib/lichess';
+import * as Slack from '@/lib/slack';
 import {
   parseRegistrationRequest,
   parseTimePickerData,
@@ -20,14 +25,12 @@ import {
 import { Command } from '@/lib/slack/types';
 import {
   getIsBrowser,
-  logError,
   getLocalePreference,
+  logError,
+  toCron,
+  utcTimeToZoned,
+  zonedTimeToUtc,
 } from '@/lib/utils';
-
-import {
-  getScheduledTime,
-  parseScheduleData,
-} from '@/lib/tz';
 
 import {
   compileErrorPage,
@@ -37,23 +40,33 @@ import {
   compileRegistrationOkPage,
   localize,
 } from '@/pug';
+import { ScheduledPuzzleData, parseScheduledPuzzleData } from './dtos';
 
 const app = new Hono();
 
+app.use('*', logger());
+
 /** 
  * Expose app info and registration button
+ * - The registration url points to Slack, where users
+ * can authorize this app. It includes a redirect uri
+ * that will automatically return users to the /slack/register
+ * route, along with a registration code
  */
 app.get('/', async (c) => {
-  const locale = getLocalePreference(c.req.headers);
+  /** @todo accepts html? */
+  // const isBrowser = getIsBrowser(c.req.raw.headers);
+
+  const locale = accepts(c, {
+    header: 'Accept-Language',
+    supports: ['en', 'en-US'],
+    default: 'en-US',
+    // match
+  });
 
   try {
-    /** 
-     * The registration url points to Slack, where users
-     * can authorize this app. It includes a redirect uri
-     * that will automatically return users to the /slack/register
-     * route, along with a registration code
-    */
     const landingPage = await localize(compileLandingPage, locale, {
+      /** @todo this is effectively static */
       registrationHref: Slack.getOAuthRedirectUrl(),
     });
 
@@ -67,146 +80,180 @@ app.get('/', async (c) => {
 
     return c.html(errorPage);
   }
-})
-  .all((c) => c.text('Invalid method', 405));
+
+}).all((c) => c.text('Invalid method', 405));
 
 const slack = new Hono();
 
-/** Process registration request */
+/** 
+ * Process registration request and display results
+ */
 slack.get('/register', async (c) => {
-  const locale = getLocalePreference(c.req.headers);
-  const isBrowser = getIsBrowser(c.req.headers);
+  const isBrowser = getIsBrowser(c.req.raw.headers);
+
+  const locale = accepts(c, {
+    header: 'Accept-Language',
+    supports: ['en', 'en-US'],
+    default: 'en-US',
+  });
 
   try {
     const { code, state } = parseRegistrationRequest(c.req.query());
     if (state !== config.STATE) throw new AuthorizationError('Invalid Key');
   
+    /** @todo responseUrl, preferences? */
     const bot = await Slack.registerBot(code);
     await db.addBot(bot);
 
-    if (isBrowser) {
-      const registrationOkPage = await localize(compileRegistrationOkPage, locale);
-      return c.html(registrationOkPage);
-    }
+    if (!isBrowser) return c.text('App registration succeeded!');
 
-    return c.text('App registration succeeded!');
+    const registrationOkPage = await localize(compileRegistrationOkPage, locale);
+    return c.html(registrationOkPage);
+    
   } catch (error) {
     logError(error);
 
-    if (isBrowser) {
-      const registrationErrorPage = await localize(compileRegistrationErrorPage, locale);
-      return c.html(registrationErrorPage);
-    }
+    if (!isBrowser) return c.text('Error: Registration failed');
 
-    return c.text('Error: Registration failed');
+    const registrationErrorPage = await localize(compileRegistrationErrorPage, locale);
+    return c.html(registrationErrorPage);
   }
-})
-  .all((c) => c.text('Invalid method', 405));
+}).all((c) => c.text('Invalid method', 405));
 
 const commands = new Hono();
 
-/**  Verify slash command requests */
-commands.use((c, next) => {
-  try {
-    const userAgent = c.req.headers.get('user-agent');
-
-    if (!userAgent?.includes('Slackbot 1.0 (+https://api.slack.com/robots)')) {
-      console.log('no slackbot');
-    }
-    
-    const accept = c.req.headers.get('accept');
-
-    if (!accept?.includes('application/json')) {
-      console.log('no json');
-    }
-
-    const {
-      timestampIsValid,
-      signatureIsValid,
-    } = Slack.verifyRequest(c.req.raw);
-  
-    if (!timestampIsValid) throw new AuthorizationError('Signature is expired or invalid');
-    if (!signatureIsValid) throw new AuthorizationError('Signature is invalid');
-  
-    return next();
-  } catch (cause) {
-    if (cause instanceof AuthorizationError || cause instanceof ValidationError) {
-      console.error(cause);
-      const res = new Response('Unauthorized', {
-        status: 403,
-      });
-  
-      throw new HTTPException(401, { res });
-    }
-
-    throw cause;
+/**  
+ * Verify slash command requests 
+ */
+commands.use('*', async (c, next) => {
+  const userAgent = c.req.header('user-agent');
+  if (!userAgent?.includes('Slackbot 1.0 (+https://api.slack.com/robots)')) {
+    /** @todo */
+    console.log('no slackbot');
   }
-});
 
-/** Get command details  */
-commands.post('/help', async (c) => {
-  const locale = getLocalePreference(c.req.headers);
-  return c.json(await Slack.blocks(locale).help());
-}).all((c) => c.text('Invalid method', 405));
+  const accept = c.req.header('accept');
+  if (!accept?.includes('application/json')) {
+    /** @todo */
+    console.log('no accept');
+  }
 
-/** Get daily puzzle (screenshot + url) */
-commands.post('/puzzle', async (c) => {
-  const locale = getLocalePreference(c.req.headers);
-  const puzzleData = await Lichess.getDailyPuzzle();
-  return c.json(await Slack.blocks(locale).puzzle(puzzleData));
-}).all((c) => c.text('Invalid method', 405));
+  // excludes files and other possible FormData
+  const formData = await c.req.formData();
+  const dataEntries = [...formData.entries()]
+    .reduce((entries, [key, value]) => {
+      if (typeof value === 'string') entries.push([key, value]);
+      return entries;
+    }, [] as string[][]);
 
-/** Set scheduled delivery time */
-commands.post('/schedule/set', async (c) => {
-  const locale = getLocalePreference(c.req.headers);
-  const body = parseTimePickerData(await c.req.parseBody());
-
-  /** @todo move to bot? */
-  const { hours, minutes } = parseScheduleData(body.selectedTime);
-
-  const preferences = await Slack.getTimeZone(body.userId);
-  // how do we actually want to do this?
-  const scheduledTime = getScheduledTime(hours, minutes, preferences.tz);
-
-  await db.scheduleBot(body.teamId, scheduledTime);
-
-  const displayString = scheduledTime.toLocaleString(locale, {
-    timeZone: preferences.tz,
+  const {
+    timestampIsValid,
+    signatureIsValid,
+  } = Slack.verifyRequest({
+    headers: c.req.raw.headers.toJSON(),
+    body: new URLSearchParams(dataEntries).toString(),
   });
 
-  /** @todo job */
-  const message = `Your puzzle would have been scheduled at ${displayString}, but`
-    + ' I haven\'t gotten that far yet';
+  if (!timestampIsValid) throw new AuthorizationError('Signature is expired or invalid');
+  if (!signatureIsValid) throw new AuthorizationError('Signature is invalid');
 
-  /** @todo blocks; error handling? */
-  wretch(body.responseUrl)
-    .post(Slack.blocks(locale).replaceWithText(message));
+  await next();
+});
+
+/** 
+ * Get command details
+ */
+commands.post('/help', async (c) => {
+  const body = await c.req.parseBody();
+  const { teamId, userId } = parseSlashCommandData(body);
+
+  const { locale } = await getBotContext(teamId, userId);
+
+  const response = await Slack.blocks(locale).help();
+  return c.json(response);
+}).all((c) => c.text('Invalid method', 405));
+
+/** 
+ * Get daily puzzle (screenshot + url) 
+ */
+commands.post('/puzzle', async (c) => {
+  const body = await c.req.parseBody();
+  const { teamId, userId } = parseSlashCommandData(body);
+
+  const { locale } = await getBotContext(teamId, userId);
+
+  const puzzleData = await Lichess.getDailyPuzzle();
+
+  const response = await Slack.blocks(locale).puzzle(puzzleData);
+  return c.json(response);
+}).all((c) => c.text('Invalid method', 405));
+
+/** 
+ * Set scheduled delivery time
+ */
+commands.post('/schedule/set', async (c) => {
+  const body = await c.req.parseBody();
+  const {
+    teamId,
+    userId,
+    selectedTime: scheduledAt,
+    responseUrl,
+  } = parseTimePickerData(body);
+
+  const { locale, timeZone, ...bot } = await getBotContext(teamId, userId);
+
+  const currentSchedule = bot.schedule;
+
+  if (currentSchedule) {
+    await deleteSchedule(currentSchedule.scheduleId);
+  }
+
+  const cronData = zonedTimeToUtc(scheduledAt, timeZone);
+  const cron = toCron(cronData);
+
+  const data: ScheduledPuzzleData = {
+    uid: teamId,
+    locale,
+  };
+
+  const { scheduleId } = await createSchedule({
+    service: '/api/deliver', 
+    cron,
+    data,
+  });
+
+  /** @todo db retry or session */
+  await db.scheduleBot(teamId, {
+    scheduleId,
+    cron,
+  });
+
+  const response = await Slack.blocks(locale)
+    .scheduleConfirmation({ scheduledAt, timeZone });
+
+  /** @todo error handling */
+  wretch(responseUrl).post(response);
 
   /** @todo response? */
   return c.text('ok');
 }).all((c) => c.text('Invalid method', 405));
 
 /** 
- * Get scheduled delivery time
+ * Get and set scheduled delivery time 
  */
 commands.post('/schedule', async (c) => {
-  const locale = getLocalePreference(c.req.headers);
-  const body = parseSlashCommandData(await c.req.parseBody());
-  const teamId = body.teamId;
+  const body = await c.req.parseBody();
+  const { teamId, userId } = parseSlashCommandData(body);
 
-  const botData = await db.getBot(teamId);
-  if (!botData) throw new PersistenceError('Bot not found', {
-    code: 'not_found',
-    collection: 'bots',
-    filter: { teamId },
-  });
+  const { locale, timeZone, ...bot } = await getBotContext(teamId, userId);
 
-  const preferences = await Slack.getTimeZone(body.userId);
+  const scheduledAt = bot.getScheduledAt();
 
   const response = await Slack.blocks(locale).schedule({
-    scheduledAt: botData.scheduledAt,
-    timeZone: preferences.tz,
-    locale: preferences.locale,
+    scheduledAt: scheduledAt
+      ? utcTimeToZoned(scheduledAt, timeZone)
+      : undefined,
+    timeZone,
   });
 
   return c.json(response);
@@ -216,9 +263,51 @@ slack.route('/commands', commands);
 
 app.route('/slack', slack);
 
+const cron = new Hono();
+
+cron.use(async (c, next) => {
+  // upstash-schedule-id
+  const token = c.req.header('upstash-signature');
+  
+  const arrayBuffer = await c.req.arrayBuffer();
+  c.req.bodyCache.arrayBuffer = arrayBuffer;
+
+  const body = await new Response(arrayBuffer).text();
+  verifyRequest(c.req.path, body, token);
+
+  await next();
+});
+
+/**
+ * Dispatch scheduled puzzle delivery
+ */
+cron.post('/deliver', async (c) => {
+  const body = await c.req.json();
+  const { uid: teamId, locale } = parseScheduledPuzzleData(body);
+  
+  const bot = await db.getBot(teamId);
+  if (!bot) throw new PersistenceError('Bot not found', {
+    code: 'not_found',
+    collection: 'bots',
+    op: 'read',
+    filter: { teamId },
+  });
+
+  const puzzleData = await Lichess.getDailyPuzzle();
+
+  const response = await Slack.blocks(locale).puzzle(puzzleData);
+  wretch(bot.webhookUrl).post(response);
+
+  /** @todo response? */
+  return c.text('ok');
+}).all((c) => c.text('Invalid Method', 405));
+
+app.route('/cron', cron);
+
 app.notFound(async (c) => {
-  const locale = getLocalePreference(c.req.headers);
-  const isBrowser = getIsBrowser(c.req.headers);
+  const headers = c.req.raw.headers;
+  const locale = getLocalePreference(headers);
+  const isBrowser = getIsBrowser(headers);
 
   if (isBrowser) {
     const notFoundPage = await localize(compileNotFoundPage, locale, {
@@ -249,11 +338,13 @@ app.onError(async (error, c) => {
   /**
    * commands middleware has already handled requests that
    * don't come from slack; return slack blocks on service failure
+   * @todo unauth error response
    * @todo schedule/set is an edge case
    */
-  if (Object.keys(commandNames).includes(c.req.path)) {
-    const locale = getLocalePreference(c.req.headers);
-    return c.json(await Slack.blocks(locale).error(commandNames[c.req.path]));
+  const path = c.req.path;
+  if (Object.keys(commandNames).includes(path)) {
+    const locale = getLocalePreference(c.req.raw.headers);
+    return c.json(await Slack.blocks(locale).error(commandNames[path]));
   }
 
   if (error instanceof AuthorizationError) {
@@ -268,3 +359,8 @@ app.onError(async (error, c) => {
 });
 
 export default app;
+
+// export default { 
+//   port: 3000, 
+//   fetch: app.fetch, 
+// } 

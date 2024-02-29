@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { parserFactory } from '@/lib/utils';
+import { Parser, parserFactory } from '@/lib/utils';
 import { parseBot } from '@/parsers';
 import type { Bot } from '@/types';
 import { BotDocument } from './types';
@@ -8,12 +8,15 @@ import { BotDocument } from './types';
 const ZBotDocument = z.object({
   uid: z.string(),
   team_id: z.string(),
+  channel_id: z.string(),
   token: z.string(),
   scope: z.string(),
-  scheduled_at: z.string().nullable(), // time string; optional?
+  webhook_url: z.string(),
+  schedule_id: z.string().nullable(),
+  cron: z.string().nullable(),
 });
 
-const parseBotData = parserFactory(
+const parseBotData: Parser<BotDocument> = parserFactory(
   ZBotDocument,
   {
     entityName: 'BotDocument',
@@ -21,17 +24,15 @@ const parseBotData = parserFactory(
   },
 );
 
-// is this what we want?
-const dateFromString = (dateString: string) => {
-  return new Date(dateString);
-};
-
 export const sqliteToBot = (data: unknown): Bot => {
 
   const botData = parseBotData(data);
 
-  const scheduledAt = botData.scheduled_at
-    ? dateFromString(botData.scheduled_at)
+  const schedule = botData.schedule_id && botData.cron
+    ? {
+      scheduleId: botData.schedule_id,
+      cron: botData.cron,
+    }
     : undefined;
 
   return {
@@ -39,20 +40,25 @@ export const sqliteToBot = (data: unknown): Bot => {
     teamId: botData.team_id,
     token: botData.token,
     scope: botData.scope.split(','),
-    ...(scheduledAt && {
-      scheduledAt,
-    }),
+    channelId: botData.channel_id,
+    webhookUrl: botData.webhook_url,
+    ...(schedule && { schedule }),
   };
 };
 
 export const botToSqlite = (data: Bot): BotDocument => {
   const bot = parseBot(data);
 
-  return parseBotData({
+  const document: BotDocument = {
     uid: bot.uid,
     team_id: bot.teamId,
+    channel_id: bot.channelId,
     token: bot.token,
     scope: bot.scope.join(','),
-    scheduled_at: bot.scheduledAt?.toISOString() ?? null,
-  });
+    webhook_url: bot.webhookUrl,
+    schedule_id: bot.schedule?.scheduleId ?? null,
+    cron: bot.schedule?.cron ?? null,
+  };
+
+  return parseBotData(document);
 };

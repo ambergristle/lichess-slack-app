@@ -32,6 +32,8 @@ const locale = {
       + ' You can update or cancel at any time:',
     schedulePrompt: 'Select a time to recieve the Lichess Daily Puzzle',
     scheduleSelectTime: 'Select time',
+    /** @token timeString */
+    scheduleConfirmation: 'The daily puzzle will now be delivered at ${timeString}',
   },
 
   commandErrors: {

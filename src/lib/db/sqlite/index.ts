@@ -1,6 +1,7 @@
 import { Database as BunSqlLiteDb } from 'bun:sqlite';
 
-import type { Bot } from '@/types';
+import { PersistenceError } from '@/lib/errors';
+import type { Bot, Schedule } from '@/types';
 import Db from '../abstract';
 import { botToSqlite, sqliteToBot } from './adapters';
 
@@ -24,9 +25,12 @@ class SqliteDb implements Db {
       CREATE TABLE IF NOT EXISTS bots (
         uid STRING PRIMARY KEY, 
         team_id STRING,
+        channel_id STRING,
         token STRING,
         scope STRING,
-        scheduled_at STRING
+        webhook_url STRING,
+        schedule_id STRING,
+        cron STRING
       )
     `);
   }
@@ -43,20 +47,26 @@ class SqliteDb implements Db {
     const botRecord = botToSqlite(data);
 
     this.db.query(`
-      INSERT INTO bots (uid, team_id, token, scope)
-      VALUES ($uid, $team_id, $token, $scope)
+      INSERT INTO bots (uid, team_id, channel_id, token, scope, webhook_url)
+      VALUES ($uid, $team_id, $channel_id, $token, $scope, $webhook_url)
     `).run({
       $uid: botRecord.uid,
       $team_id: botRecord.team_id,
+      $channel_id: botRecord.channel_id,
       $token: botRecord.token,
       $scope: botRecord.scope,
+      $webhook_url: botRecord.webhook_url,
     });
 
     const result = this.db.query(`
       SELECT * from bots where rowId = last_insert_rowid()
     `).get();
     
-    if (!result) throw new Error('Bot insertion failed');
+    if (!result) throw new PersistenceError('Bot insertion failed', {
+      code: 'unknown',
+      collection: 'bots',
+      op: 'write',
+    });
 
     return sqliteToBot(result);
   }
@@ -79,15 +89,15 @@ class SqliteDb implements Db {
     return results.map(sqliteToBot);
   }
 
-  public scheduleBot(teamId: string, scheduledAt: Date) {
+  public scheduleBot(teamId: string, schedule: Schedule) {
     this.db.query(`
       UPDATE bots
-      SET scheduled_at = $scheduled_at
+      SET schedule_id = $schedule_id, cron = $cron
       WHERE team_id = $team_id
     `).run({ 
       $team_id: teamId,
-      // format?
-      $scheduled_at: scheduledAt.toISOString(),
+      $schedule_id: schedule.scheduleId,
+      $cron: schedule.cron,
     });
   }
 
