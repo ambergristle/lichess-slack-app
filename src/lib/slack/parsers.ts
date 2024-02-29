@@ -172,7 +172,7 @@ export const parseTimePickerData: Parser<TimePickerData> = (data) => {
     entityName: 'TimePickerActionRequest',
     errors: [{ 
       path: 'actions.selected_time', 
-      message: '',
+      message: 'Required',
     }],
   });
 
