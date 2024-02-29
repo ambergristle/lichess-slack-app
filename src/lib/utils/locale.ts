@@ -12,6 +12,7 @@ export const getLocalizations = async (locale: string): Promise<Localizations> =
   });
 
   const filePath = filePaths[preferredLocaleKey ?? ''] ?? 'en_us';
+  console.log(filePaths[preferredLocaleKey ?? '']);
 
   return await import(`@/locale/${filePath}`)
     .then((module) => module.default);

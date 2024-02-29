@@ -5,8 +5,8 @@ import { parserFactory } from '../utils';
 const ZSignatureTokenData = z.object({
   iss: z.literal('Upstash'),
   sub: z.string(),
-  exp: z.number().gt(new Date().getMilliseconds()),
-  nbf: z.number(), // what?
+  exp: z.number(),
+  nbf: z.number(),
   body: z.string(),
   // aud
   // iat

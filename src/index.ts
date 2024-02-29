@@ -9,7 +9,7 @@ import wretch from 'wretch';
 import config from '@/config';
 import { getBotContext } from '@/controllers';
 
-import { createSchedule, verifyRequest } from '@/lib/cron';
+import { createSchedule, deleteSchedule, verifyRequest } from '@/lib/cron';
 import db from '@/lib/db';
 import {
   AuthorizationError,
@@ -26,7 +26,6 @@ import { Command } from '@/lib/slack/types';
 import {
   getIsBrowser,
   getLocalePreference,
-  localizeZonedTime,
   logError,
   toCron,
   utcTimeToZoned,
@@ -197,13 +196,19 @@ commands.post('/schedule/set', async (c) => {
   const {
     teamId,
     userId,
-    selectedTime,
+    selectedTime: scheduledAt,
     responseUrl,
   } = parseTimePickerData(body);
 
-  const { locale, timeZone } = await getBotContext(teamId, userId);
+  const { locale, timeZone, ...bot } = await getBotContext(teamId, userId);
 
-  const cronData = zonedTimeToUtc(selectedTime, timeZone);
+  const currentSchedule = bot.schedule;
+
+  if (currentSchedule) {
+    await deleteSchedule(currentSchedule.scheduleId);
+  }
+
+  const cronData = zonedTimeToUtc(scheduledAt, timeZone);
   const cron = toCron(cronData);
 
   const data: ScheduledPuzzleData = {
@@ -223,15 +228,10 @@ commands.post('/schedule/set', async (c) => {
     cron,
   });
 
-  const timeString = localizeZonedTime(selectedTime, timeZone, locale);
-  /** @todo locale */
-  const message = `The daily puzzle will now be delivered at ${timeString}`;
+  const response = await Slack.blocks(locale)
+    .scheduleConfirmation({ scheduledAt, timeZone });
 
-  /** @todo response queue? */
-  const response = Slack.blocks(locale)
-    .replaceWithText(message);
-
-  /** @todo blocks; error handling? webhook url */
+  /** @todo error handling */
   wretch(responseUrl).post(response);
 
   /** @todo response? */

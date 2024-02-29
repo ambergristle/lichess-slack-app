@@ -2,7 +2,6 @@
 export {
   getIsBrowser,
   getLocalePreference,
-  isDevRequest,
   logError,
 } from './api';
 

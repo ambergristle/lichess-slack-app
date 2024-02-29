@@ -151,13 +151,29 @@ const blocks = (locale: string) => {
       };
     },
 
-    /** An ephemeral error message */
-    replaceWithText: (message: string) => {
+    /** 
+     * A confirmation message that replaces the dispatching form
+     */
+    scheduleConfirmation: async ({
+      scheduledAt,
+      timeZone,
+    }: {
+      scheduledAt: { hour: number; minute: number; };
+      timeZone: string,
+    }) => {
+      const timeString = localizeZonedTime(scheduledAt, timeZone, locale);
+      const localizations = await getLocalizations(locale);
+
+      const message = interpolate(localizations.blocks.scheduleConfirmation, {
+        timeString,
+      });
+
       return {
         replace_original: true,
         text: message,
       };
     },
+    
   };
 };
 

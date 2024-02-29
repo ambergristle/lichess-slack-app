@@ -85,17 +85,24 @@ const verifyToken = (
     const data = parseTokenData(payload);
 
     if (data.sub !== `${config.BASE_URL}${path}`) {
-      /** @todo error type */
       throw new AuthorizationError('Path does not match claim');
     }
 
-    // nbf token is already valid
+    const nowMilliseconds = new Date().getMilliseconds();
+
+    if (data.exp < nowMilliseconds) {
+      throw new AuthorizationError('Token expired');
+    }
+
+    if (data.nbf > nowMilliseconds) {
+      throw new AuthorizationError('Token not yet valid');
+    }
+
     const hash = createHash('sha256')
       .update(body)
       .digest('base64url');
 
     if (data.body !== `${hash}=`) {
-      /** @todo error type */
       throw new AuthorizationError('Raw body does not match claim');
     }
 

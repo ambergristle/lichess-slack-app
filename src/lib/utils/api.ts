@@ -1,4 +1,3 @@
-import config from '@/config';
 import { KnownError } from '@/lib/errors';
 
 const browsers = [
@@ -24,11 +23,6 @@ export const getIsBrowser = (headers: Headers) => {
   if (accepts) return accepts.includes('html');
 
   return false;
-};
-
-export const isDevRequest = (headers: Headers) => {
-  const devSecret = headers.get('x-dev-secret');
-  return devSecret === config.DEVELOPMENT_SECRET;
 };
 
 const locales = [
