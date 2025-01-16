@@ -137,7 +137,7 @@ const ZTimePickerActionRequest = z.preprocess(
     team: z.object({
       id: z.string(),
     }),
-    user: z.object({ 
+    user: z.object({
       id: z.string(),
     }),
     token: z.string(),
@@ -168,10 +168,10 @@ export const parseTimePickerData: Parser<TimePickerData> = (data) => {
   const request = parseTimePickerActionRequest(data);
 
   const selectedTime = request.actions[0]?.selected_time;
-  if (!selectedTime) throw new ValidationError('No time selected', { 
+  if (!selectedTime) throw new ValidationError('No time selected', {
     entityName: 'TimePickerActionRequest',
-    errors: [{ 
-      path: 'actions.selected_time', 
+    errors: [{
+      path: 'actions.selected_time',
       message: 'Required',
     }],
   });
@@ -182,8 +182,8 @@ export const parseTimePickerData: Parser<TimePickerData> = (data) => {
     teamId: request.team.id,
     userId: request.user.id,
     token: request.token,
-    selectedTime: { 
-      hour: Number(hours), 
+    selectedTime: {
+      hour: Number(hours),
       minute: Number(minutes),
     },
     responseUrl: request.response_url,
@@ -207,8 +207,8 @@ const parseUserInfoResponse: Parser<UserInfoResponse> = parserFactory(
   },
 );
 
-/** 
- * @note Locale is only included if specified in request search params 
+/**
+ * @note Locale is only included if specified in request search params
  */
 export const parseUserInfo: Parser<UserInfo> = (data) => {
   const { user } = parseUserInfoResponse(data);

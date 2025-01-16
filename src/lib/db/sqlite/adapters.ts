@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { Parser, parserFactory } from '@/lib/utils';
 import { parseBot } from '@/parsers';
-import type { Bot } from '@/types';
+import type { Bot } from '@/lib/types';
 import { BotDocument } from './types';
 
 const ZBotDocument = z.object({

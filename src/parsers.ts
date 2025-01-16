@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { Parser, parserFactory } from '@/lib/utils';
-import { Bot } from '@/types';
+import { Bot } from '@/lib/types';
 
 const ZSchedule = z.object({
   scheduleId: z.string(),

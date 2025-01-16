@@ -1,7 +1,15 @@
+import { parseCronExpression } from '@/lib/cron/whatever';
 import db from '@/lib/db';
 import { PersistenceError } from '@/lib/errors';
 import { getUserInfo } from '@/lib/slack';
-import { fromCron, getValidCronTime } from '@/lib/utils';
+
+const getValidCronTime = (cron: CronData | undefined) => {
+  const { hour, minute } = cron ?? {};
+
+  if (!isNumber(hour) || !isNumber(minute)) return;
+  return { hour, minute };
+};
+
 
 export const getBotContext = async (teamId: string, userId: string) => {
 
@@ -25,7 +33,7 @@ export const getBotContext = async (teamId: string, userId: string) => {
     getScheduledAt: () => {
       if (!bot.schedule) return;
 
-      const cron = fromCron(bot.schedule.cron);
+      const cron = parseCronExpression(bot.schedule.cron);
       return getValidCronTime(cron);
     },
   };

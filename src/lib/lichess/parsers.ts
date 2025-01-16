@@ -15,7 +15,7 @@ const ZDailyPuzzleResponse = z.object({
 });
 
 export const parseDailyPuzzleResponse: Parser<DailyPuzzleResponse> = parserFactory(
-  ZDailyPuzzleResponse, 
+  ZDailyPuzzleResponse,
   {
     entityName: 'DailyPuzzleResponse',
     errorMessage: 'Recieved unprocessable response from Lichess API',

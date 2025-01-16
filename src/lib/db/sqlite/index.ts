@@ -1,7 +1,7 @@
 import { Database as BunSqlLiteDb } from 'bun:sqlite';
 
 import { PersistenceError } from '@/lib/errors';
-import type { Bot, Schedule } from '@/types';
+import type { Bot, Schedule } from '@/lib/types';
 import Db from '../abstract';
 import { botToSqlite, sqliteToBot } from './adapters';
 
@@ -61,7 +61,7 @@ class SqliteDb implements Db {
     const result = this.db.query(`
       SELECT * from bots where rowId = last_insert_rowid()
     `).get();
-    
+
     if (!result) throw new PersistenceError('Bot insertion failed', {
       code: 'unknown',
       collection: 'bots',
@@ -94,7 +94,7 @@ class SqliteDb implements Db {
       UPDATE bots
       SET schedule_id = $schedule_id, cron = $cron
       WHERE team_id = $team_id
-    `).run({ 
+    `).run({
       $team_id: teamId,
       $schedule_id: schedule.scheduleId,
       $cron: schedule.cron,

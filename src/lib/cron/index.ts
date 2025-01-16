@@ -39,7 +39,7 @@ export const createSchedule = async ({
   // Upstash-Forward-My-Header
   return await QStash
     .auth(`Bearer ${config.QSTASH_TOKEN}`)
-    .headers({ 
+    .headers({
       'upstash-cron': cron,
     })
     .post(data, `/schedules/${config.BASE_URL}${service}`)
@@ -76,8 +76,8 @@ const isInvalidResult = (result: VerificationResult): result is InvalidResult =>
 
 const verifyToken = (
   path: string,
-  body: string, 
-  token: string, 
+  body: string,
+  token: string,
   secret: string,
 ): VerificationResult => {
   try {
@@ -121,7 +121,7 @@ const verifyToken = (
 export const verifyRequest = (
   path: string,
   body: string,
-  token: string | undefined, 
+  token: string | undefined,
 ) => {
   if (!token) throw new AuthorizationError('Token is required');
 
@@ -136,6 +136,6 @@ export const verifyRequest = (
 
   const cause = results
     .find(isInvalidResult);
-    
+
   throw new AuthorizationError('Invalid signature', { cause });
 };

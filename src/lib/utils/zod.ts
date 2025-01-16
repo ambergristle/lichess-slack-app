@@ -14,8 +14,8 @@ export const parserFactory = <
     if (result.success) return result.data;
 
     const errors = result.error.issues.map((issue) => {
-      const path = Array.isArray(issue.path) 
-        ? issue.path.join('.') 
+      const path = Array.isArray(issue.path)
+        ? issue.path.join('.')
         : issue.path;
 
       return {

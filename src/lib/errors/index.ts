@@ -1,3 +1,45 @@
+import { HTTPException } from 'hono/http-exception';
+import { StatusCode } from 'hono/utils/http-status';
+
+declare type _RecursiveFormattedError<T, U = string> = T extends [any, ...any[]]
+  ? {
+    [K in keyof T]?: FormattedError<T[K]> | U[];
+  }
+  : T extends any[]
+    ? {
+      [key: number]: FormattedError<T[number]> | U[];
+    }
+    : T extends object
+      ? {
+        [K in keyof T]?: FormattedError<T[K]> | U[];
+      }
+      : unknown;
+
+export declare type FormattedError<T, U = string> = {
+  _root?: U[];
+} & _RecursiveFormattedError<NonNullable<T>>
+
+
+type HttpErrorOptions = {
+  res?: Response;
+  message: string;
+  issues?: FormattedError<Record<string, any>>;
+};
+
+export class HttpError extends HTTPException {
+  public readonly issues?: FormattedError<Record<string, any>>;
+  constructor(status: StatusCode, { issues, ...options }: HttpErrorOptions) {
+    super(status, options);
+    if (issues) {
+      this.issues = issues;
+    }
+  }
+}
+
+
+
+
+
 
 export class KnownError extends Error {
   constructor(message: string, options?: ErrorOptions) {
@@ -38,10 +80,10 @@ export class PersistenceError extends KnownError {
   constructor(message: string, options: PersistenceErrorOptions) {
     const {
       code,
-      collection, 
+      collection,
       op,
       filter,
-      ..._options 
+      ..._options
     } = options;
 
     super(message, _options);
@@ -72,10 +114,10 @@ export class ValidationError extends KnownError {
   public readonly errors: ValidationFieldError[];
 
   constructor(message: string, options: ValidationErrorOptions) {
-    const { 
+    const {
       errors,
-      entityName, 
-      ..._options 
+      entityName,
+      ..._options
     } = options;
 
     super(message, _options);
@@ -112,7 +154,7 @@ export class SlackError extends KnownError {
     super(message, _options);
 
     this.name = 'SlackError';
-    
+
     this.code = code;
 
     Error.captureStackTrace(this, SlackError);

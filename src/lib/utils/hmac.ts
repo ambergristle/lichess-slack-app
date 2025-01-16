@@ -13,7 +13,11 @@ const hmac = {
    * @param data String data to include in token
    * @returns HMAC hex digest string
    */
-  createDigest: (secret: string, data: string, encoding: BinaryToTextEncoding) => {
+  createDigest: (
+    secret: string,
+    data: string,
+    encoding: BinaryToTextEncoding,
+  ) => {
     return createHmac('sha256', secret)
       .update(data)
       .digest(encoding);
@@ -22,14 +26,19 @@ const hmac = {
    * Compare two strings using a time-constant algo, preventing malicious
    * users from using failure time delta to deduce character mismatch
    * @param hmacDigestA
-   * @param hmacDigestB 
+   * @param hmacDigestB
    * @returns boolean representing equality
    */
   compareDigests: (hmacDigestA: string, hmacDigestB: string) => {
-    const hmacBufferA = Buffer.from(hmacDigestA);
-    const hmacBufferB = Buffer.from(hmacDigestB);
-   
-    return timingSafeEqual(hmacBufferA, hmacBufferB);
+    try {
+      const hmacBufferA = Buffer.from(hmacDigestA);
+      const hmacBufferB = Buffer.from(hmacDigestB);
+
+      return timingSafeEqual(hmacBufferA, hmacBufferB);
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
   },
 };
 

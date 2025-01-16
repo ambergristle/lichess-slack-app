@@ -1,5 +1,8 @@
 
-export const interpolate = (templateString: string, tokens: Record<string, string>) => {
+export const interpolate = (
+  templateString: string,
+  tokens: Record<string, string>,
+) => {
   let interpolated = templateString;
 
   Object.entries(tokens).forEach(([key, value]) => {

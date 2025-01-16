@@ -39,7 +39,7 @@ export const getOAuthRedirectUrl = () => {
 export const getUserInfo = slackRequestFactory(async (token: string, userId: string) => {
   return await SlackApi
     .auth(`Bearer ${token}`)
-    .query({ 
+    .query({
       user: userId,
       include_locale: true,
     })
@@ -62,7 +62,7 @@ export const registerBot = slackRequestFactory(async (code: string) => {
     .json((response) => {
       if (!response.ok) {
         throw new SlackError('Registration Failed', {
-          code: response.error, 
+          code: response.error,
         });
       }
 
@@ -88,7 +88,7 @@ export const verifyRequest = (request: {
 }) => {
   try {
     const { signature, timestamp } = parseSignature(request.headers);
-  
+
     const signatureData = `v0:${timestamp}:${request.body}`;
     const expectedSignature = hmac.createDigest(config.SLACK_SIGNING_SECRET, signatureData, 'hex');
 

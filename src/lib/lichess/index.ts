@@ -1,27 +1,41 @@
-import wretch from 'wretch';
+import { z } from 'zod';
 
-import { parseDailyPuzzleResponse } from './parsers';
-import { DailyPuzzleMetadata } from './types';
-import { LichessError } from '../errors';
+import type { DailyPuzzle } from '@/lib/types';
 
-const LichessApi = wretch('https://lichess.org/api');
+const ZDailyPuzzleResponse = z.object({
+  puzzle: z.object({
+    id: z.string(),
+    initialPly: z.number(),
+    plays: z.number(),
+    rating: z.number(),
+    solution: z.string().array(),
+    themes: z.string().array(),
+  }),
+});
 
-export const getDailyPuzzle = async (): Promise<DailyPuzzleMetadata> => {
+
+export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
   try {
   /**
    * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
    */
-    const { puzzle } = await LichessApi
-      .get('/puzzle/daily')
-      .json(parseDailyPuzzleResponse);
+    const response = await fetch('https://lichess.org/api/puzzle/daily');
+    if (!response.ok) {
+      throw new Error(response.data);
+    }
+
+    const data = await response.json();
+    const { puzzle } = ZDailyPuzzleResponse.parse(data);
+
 
     /** @todo safely construct query strings */
     return {
       puzzleUrl: `https://lichess.org/training/${puzzle.id}`,
-      puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzle.id}.gif`,
+      puzzleThumbUrl:
+        `https://lichess1.org/training/export/gif/thumbnail/${puzzle.id}.gif`,
     };
 
   } catch (cause) {
-    throw new LichessError('Failed to connect to Lichess', { cause });
+    throw new Error('Failed to connect to Lichess', { cause });
   }
 };

@@ -1,5 +1,24 @@
 
+export type NonNullable<T> = T & {};
+
 export type MaybePromise<T> = T | Promise<T>;
+
+
+export type DailyPuzzle = {
+  puzzleUrl: string;
+  puzzleThumbUrl: string;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 export type Schedule = {
   scheduleId: string;

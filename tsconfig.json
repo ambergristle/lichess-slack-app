@@ -1,29 +1,35 @@
 {
+  "include": [
+    "**/*.ts", 
+  ],
   "compilerOptions": {
-    /* Projects */
-    "composite": true,                                   /* Enable constraints that allow a TypeScript project to be used with project references. */
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
 
     /* Language and Environment */
-    "target": "esnext",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "target": "ESNext",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     "lib": ["esnext"],                                   /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     "jsx": "preserve",                                   /* Specify what JSX code is generated. */
     "moduleDetection": "force",                          /* Control what method is used to detect module-format JS files. */
 
     /* Modules */
-    "module": "esnext",                                  /* Specify what module code is generated. */
+    "module": "ESNext",                                  /* Specify what module code is generated. */
     "moduleResolution": "bundler",                       /* Specify how TypeScript looks up a file from a given module specifier. */
     "types": [                                           /* Specify type package names to be included without being referenced in a source file. */
-      "bun-types" // add Bun global
+      "@types/bun"
     ],
-    "allowImportingTsExtensions": true,                  /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
+    "allowImportingTsExtensions": false,                 /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
+    "isolatedModules": true,
     "resolveJsonModule": true,                           /* Enable importing .json files. */
 
     /* JavaScript Support */
-    // "allowJs": true,                                  /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
+    "allowJs": false,                                  /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
 
     /* Emit */
     "noEmit": true,                                      /* Disable emitting files from a compilation. */
-    "downlevelIteration": true,                          /* Emit more compliant, but verbose and less performant JavaScript for iteration. */
+    "downlevelIteration": false,                         /* Emit more compliant, but verbose and less performant JavaScript for iteration. */
 
     /* Interop Constraints */
     "allowSyntheticDefaultImports": true,                /* Allow 'import x from y' when a module doesn't have a default export. */
@@ -42,13 +48,5 @@
 
     /* Completeness */
     "skipLibCheck": true,                                 /* Skip type checking all .d.ts files. */
-
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": [
-    "**/*.ts", 
-  ],
-  "exclude": ["node_modules"]
+  }
 }

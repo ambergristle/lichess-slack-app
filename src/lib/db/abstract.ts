@@ -1,4 +1,4 @@
-import { Bot, Schedule } from '@/types';
+import { Bot, Schedule } from '@/lib/types';
 
 type MaybePromise<T> = T | Promise<T>;
 

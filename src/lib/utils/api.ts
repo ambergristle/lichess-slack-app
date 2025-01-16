@@ -1,4 +1,5 @@
 import { KnownError } from '@/lib/errors';
+import { Context } from 'hono';
 
 const browsers = [
   'Mozilla',
@@ -23,6 +24,10 @@ export const getIsBrowser = (headers: Headers) => {
   if (accepts) return accepts.includes('html');
 
   return false;
+};
+
+export const getIsProduction = (c: Context) => {
+  return process.env.ENVIRONMENT === 'production';
 };
 
 const locales = [

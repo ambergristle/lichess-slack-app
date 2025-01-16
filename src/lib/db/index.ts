@@ -1,4 +1,4 @@
-import { Bot, Schedule } from '@/types';
+import { Bot, Schedule } from '@/lib/types';
 import Db from './abstract';
 import SqliteDb from './sqlite';
 
@@ -25,7 +25,7 @@ class Service implements Db {
   public deleteBot(teamId: string) {
     return this.db.deleteBot(teamId);
   }
-  
+
 }
 
 /** @todo db swap */

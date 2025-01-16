@@ -12,12 +12,13 @@ export const unix = {
   },
 };
 
+
 const padDigits = (num: number) => {
   return num.toString().padStart(2, '0');
 };
 
-export const zonedTimeToUtc = (
-  { hour, minute }: { hour: number; minute: number; }, 
+const zonedTimeToUtc = (
+  { hour, minute }: { hour: number; minute: number; },
   timeZone: string,
 ) => {
   const hh = padDigits(hour);
@@ -32,7 +33,7 @@ export const zonedTimeToUtc = (
   };
 };
 
-export const getRawTimeString = (date: Date) => {
+const getRawTimeString = (date: Date) => {
   return date
     .toLocaleTimeString(['en-US'], {
       hour12: false,
@@ -42,8 +43,8 @@ export const getRawTimeString = (date: Date) => {
     });
 };
 
-export const utcTimeToZoned = (
-  { hour, minute }: { hour: number; minute: number; }, 
+const utcTimeToZoned = (
+  { hour, minute }: { hour: number; minute: number; },
   timeZone: string,
 ) => {
   const hh = padDigits(hour);
@@ -66,7 +67,7 @@ export const utcTimeToZoned = (
   };
 };
 
-export const localizeZonedTime = (
+const localizeZonedTime = (
   { hour, minute }: { hour: number; minute: number; },
   timeZone: string,
   locale: string,
@@ -83,7 +84,7 @@ export const localizeZonedTime = (
   });
 };
 
-export const formatTimeInput = ({ hour, minute }: { hour: number; minute: number; }) => {
+const formatTimeInput = ({ hour, minute }: { hour: number; minute: number; }) => {
   const hh = padDigits(hour);
   const mm = padDigits(minute);
 
