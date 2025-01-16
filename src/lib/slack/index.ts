@@ -3,25 +3,37 @@ import FormUrlAddon from 'wretch/addons/formUrl';
 import QueryStringAddon from 'wretch/addons/queryString';
 
 import config from '../../config';
-import { AuthorizationError, SlackError } from '../errors';
-import { constructHref, hmac } from '../utils';
-import blocks from './blocks';
-import {
-  parseRegistrationData,
-  parseSignature,
-  parseUserInfo,
-} from './parsers';
-import { slackRequestFactory, validateTimestamp } from './utils';
+import { SlackError } from '../errors';
+import { constructHref } from '../utils';
+import { slackRequestFactory } from './utils';
 
-export { blocks };
+export const constructHref = (
+  baseUrl: string,
+  params?: Record<string, string>,
+) => {
+  const url = new URL(baseUrl);
 
-const SlackApi = wretch('https://slack.com/api')
-  .addon(QueryStringAddon);
+  if (!params) return url.href;
+
+  Object
+    .entries(params)
+    .forEach(([key, value]) => {
+      /** @todo error handling */
+      if (typeof value !== 'string') {
+        throw new Error(`Invalid parameter type ${typeof value}`);
+      }
+
+      url.searchParams.set(key, value);
+    });
+
+  return url.href;
+};
+
 
 /**
 * @see https://api.slack.com/authentication/oauth-v2#asking
 */
-export const getOAuthRedirectUrl = () => {
+export const generateOAuthRedirectUrl = () => {
   const APP_SCOPES = [
     'commands',
     'incoming-webhook',
@@ -36,6 +48,47 @@ export const getOAuthRedirectUrl = () => {
   });
 };
 
+
+
+const SlackApi = wretch('https://slack.com/api')
+  .addon(QueryStringAddon);
+
+
+/**
+ * @see https://api.slack.com/types/user
+ */
+const ZUserInfoResponse = z.object({
+  user: z.object({
+    tz: z.string(),
+    tz_label: z.string(),
+    tz_offset: z.number(),
+    locale: z.string(),
+  }),
+});
+
+const parseUserInfoResponse: Parser<UserInfoResponse> = parserFactory(
+  ZUserInfoResponse,
+  {
+    entityName: 'UserInfoResponse',
+    errorMessage: 'Recieved unprocessable response from Slack API',
+  },
+);
+
+/**
+ * @note Locale is only included if specified in request search params
+ */
+export const parseUserInfo: Parser<UserInfo> = (data) => {
+  const { user } = parseUserInfoResponse(data);
+
+  return {
+    tz: user.tz,
+    tzLabel: user.tz_label,
+    tzOffset: user.tz_offset,
+    locale: user.locale,
+  };
+};
+
+
 export const getUserInfo = slackRequestFactory(async (token: string, userId: string) => {
   return await SlackApi
     .auth(`Bearer ${token}`)
@@ -46,6 +99,47 @@ export const getUserInfo = slackRequestFactory(async (token: string, userId: str
     .get('/users.info')
     .json(parseUserInfo);
 });
+
+
+/**
+ * Scope-dependent
+ * @see https://api.slack.com/methods/oauth.v2.access
+ */
+const ZRegistrationResponse = z.object({
+  bot_user_id: z.string(),
+  access_token: z.string(),
+  scope: z.string(),
+  team: z.object({
+    id: z.string(),
+  }),
+  incoming_webhook: z.object({
+    channel_id: z.string(),
+    url: z.string(),
+  }),
+});
+
+const parseRegistrationResponse: Parser<RegistrationResponse> = parserFactory(
+  ZRegistrationResponse,
+  {
+    entityName: 'RegistrationResponse',
+    errorMessage: 'Recieved unprocessable response from Slack API',
+  },
+);
+
+export const parseRegistrationData: Parser<RegistrationData> = (data) => {
+  const response = parseRegistrationResponse(data);
+
+  return {
+    uid: response.bot_user_id,
+    token: response.access_token,
+    scope: response.scope.split(','),
+    teamId: response.team.id,
+    channelId: response.incoming_webhook.channel_id,
+    webhookUrl: response.incoming_webhook.url,
+  };
+};
+
+
 
 export const registerBot = slackRequestFactory(async (code: string) => {
   /** @see https://api.slack.com/methods/oauth.v2.access */
@@ -78,26 +172,42 @@ export const unregisterBot = slackRequestFactory(async (token: string) => {
     .json();
 });
 
+
+
+
+
+import type { KnownBlock } from '@slack/web-api';
+
+
 /**
- * Validate signature with hmac
- * @see https://api.slack.com/authentication/verifying-requests-from-slack
+ * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
+ * @see https://api.slack.com/block-kit
  */
-export const verifyRequest = (request: {
-  headers: Record<string, string>;
-  body: string;
-}) => {
-  try {
-    const { signature, timestamp } = parseSignature(request.headers);
-
-    const signatureData = `v0:${timestamp}:${request.body}`;
-    const expectedSignature = hmac.createDigest(config.SLACK_SIGNING_SECRET, signatureData, 'hex');
-
+export const blocks = {
+  divider: () => {
     return {
-      timestampIsValid: validateTimestamp(timestamp),
-      signatureIsValid: hmac.compareDigests(`v0=${expectedSignature}`, signature),
+      type: 'divider',
     };
-
-  } catch (cause) {
-    throw new AuthorizationError('Signature verification failed', { cause });
-  }
-};
+  },
+  image: (props: { title: string; href: string; alt: string; }) => {
+    return {
+      type: 'image',
+      title: {
+        type: 'plain_text',
+        text: props.title,
+      },
+      image_url: props.href,
+      alt_text: props.alt,
+    };
+  },
+  section: (props: { text: string; }) => {
+    return {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: props.text,
+      },
+    };
+  },
+  // eslint-disable-next-line
+} satisfies Record<string, ((...args: any[]) => KnownBlock)>;

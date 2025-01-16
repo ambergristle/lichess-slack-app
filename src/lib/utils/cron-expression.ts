@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isNumber, isString } from './types';
+import { isNumber, isString } from '../types';
 
 const ZCronData = z.object({
   minute: z.number().min(0).max(59).optional(),
@@ -79,8 +79,6 @@ export const parseCronExpression = (expression: string): CronData => {
 
   return ZCronData.parse(data);
 };
-
-
 
 type CronData = {
   /** 0-59 */

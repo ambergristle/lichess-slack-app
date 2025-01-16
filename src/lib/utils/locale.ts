@@ -18,3 +18,16 @@ export const getLocalizations = async (
   return await import(`@/locale/${filePath}`)
     .then((module) => module.default);
 };
+
+export const interpolate = (
+  templateString: string,
+  tokens: Record<string, string>,
+) => {
+  let interpolated = templateString;
+
+  Object.entries(tokens).forEach(([key, value]) => {
+    interpolated = interpolated.replace('${'+key+'}', value);
+  });
+
+  return interpolated;
+};

@@ -1,21 +1,4 @@
 import { SlackError } from '@/lib/errors';
-import { unix } from '@/lib/utils';
-
-/**
- * Protect against replay attacks by enforcing X
- * @param timestamp Unix timestamp
- * @returns boolean
- */
-export const validateTimestamp = (timestamp: string) => {
-  /** future dates are invalid */
-  const millisecondDifference = Date.now() - unix.toDate(timestamp);
-  if (millisecondDifference < 0) return false;
-  /** recommended? expiration */
-  const oneMinuteMilliseconds = 1 * 60 * 1000;
-  if (millisecondDifference > oneMinuteMilliseconds) return false;
-
-  return true;
-};
 
 // Any type required for generic spread
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,3 +21,39 @@ export const slackRequestFactory = <A extends any[], R>(
     }
   };
 };
+
+import type { KnownBlock } from '@slack/web-api';
+
+
+/**
+ * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
+ * @see https://api.slack.com/block-kit
+ */
+export const blocks = {
+  divider: () => {
+    return {
+      type: 'divider',
+    };
+  },
+  image: (props: { title: string; href: string; alt: string; }) => {
+    return {
+      type: 'image',
+      title: {
+        type: 'plain_text',
+        text: props.title,
+      },
+      image_url: props.href,
+      alt_text: props.alt,
+    };
+  },
+  section: (props: { text: string; }) => {
+    return {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: props.text,
+      },
+    };
+  },
+  // eslint-disable-next-line
+} satisfies Record<string, ((...args: any[]) => KnownBlock)>;

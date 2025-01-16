@@ -10,7 +10,7 @@
 
     /* Language and Environment */
     "target": "ESNext",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "lib": ["esnext"],                                   /* Specify a set of bundled library declaration files that describe the target runtime environment. */
+    "lib": ["ESNext"],                                   /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     "jsx": "preserve",                                   /* Specify what JSX code is generated. */
     "moduleDetection": "force",                          /* Control what method is used to detect module-format JS files. */
 
@@ -20,7 +20,7 @@
     "types": [                                           /* Specify type package names to be included without being referenced in a source file. */
       "@types/bun"
     ],
-    "allowImportingTsExtensions": false,                 /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
+    "allowImportingTsExtensions": true,                  /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
     "isolatedModules": true,
     "resolveJsonModule": true,                           /* Enable importing .json files. */
 

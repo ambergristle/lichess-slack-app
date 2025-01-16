@@ -1,31 +1,9 @@
+import { KnownError } from '../errors';
 
-export {
-  getIsBrowser,
-  getLocalePreference,
-  logError,
-} from './api';
-
-export {
-  formatTimeInput,
-  getRawTimeString,
-  localizeZonedTime,
-  unix,
-  utcTimeToZoned,
-  zonedTimeToUtc,
-} from './dates';
-
-export { default as hmac } from './hmac';
-
-export {
-  interpolate,
-} from './strings';
-
-export {
-  isNumber,
-  isString,
-  type Parser,
-} from './types';
-
-export { constructHref } from './urls';
-
-export { parserFactory } from './zod';
+export const logError = (error: unknown) => {
+  if (error instanceof KnownError) {
+    console.error(error.json());
+  } else {
+    console.error(error);
+  }
+};

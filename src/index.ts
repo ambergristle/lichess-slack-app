@@ -1,7 +1,22 @@
 import { Hono } from 'hono';
+import pug from 'pug';
 
 import { slack } from './routes/slack';
 import { register } from './routes/register';
+import { generateOAuthRedirectUrl } from './lib/slack';
+import config from './config';
+import { logError } from './lib/utils';
+import { getIsBrowser } from './lib/request';
+import { createMiddleware } from 'hono/factory';
+import { accepts } from 'hono/accepts';
+import { HTTPException } from 'hono/http-exception';
+import { localize } from './pug';
+
+const compileErrorPage = pug.compileFile('./error.pug');
+const compileLandingPage = pug.compileFile('./landing.pug');
+const compileNotFoundPage = pug.compileFile('./404.pug');
+
+// todo: invalid method
 
 const app = new Hono()
   .post('/', async (c) => {
@@ -17,9 +32,13 @@ const app = new Hono()
    * that will automatically return users to the /slack/register
    * route, along with a registration code
    */
-  .get('/', async (c) => {
+  .use('*', createMiddleware<{
+    Variables: {
+      locale: string;
+      isBrowser: boolean;
+    }
+  }>(async (c, next) => {
     /** @todo accepts html? */
-    // const isBrowser = getIsBrowser(c.req.raw.headers);
 
     const locale = accepts(c, {
       header: 'Accept-Language',
@@ -28,10 +47,18 @@ const app = new Hono()
       // match
     });
 
+    c.set('locale', locale);
+
+    const isBrowser = getIsBrowser(c.req.raw.headers);
+    c.set('isBrowser', isBrowser);
+  }))
+  .get('/', async (c) => {
+    const { locale } = c.var;
+
     try {
       const landingPage = await localize(compileLandingPage, locale, {
         /** @todo this is effectively static */
-        registrationHref: Slack.getOAuthRedirectUrl(),
+        registrationHref: generateOAuthRedirectUrl(),
       });
 
       return c.html(landingPage);
@@ -47,9 +74,9 @@ const app = new Hono()
 
   })
   .notFound(async (c) => {
-    const headers = c.req.raw.headers;
-    const locale = getLocalePreference(headers);
-    const isBrowser = getIsBrowser(headers);
+    const { locale } = c.var;
+
+    const isBrowser = getIsBrowser(c);
 
     if (isBrowser) {
       const notFoundPage = await localize(compileNotFoundPage, locale, {

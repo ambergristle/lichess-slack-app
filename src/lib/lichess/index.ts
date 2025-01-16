@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 import type { DailyPuzzle } from '@/lib/types';
 
+/**
+ * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
+ */
 const ZDailyPuzzleResponse = z.object({
   puzzle: z.object({
     id: z.string(),
@@ -12,6 +15,14 @@ const ZDailyPuzzleResponse = z.object({
     themes: z.string().array(),
   }),
 });
+
+// const parseDailyPuzzleResponse: Parser<DailyPuzzleResponse> = parserFactory(
+//   ZDailyPuzzleResponse,
+//   {
+//     entityName: 'DailyPuzzleResponse',
+//     errorMessage: 'Recieved unprocessable response from Lichess API',
+//   },
+// );
 
 
 export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {

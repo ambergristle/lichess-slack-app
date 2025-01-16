@@ -1,18 +1,27 @@
-import config from '@/config';
-import { AuthorizationError } from '@/lib/errors';
-import { zodValidator } from '@/lib/middleware/zod-validator';
-import { getIsBrowser } from '@/lib/utils/api';
 import { Hono } from 'hono';
 import { accepts } from 'hono/accepts';
 import { createMiddleware } from 'hono/factory';
 import { z } from 'zod';
 
-// todo: invalid method
+import config from '@/config';
+import { AuthorizationError } from '@/lib/errors';
+import { zodValidator } from '@/lib/middleware/zod-validator';
+import { getIsBrowser } from '@/lib/request';
 
 const ZRegistrationRequest = z.object({
   code: z.string(),
   state: z.literal(config.STATE),
 });
+
+
+export const parseRegistrationRequest: Parser<RegistrationRequest> = parserFactory(
+  ZRegistrationRequest,
+  {
+    entityName: 'RegistrationRequest',
+    errorMessage: 'Recieved unprocessable request',
+  },
+);
+
 
 
 export const register = new Hono()

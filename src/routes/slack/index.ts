@@ -7,19 +7,109 @@ import { blocks } from '@/lib/slack/blocks';
 import { getDailyPuzzle } from '@/lib/lichess';
 import { botContext } from '@/lib/middleware/bot-context';
 
+/**
+ * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
+ */
 const ZSlashCommandRequest = z.object({
   team_id: z.string(),
-  // channel_id: z.string(),
+  channel_id: z.string(),
   user_id: z.string(),
-  // command: z.string(),
-  // text: z.string(),
+  command: z.string(),
+  text: z.string(),
   token: z.string(),
-  // api_app_id: z.string(),
-  // response_url: z.string(),
+  api_app_id: z.string(),
+  response_url: z.string(),
 }).transform((body) => ({
   teamId: body.team_id,
+  channelId: body.channel_id,
   userId: body.user_id,
+  command: body.command,
+  text: body.text,
+  token: body.token,
+  apiAppId: body.api_app_id,
+  responseUrl: body.response_url,
 }));
+
+const parseSlashCommandRequest: Parser<SlashCommandRequest> = parserFactory(
+  ZSlashCommandRequest,
+  {
+    entityName: 'SlashCommandRequest',
+    errorMessage: 'Recieved unprocessable request',
+  },
+);
+
+/**
+ * @see https://api.slack.com/reference/interaction-payloads/block-actions
+ */
+const ZTimePickerActionRequest = z.preprocess(
+  (data) => {
+    const { payload } = z.object({
+      payload: z.string()
+        .transform((data) => JSON.parse(data)),
+    }).parse(data);
+
+    return payload;
+  },
+  z.object({
+    team: z.object({
+      id: z.string(),
+    }),
+    user: z.object({
+      id: z.string(),
+    }),
+    token: z.string(),
+    response_url: z.string(),
+    actions: z.object({
+      action_id: z.string(),
+      block_id: z.string(),
+      selected_time: z.string()
+        .trim()
+        .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    }).array().min(1),
+  }),
+);
+
+const parseTimePickerActionRequest: Parser<TimePickerActionRequest> = parserFactory(
+  ZTimePickerActionRequest,
+  {
+    entityName: 'TimePickerActionRequest',
+    errorMessage: 'Recieved unprocessable request',
+  },
+);
+
+
+/**
+ * @see https://api.slack.com/reference/interaction-payloads/block-actions
+ * This isn't that helpful actually; I couldn't find the original reference
+ */
+
+export const parseTimePickerData: Parser<TimePickerData> = (data) => {
+  const request = parseTimePickerActionRequest(data);
+
+  const selectedTime = request.actions[0]?.selected_time;
+  if (!selectedTime) throw new ValidationError('No time selected', {
+    entityName: 'TimePickerActionRequest',
+    errors: [{
+      path: 'actions.selected_time',
+      message: 'Required',
+    }],
+  });
+
+  const [hours, minutes] = selectedTime.split(':');
+
+  return {
+    teamId: request.team.id,
+    userId: request.user.id,
+    token: request.token,
+    selectedTime: {
+      hour: Number(hours),
+      minute: Number(minutes),
+    },
+    responseUrl: request.response_url,
+  };
+};
+
+
 
 export const slack = new Hono()
   .use('*', validateSlackRequest())

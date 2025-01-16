@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { Parser, parserFactory } from '@/lib/utils';
-import { parseBot } from '@/parsers';
+import { parseBot } from '@/trash/parsers';
 import type { Bot } from '@/lib/types';
 import { BotDocument } from './types';
 

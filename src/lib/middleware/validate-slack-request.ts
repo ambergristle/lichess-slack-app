@@ -25,7 +25,7 @@ const ZSlackHeaders = z.object({
  * @param timestamp Unix timestamp
  * @returns boolean
  */
-export const validateTimestamp = (timestamp: string) => {
+const validateTimestamp = (timestamp: string) => {
   // Future dates are invalid
   const millisecondDifference = Date.now() - unix.toDate(timestamp);
   if (millisecondDifference < 0) return false;
