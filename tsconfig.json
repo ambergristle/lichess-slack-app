@@ -1,6 +1,6 @@
 {
   "include": [
-    "**/*.ts", 
+    "**/*.ts", "src/routes/register/index.tsx", 
   ],
   "compilerOptions": {
     "baseUrl": "./",
@@ -10,8 +10,13 @@
 
     /* Language and Environment */
     "target": "ESNext",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "lib": ["ESNext"],                                   /* Specify a set of bundled library declaration files that describe the target runtime environment. */
+    "lib": [                                             /* Specify a set of bundled library declaration files that describe the target runtime environment. */
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "preserve",                                   /* Specify what JSX code is generated. */
+    "jsxImportSource": "hono/jsx",
     "moduleDetection": "force",                          /* Control what method is used to detect module-format JS files. */
 
     /* Modules */

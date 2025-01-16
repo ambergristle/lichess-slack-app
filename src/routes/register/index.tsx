@@ -69,14 +69,26 @@ export const register = new Hono()
         }
 
         const registrationOkPage = await localize(compileRegistrationOkPage, locale);
-        return c.html(registrationOkPage);
+        return c.render(
+          <div>
+            <h1></h1>
+            <h2>Registration Succeeded</h2>
+            <p>Close window</p>
+          </div>,
+        );
       } catch (error) {
         logError(error);
 
         if (!isBrowser) return c.text('Error: Registration failed');
 
         const registrationErrorPage = await localize(compileRegistrationErrorPage, locale);
-        return c.html(registrationErrorPage);
+        return c.render(
+          <div>
+            <h1></h1>
+            <h2>Registration Failed</h2>
+            <p>Something went wrong</p>
+          </div>,
+        );
       }
     },
   );
