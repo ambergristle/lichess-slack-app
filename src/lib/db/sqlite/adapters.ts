@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-import { Parser, parserFactory } from '@/lib/utils';
-import { parseBot } from '@/trash/parsers';
 import type { Bot } from '@/lib/types';
 import { BotDocument } from './types';
+
 
 const ZBotDocument = z.object({
   uid: z.string(),
@@ -14,19 +13,13 @@ const ZBotDocument = z.object({
   webhook_url: z.string(),
   schedule_id: z.string().nullable(),
   cron: z.string().nullable(),
+}, {
+  message: 'Invalid BotDocument',
 });
-
-const parseBotData: Parser<BotDocument> = parserFactory(
-  ZBotDocument,
-  {
-    entityName: 'BotDocument',
-    errorMessage: 'Invalid BotDocument',
-  },
-);
 
 export const sqliteToBot = (data: unknown): Bot => {
 
-  const botData = parseBotData(data);
+  const botData = ZBotDocument.parse(data);
 
   const schedule = botData.schedule_id && botData.cron
     ? {
@@ -46,8 +39,23 @@ export const sqliteToBot = (data: unknown): Bot => {
   };
 };
 
+const ZSchedule = z.object({
+  scheduleId: z.string(),
+  cron: z.string(), // schema?
+});
+
 export const botToSqlite = (data: Bot): BotDocument => {
-  const bot = parseBot(data);
+  const bot = z.object({
+    uid: z.string(),
+    teamId: z.string(),
+    channelId: z.string(),
+    token: z.string(),
+    scope: z.string().array(),
+    webhookUrl: z.string(),
+    schedule: ZSchedule.optional(),
+  }, {
+    message: 'Invalid Bot'
+  }).parse(data);
 
   const document: BotDocument = {
     uid: bot.uid,
@@ -60,5 +68,5 @@ export const botToSqlite = (data: Bot): BotDocument => {
     cron: bot.schedule?.cron ?? null,
   };
 
-  return parseBotData(document);
+  return ZBotDocument.parse(document);
 };

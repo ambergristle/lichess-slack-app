@@ -1,7 +1,7 @@
 import { parseCronExpression } from '@/lib/cron/whatever';
 import db from '@/lib/db';
 import { PersistenceError } from '@/lib/errors';
-import { getUserInfo } from '@/lib/slack';
+import { getUserInfo } from '@/lib/services/slack';
 
 const getValidCronTime = (cron: CronData | undefined) => {
   const { hour, minute } = cron ?? {};

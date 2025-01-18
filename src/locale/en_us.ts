@@ -3,7 +3,7 @@ const locale = {
 
   title: 'Lichess Slack App',
 
-  pageTitle: 'Lichess Daily Puzzle Slack App',
+  appName: 'Lichess Daily Puzzle Slack App',
 
   appDescription: 'Schedule daily puzzle delivery, or get it on demand,'
     + ' directly in the Slack channel of your choice.',

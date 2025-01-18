@@ -1,4 +1,4 @@
-import { getBotContext } from '@/lib/bot';
+import { getBotContext } from '@/lib/services/bot';
 import { createMiddleware } from 'hono/factory';
 
 export const botContext = () => {

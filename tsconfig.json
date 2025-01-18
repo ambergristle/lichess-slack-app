@@ -1,6 +1,7 @@
 {
   "include": [
-    "**/*.ts", "src/routes/register/index.tsx", 
+    "**/*.ts",
+    "**/*.tsx"
   ],
   "compilerOptions": {
     "baseUrl": "./",
@@ -15,7 +16,7 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "jsx": "preserve",                                   /* Specify what JSX code is generated. */
+    "jsx": "react-jsx",                                  /* Specify what JSX code is generated. */
     "jsxImportSource": "hono/jsx",
     "moduleDetection": "force",                          /* Control what method is used to detect module-format JS files. */
 

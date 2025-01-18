@@ -1,21 +1,21 @@
-import globals from "globals";
-import eslint from "@eslint/js";
-import tseslint from "typescript-eslint";
+import globals from 'globals';
+import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
 import stylistic from '@stylistic/eslint-plugin';
 
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
-    files: ["**/*.{js,mjs,cjs,ts}"]
+    files: ['**/*.{js,mjs,cjs,ts}'],
   },
   {
-    languageOptions: { globals: globals.browser }
+    languageOptions: { globals: globals.browser },
   },
   eslint.configs.recommended,
   ...tseslint.configs.strict,
   ...tseslint.configs.stylistic,
-  { 
+  {
     plugins: {
       '@stylistic': stylistic,
     },
@@ -24,13 +24,13 @@ export default [
       '@typescript-eslint/consistent-type-definitions': ['off'],
       'eqeqeq': ['error', 'always'],
       'no-duplicate-imports': ['warn'],
-      "@typescript-eslint/no-empty-interface": ["off"],
-      "no-extra-boolean-cast": ["off"],
+      '@typescript-eslint/no-empty-interface': ['off'],
+      'no-extra-boolean-cast': ['off'],
       'no-nested-ternary': ['error'],
-      "no-multi-spaces": ["warn"],
+      'no-multi-spaces': ['warn'],
       // Note: Disable base rule when using ts-eslint
-      "no-redeclare": ["off"],
-      "@typescript-eslint/no-redeclare": ["error"],
+      'no-redeclare': ['off'],
+      '@typescript-eslint/no-redeclare': ['error'],
       'no-trailing-spaces': ['error'],
       // Note: Disable base rule when using ts-eslint
       'no-unused-vars': ['off'],
@@ -47,7 +47,18 @@ export default [
       // #region Style
 
       'brace-style': ['error'],
-      'comma-dangle': ['warn', 'always-multiline'],
+      '@stylistic/ts/comma-dangle': [
+        'warn',
+        {
+          'arrays': 'always-multiline',
+          'objects': 'always-multiline',
+          'imports': 'always-multiline',
+          'exports': 'always-multiline',
+          'functions': 'never',
+          'importAttributes': 'always-multiline',
+          'dynamicImports': 'always-multiline',
+        },
+      ],
 
       'comma-spacing': ['warn', { after: true }],
       'dot-location': ['error', 'property'],
@@ -60,9 +71,9 @@ export default [
       'quotes': ['warn', 'single'],
       'semi': ['warn', 'always'],
       'space-in-parens': ['warn', 'never'],
-      'spaced-comment': ['warn', 'always', { "markers": ["/"] }],
+      'spaced-comment': ['warn', 'always', { 'markers': ['/'] }],
 
       // #endregion
-    }
-  }
+    },
+  },
 ];

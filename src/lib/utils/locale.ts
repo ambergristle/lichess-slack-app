@@ -1,4 +1,5 @@
-import { Localizations } from '@/locale/types';
+import { Localized } from '@/locale/types';
+
 
 const filePaths: Record<string, 'en_us'> = {
   'en,en-US': 'en_us',
@@ -6,13 +7,14 @@ const filePaths: Record<string, 'en_us'> = {
 
 const localeKeys = Object.keys(filePaths);
 
-export const getLocalizations = async (
+export const getLocalized = async (
   locale: string,
-): Promise<Localizations> => {
+): Promise<Localized> => {
   const preferredLocaleKey = localeKeys.find((key) => {
     return key.includes(locale);
   });
 
+  // todo: no match?
   const filePath = filePaths[preferredLocaleKey ?? ''] ?? 'en_us';
 
   return await import(`@/locale/${filePath}`)
@@ -30,27 +32,4 @@ export const interpolate = (
   });
 
   return interpolated;
-};
-
-
-
-
-import type pug from 'pug';
-
-import { getLocalizations } from '@/lib/utils/locale';
-
-/**
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language
- */
-export const localize = async (
-  template: pug.compileTemplate,
-  locale: string,
-  tokens?: Record<string, string>,
-) => {
-  const localizations = await getLocalizations(locale);
-
-  return template({
-    ...localizations,
-    ...tokens,
-  });
 };
