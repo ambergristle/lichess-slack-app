@@ -1,8 +1,9 @@
+import type { Context } from 'hono';
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 
-import config from '@/config';
 import { isString } from '@/lib/types';
+import { getEnvironmentVariable } from './request';
 
 
 const fiveSeconds = 5;
@@ -21,17 +22,20 @@ const verifySignature = (signature: string, secret: string) => {
 
 
 /** @see https://upstash.com/docs/qstash/howto/signature */
-export const verifyRequest = (body: string, signature: string) => {
+export const verifyRequest = (c: Context, body: string, signature: string) => {
   try {
     let payload: jwt.JwtPayload;
 
     try {
-      payload = verifySignature(signature, config.QSTASH_CURRENT_SIGNING_KEY);
+      const currentKey = getEnvironmentVariable(c, 'QSTASH_CURRENT_SIGNING_KEY');
+      payload = verifySignature(signature, currentKey);
     } catch {
-      payload = verifySignature(signature, config.QSTASH_NEXT_SIGNING_KEY);
+      const nextKey = getEnvironmentVariable(c, 'QSTASH_NEXT_SIGNING_KEY');
+      payload = verifySignature(signature, nextKey);
     }
 
-    if (payload.sub !== `${config.BASE_URL}/api/deliver`) {
+    const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
+    if (payload.sub !== `${baseUrl}/webooks/scheduled-puzzle`) {
       throw new QStashError('Invalid Subject');
     }
 

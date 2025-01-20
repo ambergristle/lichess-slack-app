@@ -4,12 +4,12 @@ import { HTTPException } from 'hono/http-exception';
 import { jsxRenderer } from 'hono/jsx-renderer';
 import { z } from 'zod';
 
-import config from '@/config';
 import { ErrorPage } from '@/lib/components/errors';
 import { Layout } from '@/lib/components/layout';
 import { registerBot } from '@/lib/bot';
 import { localizer } from '@/middleware/localizer';
 import { zodValidator } from '@/middleware/zod-validator';
+import { getEnvironmentVariable } from '@/lib/request';
 
 
 export const ZRegistrationRequest = z.object({
@@ -30,7 +30,7 @@ export const register = new Hono()
     }>(async (c, next) => {
       const { state } = c.req.valid('query');
 
-      if (state !== config.STATE) {
+      if (state !== getEnvironmentVariable(c, 'STATE')) {
         throw new HTTPException(401, {
           message: 'Unauthorized',
           cause: {
