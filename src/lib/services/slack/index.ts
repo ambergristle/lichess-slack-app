@@ -46,29 +46,7 @@ export const getUserInfo = async (authToken: string, userId: string) => {
     .json(ZUserInfoResponse.parse);
 };
 
-/**
- * Register Slack Bot
- * @see https://api.slack.com/methods/oauth.v2.access
- */
-export const registerBot = async (code: string) => {
-  const authToken = btoa(`${config.SLACK_CLIENT_ID}:${config.SLACK_CLIENT_SECRET}`);
 
-  return await slack
-    .addon(FormUrlAddon)
-    .auth(`Bearer ${authToken}`)
-    .formUrl({
-      code,
-      redirect_uri: config.REGISTRATION_URL,
-    })
-    .post('', '/oauth.v2.access')
-    .json((response) => {
-      if (!response.ok) {
-        throw new SlackError('Registration Failed', { cause: response.error });
-      }
-
-      return ZRegistrationResponse.parse(response);
-    });
-};
 
 /**
  * todo

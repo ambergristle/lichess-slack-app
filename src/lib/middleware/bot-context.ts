@@ -1,5 +1,6 @@
 import { getBotContext } from '@/lib/services/bot';
 import { createMiddleware } from 'hono/factory';
+import { Bot } from '../types';
 
 export const botContext = () => {
   return createMiddleware<{
@@ -8,6 +9,7 @@ export const botContext = () => {
       bot: {
         teamId: string;
         userId: string;
+        schedule: Bot['schedule'];
       }
     },
   }, string, {
@@ -19,13 +21,10 @@ export const botContext = () => {
     }
   }>(async (c, next) => {
     const { teamId, userId } = c.req.valid('form');
-    const bot = await getBotContext(teamId, userId);
 
-    c.set('locale', bot.locale);
-    c.set('bot', {
-      teamId,
-      userId,
-    });
+    const botContext = await getBotContext(teamId, userId)
+
+    c.set('bot', botContext);
 
     await next();
   });

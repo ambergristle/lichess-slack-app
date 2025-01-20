@@ -9,6 +9,9 @@ import { getDailyPuzzle } from '@/lib/services/lichess';
 import { blocks } from '@/lib/services/slack/blocks';
 import { ZSlashCommandRequest, ZTimePickerActionRequest } from '@/lib/services/slack/schemas';
 import { interpolate } from '@/lib/utils/locale';
+import { createSchedule, deleteSchedule } from '@/lib/services/schedule';
+import { stringifyCron } from '@/lib/utils/cron-expression';
+import { getUserInfo } from '@/lib/services/slack';
 
 
 // 3s window for response
@@ -20,7 +23,6 @@ export const slack = new Hono()
   .post(
     '/help',
     zodValidator('form', ZSlashCommandRequest),
-    localizer(),
     botContext(),
     async (c) => {
       // locale source conflicg
@@ -40,7 +42,6 @@ export const slack = new Hono()
   .post(
     '/puzzle',
     zodValidator('form', ZSlashCommandRequest),
-    localizer(),
     botContext(),
     async (c) => {
       const { localized } = c.var;
@@ -63,43 +64,46 @@ export const slack = new Hono()
   .post(
     '/schedule/set',
     zodValidator('form', ZTimePickerActionRequest),
-    localizer(),
     botContext(),
     async (c) => {
-      const { localized } = c.var;
+      const { bot } = c.var;
+
       const { responseUrl, selectedTime } = c.req.valid('form');
 
-      const currentSchedule = bot.schedule;
-
-      if (currentSchedule) {
-        await deleteSchedule(currentSchedule.scheduleId);
+      if (bot.schedule) {
+        await qStash
+        .auth(`Bearer ${config.QSTASH_TOKEN}`)
+        .delete(`/schedules/${bot.schedule.scheduleId}`)
+        .res();
       }
 
-      const cronData = zonedTimeToUtc(selectedTime, timeZone);
-      const cron = toCron(cronData);
+      const cronData = zonedTimeToUtc(selectedTime, bot.timeZone);
+      const cron = stringifyCron(cronData);
 
-      const data: ScheduledPuzzleData = {
-        uid: teamId,
-        locale,
-      };
+      /**
+       * @see https://upstash.com/docs/qstash/api/schedules/create
+       */
 
-      const { scheduleId } = await createSchedule({
-        service: '/api/deliver',
-        cron,
-        data,
-      });
+      // Upstash-Forward-My-Header
+      const { scheduleId } = await qStash
+        .auth(`Bearer ${config.QSTASH_TOKEN}`)
+        .headers({
+          'upstash-cron': cron,
+        })
+        .post({
+          botId: bot.id,
+          locale,
+        }, `/schedules/${url}`) // todo
+        .json(ZCreateScheduleResponse.parse);
 
       /** @todo db retry or session */
-      await db.scheduleBot(teamId, {
+      await db.scheduleBot(bot.teamId, {
         scheduleId,
         cron,
       });
 
-      const timeString = localizeZonedTime(scheduledAt, timeZone, locale);
-
-
       const message = interpolate(localized.blocks.scheduleConfirmation, {
-        timeString,
+        timeString: localizeZonedTime(scheduledAt, timeZone, locale),
       });
 
 
@@ -116,7 +120,6 @@ export const slack = new Hono()
   .post(
     '/schedule',
     zodValidator('form', ZSlashCommandRequest),
-    localizer(),
     botContext(),
     async (c) => {
       const { locale, localized } = c.var;

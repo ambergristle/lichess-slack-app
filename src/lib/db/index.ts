@@ -18,8 +18,8 @@ class Service implements Db {
     return this.db.getBot(teamId);
   }
 
-  public scheduleBot(teamId: string, schedule: Schedule) {
-    return this.db.scheduleBot(teamId, schedule);
+  public setBotSchedule(teamId: string, schedule: Schedule) {
+    return this.db.setBotSchedule(teamId, schedule);
   }
 
   public deleteBot(teamId: string) {

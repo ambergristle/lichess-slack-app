@@ -1,16 +1,26 @@
 import { Hono } from 'hono';
+import { jsxRenderer } from 'hono/jsx-renderer';
 
 import { ErrorPage } from '@/lib/components/errors';
+import { Layout } from '@/lib/components/layout';
 import { localizer } from '@/lib/middleware/localizer';
 import { generateOAuthRedirectUrl } from '@/lib/services/slack';
 
 
 const REPO_URL = 'https://github.com/ambergristle/lichess-slack-app';
 
+/**
+ * Expose app info and registration button
+ * - The registration url points to Slack, where users
+ * can authorize this app. It includes a redirect uri
+ * that will automatically return users to the /slack/register
+ * route, along with a registration code
+ */
 export const landing = new Hono()
   .get(
     '/',
     localizer(),
+    jsxRenderer(Layout),
     async (c) => {
       const { localized } = c.var;
 

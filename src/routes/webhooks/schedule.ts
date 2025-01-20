@@ -7,19 +7,23 @@ import { verifyRequest } from '@/lib/services/schedule/verify-request';
 import { getDailyPuzzle } from '@/lib/services/lichess';
 import { ZScheduledPuzzleData } from '@/lib/services/schedule/schemas';
 import { blocks } from '@/lib/services/slack/blocks'
+import { HTTPException } from 'hono/http-exception';
 
 
 export const schedule = new Hono()
 
   .use(async (c, next) => {
-  // upstash-schedule-id
+    // upstash-schedule-id
     const signature = c.req.header('upstash-signature');
-    // todo
-    const body = c.req.raw.body;
-    const arrayBuffer = await c.req.arrayBuffer();
-    c.req.bodyCache.arrayBuffer = arrayBuffer;
+    if (!signature) {
+      throw new HTTPException(401, {
+        message: 'Unauthorized',
+        cause: { code: 'no-signature' }
+      })
+    }
 
-    const body = await new Response(arrayBuffer).text();
+    // todo: will this break?
+    const body = await c.req.text()
     verifyRequest(body, signature);
 
     await next();
@@ -28,7 +32,7 @@ export const schedule = new Hono()
   .post(
     '/deliver',
     zodValidator('json', ZScheduledPuzzleData),
-    localizer(),
+
     async (c) => {
       // we want some kind of token
       // are we meant to be grabbing this here?

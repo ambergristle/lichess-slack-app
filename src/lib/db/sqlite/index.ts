@@ -43,7 +43,7 @@ class SqliteDb implements Db {
     this.db.close();
   }
 
-  public addBot(data: Bot) {
+  public insertBot(data: Bot) {
     const botRecord = botToSqlite(data);
 
     this.db.query(`
@@ -89,7 +89,7 @@ class SqliteDb implements Db {
     return results.map(sqliteToBot);
   }
 
-  public scheduleBot(teamId: string, schedule: Schedule) {
+  public setBotSchedule(teamId: string, schedule: Schedule) {
     this.db.query(`
       UPDATE bots
       SET schedule_id = $schedule_id, cron = $cron
