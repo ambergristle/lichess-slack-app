@@ -32,7 +32,7 @@ export const scheduledPuzzle = new Hono()
 
     // todo: will this break?
     const body = await c.req.text();
-    verifyRequest(body, signature);
+    verifyRequest(c, body, signature);
 
     await next();
   })
