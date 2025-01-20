@@ -1,15 +1,21 @@
-import { Hono } from 'hono';
+import { type Env, Hono } from 'hono';
+import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { jsxRenderer } from 'hono/jsx-renderer';
+import { z } from 'zod';
 
 import config from '@/config';
 import { ErrorPage } from '@/lib/components/errors';
-import { localizer } from '@/lib/middleware/localizer';
-import { zodValidator } from '@/lib/middleware/zod-validator';
-import { registerBot } from '@/lib/services/bot';
-import { ZRegistrationRequest } from '@/lib/services/slack/schemas';
-import { jsxRenderer } from 'hono/jsx-renderer';
 import { Layout } from '@/lib/components/layout';
-import { createMiddleware } from 'hono/factory';
+import { registerBot } from '@/lib/bot';
+import { localizer } from '@/middleware/localizer';
+import { zodValidator } from '@/middleware/zod-validator';
+
+
+export const ZRegistrationRequest = z.object({
+  code: z.string(),
+  state: z.string(),
+}, { message: 'Recieved unprocessable request' });
 
 
 export const register = new Hono()
@@ -17,9 +23,7 @@ export const register = new Hono()
   .get(
     '/',
     zodValidator('query', ZRegistrationRequest),
-    createMiddleware<{ 
-      Variables: {}
-    }, '/', {
+    createMiddleware<Env, '/', {
       out: {
         query: { state: string; };
       }
@@ -30,12 +34,12 @@ export const register = new Hono()
         throw new HTTPException(401, {
           message: 'Unauthorized',
           cause: {
-            code: 'invalid-state'
-          }
+            code: 'invalid-state',
+          },
         });
       }
 
-      await next()
+      await next();
     }),
     localizer(),
     jsxRenderer(Layout),
@@ -43,7 +47,7 @@ export const register = new Hono()
       const { code } = c.req.valid('query');
 
       // todo: responseUrl, preferences?
-      await registerBot(code);
+      await registerBot(c, code);
 
       const { localized } = c.var;
       return c.render(
@@ -56,7 +60,7 @@ export const register = new Hono()
           </p>
         </div>
       );
-    },
+    }
   )
   .onError((error, c) => {
     const message = error instanceof Error
@@ -67,6 +71,6 @@ export const register = new Hono()
       <ErrorPage
         heading={'Registration failed'}
         details={message}
-      />,
+      />
     );
   });

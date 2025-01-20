@@ -1,2 +1,2 @@
-export { schedule } from './schedule';
+export { scheduledPuzzle } from './scheduled-puzzle';
 export { slack } from './slack';

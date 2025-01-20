@@ -7,8 +7,9 @@ const filePaths: Record<string, 'en_us'> = {
 
 const localeKeys = Object.keys(filePaths);
 
+
 export const getLocalized = async (
-  locale: string,
+  locale: string
 ): Promise<Localized> => {
   const preferredLocaleKey = localeKeys.find((key) => {
     return key.includes(locale);
@@ -21,9 +22,10 @@ export const getLocalized = async (
     .then((module) => module.default);
 };
 
+
 export const interpolate = (
   templateString: string,
-  tokens: Record<string, string>,
+  tokens: Record<string, string>
 ) => {
   let interpolated = templateString;
 

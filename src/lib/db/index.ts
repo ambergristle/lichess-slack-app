@@ -1,32 +1,32 @@
-import { Bot, Schedule } from '@/lib/types';
-import Db from './abstract';
-import SqliteDb from './sqlite';
+import { Context } from 'hono';
+import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
-class Service implements Db {
+/**
+ * Initializes the database connection using a default
+ * configuration. This will need to be updated if using Cloudflare
+ * @param c
+ * @returns
+ */
+export const getDb = <E>(c: Context<E & {
+  Variables: {
+    db: DrizzleDb | undefined;
+  }
+}>): DrizzleDb => {
 
-  private db: Db;
-
-  constructor(db: Db) {
-    this.db = db;
+  if (c.var.db) {
+    return c.var.db;
   }
 
-  public addBot(data: Bot) {
-    return this.db.addBot(data);
-  }
+  // If using Cloudflare bindings, grab client from c.env.DB_BINDING
+  const _db = drizzle('kurz-db-local.sqlite', {
+    // Set for Drizzle auto-casing
+    casing: 'snake_case',
+    logger: true,
+  });
 
-  public getBot(teamId: string) {
-    return this.db.getBot(teamId);
-  }
+  c.set('db', _db);
 
-  public setBotSchedule(teamId: string, schedule: Schedule) {
-    return this.db.setBotSchedule(teamId, schedule);
-  }
+  return _db;
+};
 
-  public deleteBot(teamId: string) {
-    return this.db.deleteBot(teamId);
-  }
-
-}
-
-/** @todo db swap */
-export default new Service(SqliteDb.connect());
+export type DrizzleDb = BunSQLiteDatabase;

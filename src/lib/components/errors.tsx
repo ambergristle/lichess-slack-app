@@ -8,7 +8,7 @@ type ErrorPageProps = {
 export const ErrorPage = ({
   heading,
   subheading,
-  details
+  details,
 }: ErrorPageProps) => {
   return (
     <div>
@@ -31,7 +31,3 @@ export const ErrorPage = ({
     </div>
   );
 };
-
-export const NotFound = () => {
-  return <Error error={error} message={404} details={page not exist}/>
-}

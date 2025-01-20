@@ -16,7 +16,7 @@ const hmac = {
   createDigest: (
     secret: string,
     data: string,
-    encoding: BinaryToTextEncoding,
+    encoding: BinaryToTextEncoding
   ) => {
     return createHmac('sha256', secret)
       .update(data)

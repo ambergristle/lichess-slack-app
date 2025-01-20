@@ -47,7 +47,7 @@ export default [
       // #region Style
 
       'brace-style': ['error'],
-      '@stylistic/ts/comma-dangle': [
+      '@stylistic/comma-dangle': [
         'warn',
         {
           'arrays': 'always-multiline',

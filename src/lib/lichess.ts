@@ -1,11 +1,8 @@
 import wretch from 'wretch';
 import { z } from 'zod';
 
-import type { DailyPuzzle } from '@/lib/types';
-
 
 const lichess = wretch('https://lichess.org/api');
-
 
 const ZDailyPuzzleResponse = z.object({
   puzzle: z.object({
@@ -19,6 +16,11 @@ const ZDailyPuzzleResponse = z.object({
 }, {
   message: 'Recieved unprocessable response from Lichess API',
 });
+
+export type DailyPuzzle = {
+  puzzleUrl: string;
+  puzzleThumbUrl: string;
+}
 
 /** @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily */
 export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {

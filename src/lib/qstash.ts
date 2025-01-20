@@ -2,7 +2,8 @@ import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 
 import config from '@/config';
-import { isString } from '../../types';
+import { isString } from '@/lib/types';
+
 
 const fiveSeconds = 5;
 const verifySignature = (signature: string, secret: string) => {

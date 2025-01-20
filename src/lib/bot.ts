@@ -1,0 +1,309 @@
+import type { Context } from 'hono';
+import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
+import { sha256 } from '@oslojs/crypto/sha2';
+import wretch from 'wretch';
+import FormUrlAddon from 'wretch/addons/formUrl';
+import QueryStringAddon from 'wretch/addons/queryString';
+import { z } from 'zod';
+
+import { getDb } from './db';
+import { Bot } from './db/schema';
+import { getEnvironmentVariable } from './request';
+import { encryptString } from './encryption';
+import { eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
+import { SlackError, slackResponseBody } from './slack';
+import { getLocalized } from './locale';
+import { stringifyCron, zonedCronTimeToUtc } from './cron';
+import { isString } from './types';
+
+
+/**
+ * Hash token bytes using SHA-256, and return with base-32 encoding
+ * @param token Created by {@linkcode generateAuthSessionToken}
+ */
+export const generatBotId = (teamId: string): string => {
+  const hashedTokenBytes = sha256(new TextEncoder().encode(teamId));
+  return encodeBase32LowerCaseNoPadding(hashedTokenBytes);
+};
+
+const getAuthToken = (c: Context) => {
+  const clientId = getEnvironmentVariable(c, 'SLACK_CLIENT_ID');
+  const secret = getEnvironmentVariable(c, 'SLACK_CLIENT_SECRET');
+
+  return btoa(`${clientId}:${secret}`);
+};
+
+
+type Schedule<T extends string | null> = {
+  jobId: T;
+  cron: T;
+  timeZone: T;
+}
+
+type BotWithValidSchedule = Pick<typeof Bot.$inferSelect,
+  | 'appId'
+  | 'channelId'
+  | 'webhookUrl'
+> & (Schedule<string> | Schedule<null>)
+
+type BotData = Pick<typeof Bot.$inferSelect,
+| 'appId'
+| 'channelId'
+| 'webhookUrl'
+| 'jobId'
+| 'cron'
+| 'timeZone'
+>
+
+const botHasValidSchedule = (bot: BotData): bot is BotWithValidSchedule => {
+  return bot.jobId === null
+    ? bot.cron === null && bot.timeZone === null
+    : isString(bot.cron) && isString(bot.timeZone);
+};
+
+/**
+ * Slack API Client
+ *
+ */
+
+const slack = wretch('https://slack.com/api')
+  .addon(QueryStringAddon);
+
+/**
+ *
+ * QStash API Client
+ *
+ */
+
+const qStash = wretch('https://qstash.upstash.io/v2');
+
+const getBotSchedule = (botData: BotData) => {
+  if (!botData.jobId) {
+    return;
+  }
+
+  if (!botData.cron || !botData.timeZone) {
+    throw new Error('Scheduled bot missing job ID or cron');
+  }
+
+  return {
+    jobId: botData.jobId,
+    cron: botData.cron,
+    timeZone: botData.timeZone,
+  };
+};
+
+export const getBotContext = async (c: Context, teamId: string) => {
+  const botId = generatBotId(teamId);
+
+  const db = getDb(c);
+  const [bot] = await db
+    .select({
+      appId: Bot.appId,
+      channelId: Bot.channelId,
+      webhookUrl: Bot.webhookUrl,
+      jobId: Bot.jobId,
+      cron: Bot.cron,
+      timeZone: Bot.timeZone,
+    })
+    .from(Bot)
+    .where(eq(Bot.id, botId))
+    .limit(1);
+
+  if (!bot) {
+    throw new HTTPException(404, {
+      message: `Bot for team ${teamId} not found`,
+      cause: { botId },
+    });
+  }
+
+  const botSchedule = getBotSchedule(bot);
+
+  // https://api.slack.com/methods/conversations.info
+  const { channel } = await slack
+    .auth(`Bearer ${getAuthToken(c)}`)
+    .query({
+      channel: bot.channelId,
+      include_locale: true,
+    })
+    .get('/conversations.info')
+    .json(
+      slackResponseBody({
+        channel: z.object({
+          locale: z.string(),
+        }),
+      }).parse
+    )
+    .then((response) => {
+      if (!response.ok) {
+        throw new SlackError('Failed to get Channel info', {
+          code: response.error,
+        });
+      }
+
+      return response;
+    });
+
+  return {
+    teamId,
+    locale: channel.locale,
+    schedule: botSchedule,
+  };
+};
+
+
+export const getBotWebhookUrl = async (c: Context, botId: string) => {
+  const db = getDb(c);
+  const [bot] = await db
+    .select({
+      webhookUrl: Bot.webhookUrl,
+    })
+    .from(Bot)
+    .where(eq(Bot.id, botId))
+    .limit(1);
+
+  if (!bot) {
+    throw new HTTPException(404, {
+      message: 'Bot Not Found',
+      cause: {
+        botId,
+      },
+    });
+  }
+
+  return bot.webhookUrl;
+};
+
+
+/**
+ * Register Slack Bot
+ * @see https://api.slack.com/methods/oauth.v2.access
+ */
+export const registerBot = async (c: Context, code: string) => {
+  // todo
+  const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
+  const redirectUrl = `${baseUrl}/register`;
+
+  const registrationData = await slack
+    .addon(FormUrlAddon)
+    .auth(`Bearer ${getAuthToken(c)}`)
+    .formUrl({
+      code,
+      redirect_uri: redirectUrl,
+    })
+    .post('', '/oauth.v2.access')
+    .json(
+      slackResponseBody({
+        bot_user_id: z.string(),
+        app_id: z.string(),
+        scope: z.string(),
+        access_token: z.string(),
+        team: z.object({
+          id: z.string(),
+        }),
+        incoming_webhook: z.object({
+          channel_id: z.string(),
+          url: z.string(),
+        }),
+      }).parse
+    )
+    .then((response) => {
+      if (!response.ok) {
+        throw new SlackError('Registration Failed', {
+          code: response.error,
+        });
+      }
+      return response;
+    });
+
+  const now = new Date();
+
+  const db = getDb(c);
+  await db
+    .insert(Bot)
+    .values({
+      id: generatBotId(registrationData.team.id),
+      appId: registrationData.app_id,
+      createdAt: now,
+      updatedAt: now,
+      channelId: registrationData.incoming_webhook.channel_id,
+      scope: registrationData.scope,
+      accessToken: Buffer.from(encryptString(registrationData.access_token)),
+      webhookUrl: registrationData.incoming_webhook.url,
+    });
+};
+
+const ZCreateScheduleResponse = z.object({
+  scheduleId: z.string(),
+}, {
+  message: 'Recieved invalid response',
+});
+
+
+export const setBotSchedule = async (
+  c: Context,
+  teamId: string,
+  {
+    selectedTime,
+    timeZone,
+    locale,
+    currentScheduleId,
+  }: {
+    selectedTime: {
+      hour: number;
+      minute: number;
+    },
+    timeZone: string,
+    locale: string,
+    currentScheduleId?: string
+  }
+) => {
+  const botId = generatBotId(teamId);
+
+  const cronTime = zonedCronTimeToUtc(selectedTime, timeZone);
+  const cron = stringifyCron(cronTime);
+
+  const authToken = getEnvironmentVariable(c, 'QSTASH_TOKEN');
+
+  const baseUrl = getEnvironmentVariable(c, 'REDIRECT_URL');
+  const redirectUrl = `${baseUrl}/webhooks/scheduled-puzzle`;
+
+  /**
+   * @see https://upstash.com/docs/qstash/api/schedules/create
+   */
+
+  // todo: callbackurl?
+  // Upstash-Forward-My-Header
+  const { scheduleId: jobId } = await qStash
+    .auth(`Bearer ${authToken}`)
+    .headers({
+      'upstash-cron': cron,
+    })
+    .post({
+      botId,
+      locale,
+    }, `/schedules/${redirectUrl}`)
+    .json(ZCreateScheduleResponse.parse);
+
+  /** @todo db retry or session */
+  const db = getDb(c);
+  await db
+    .update(Bot)
+    .set({
+      updatedAt: new Date(),
+      jobId,
+      cron,
+      timeZone,
+    })
+    .where(eq(Bot.id, botId));
+
+  if (currentScheduleId) {
+    await qStash
+      .auth(`Bearer ${authToken}`)
+      .delete(`/schedules/${currentScheduleId}`)
+      .res();
+  }
+
+  return cronTime;
+};

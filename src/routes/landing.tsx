@@ -3,8 +3,8 @@ import { jsxRenderer } from 'hono/jsx-renderer';
 
 import { ErrorPage } from '@/lib/components/errors';
 import { Layout } from '@/lib/components/layout';
-import { localizer } from '@/lib/middleware/localizer';
-import { generateOAuthRedirectUrl } from '@/lib/services/slack';
+import { generateOAuthRedirectUrl } from '@/lib/slack';
+import { localizer } from '@/middleware/localizer';
 
 
 const REPO_URL = 'https://github.com/ambergristle/lichess-slack-app';
@@ -24,7 +24,7 @@ export const landing = new Hono()
     async (c) => {
       const { localized } = c.var;
 
-      const registrationHref = generateOAuthRedirectUrl();
+      const registrationHref = generateOAuthRedirectUrl(c);
 
       return c.render(
         <div>
@@ -71,16 +71,16 @@ export const landing = new Hono()
         </div>
       );
     })
-    .onError((error, c) => {
-      const message = error instanceof Error
-        ? error.message
-        : 'Server Error';
-  
-      return c.render(
-        <ErrorPage
-          heading={'Registration failed'}
-          details={message}
-        />,
-      );
-    });
-  
+  .onError((error, c) => {
+    const message = error instanceof Error
+      ? error.message
+      : 'Server Error';
+
+    return c.render(
+      <ErrorPage
+        heading={'Registration failed'}
+        details={message}
+      />
+    );
+  });
+

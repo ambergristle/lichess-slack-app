@@ -1,31 +1,138 @@
 import { Hono } from 'hono';
-import wretch from 'wretch'
+import { HTTPException } from 'hono/http-exception';
+import wretch from 'wretch';
+import { z } from 'zod';
 
-import { botContext } from '@/lib/middleware/bot-context';
-import { localizer } from '@/lib/middleware/localizer';
-import { validateSlackRequest } from '@/lib/middleware/validate-slack-request';
-import { zodValidator } from '@/lib/middleware/zod-validator';
-import { getDailyPuzzle } from '@/lib/services/lichess';
-import { blocks } from '@/lib/services/slack/blocks';
-import { ZSlashCommandRequest, ZTimePickerActionRequest } from '@/lib/services/slack/schemas';
-import { interpolate } from '@/lib/utils/locale';
-import { createSchedule, deleteSchedule } from '@/lib/services/schedule';
-import { stringifyCron } from '@/lib/utils/cron-expression';
-import { getUserInfo } from '@/lib/services/slack';
+import { setBotSchedule } from '@/lib/bot';
+import { localizeZonedCronTime, parseCronTime, utcCronTimeToZoned } from '@/lib/cron';
+import { getDailyPuzzle } from '@/lib/lichess';
+import { interpolate } from '@/lib/locale';
+import { blocks, formatTimeInput, verifySignature } from '@/lib/slack';
+import { botContext } from '@/middleware/bot-context';
+import { zodValidator } from '@/middleware/zod-validator';
+
+/**
+ * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
+ */
+const ZSlashCommandBody = z.object({
+  team_id: z.string(),
+  command: z.string(),
+  text: z.string(),
+  api_app_id: z.string(),
+  response_url: z.string(),
+}, {
+  message: 'Recieved unprocessable request',
+}).transform((body) => ({
+  teamId: body.team_id,
+  command: body.command,
+  text: body.text,
+  apiAppId: body.api_app_id,
+  responseUrl: body.response_url,
+}));
+
+// todo: this is nuts
+// also time zone
+
+/**
+ * @see https://api.slack.com/reference/interaction-payloads/block-actions
+ */
+const ZTimePickerActionBody = z.preprocess(
+  (data) => {
+    const { payload } = z.object({
+      payload: z.string()
+        .transform((data) => JSON.parse(data)),
+    }).parse(data);
+
+    return payload;
+  },
+  z.object({
+    team: z.object({
+      id: z.string(),
+    }),
+    user: z.object({
+      id: z.string(),
+    }),
+    token: z.string(),
+    response_url: z.string(),
+    actions: z.object({
+      action_id: z.string(),
+      block_id: z.string(),
+      selected_time: z.string()
+        .trim()
+        .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+        .transform((selectedTime) => {
+          const [hour, minute] = selectedTime.split(':');
+          return {
+            hour,
+            minute,
+          };
+        }),
+    }).array().min(1),
+  }, {
+    message: 'Recieved unprocessable request',
+  })
+);
 
 
 // 3s window for response
 // https://api.slack.com/interactivity/slash-commands#responding_to_commands
 
 export const slack = new Hono()
-  .use('*', validateSlackRequest())
+  .use(async (c, next) => {
+    const {
+      'user-agent': userAgent,
+      'x-slack-signature': signature,
+      'x-slack-request-timestamp': timestamp,
+    } = c.req.header();
+
+    const isFromSlackbot = !!userAgent?.includes(
+      'Slackbot 1.0 (+https://api.slack.com/robots)'
+    );
+
+    if (!isFromSlackbot) {
+      throw new HTTPException(403, {
+        message: 'Forbidden',
+        // Invalid User Agent
+      });
+    }
+
+    if (!signature || !timestamp) {
+      throw new HTTPException(401, {
+        message: 'Unauthorized',
+        // Unsigned
+      });
+    }
+
+    const body = await c.req.text();
+    const {
+      signatureIsValid,
+      timestampIsValid,
+    } = verifySignature(c, body, signature, timestamp);
+
+    // Obscure implementation details by throwing
+    // after both validations have resolved
+    if (!timestampIsValid) {
+      throw new HTTPException(401, {
+        message: 'Unauthorized',
+        // Invalid Timestamp
+      });
+    }
+
+    if (!signatureIsValid) {
+      throw new HTTPException(401, {
+        message: 'Unauthorized',
+        // Invalid Signature
+      });
+    }
+
+    await next();
+  })
   /** Get command details */
   .post(
     '/help',
-    zodValidator('form', ZSlashCommandRequest),
+    zodValidator('form', ZSlashCommandBody),
     botContext(),
     async (c) => {
-      // locale source conflicg
       const { localized } = c.var;
 
       return c.json({
@@ -36,12 +143,12 @@ export const slack = new Hono()
           blocks.section({ text: localized.blocks.helpSchedule }),
         ],
       }, 200);
-    },
+    }
   )
   /** Get daily puzzle (screenshot + url) */
   .post(
     '/puzzle',
-    zodValidator('form', ZSlashCommandRequest),
+    zodValidator('form', ZSlashCommandBody),
     botContext(),
     async (c) => {
       const { localized } = c.var;
@@ -58,97 +165,80 @@ export const slack = new Hono()
           blocks.section({ text: puzzleUrl }),
         ],
       }, 200);
-    },
+    }
   )
   /** Set scheduled delivery time */
   .post(
     '/schedule/set',
-    zodValidator('form', ZTimePickerActionRequest),
+    zodValidator('form', ZTimePickerActionBody),
     botContext(),
     async (c) => {
-      const { bot } = c.var;
+      const { bot, localized } = c.var;
 
-      const { responseUrl, selectedTime } = c.req.valid('form');
+      const { responseUrl, selectedTime, timeZone } = c.req.valid('form');
 
-      if (bot.schedule) {
-        await qStash
-        .auth(`Bearer ${config.QSTASH_TOKEN}`)
-        .delete(`/schedules/${bot.schedule.scheduleId}`)
-        .res();
-      }
-
-      const cronData = zonedTimeToUtc(selectedTime, bot.timeZone);
-      const cron = stringifyCron(cronData);
-
-      /**
-       * @see https://upstash.com/docs/qstash/api/schedules/create
-       */
-
-      // Upstash-Forward-My-Header
-      const { scheduleId } = await qStash
-        .auth(`Bearer ${config.QSTASH_TOKEN}`)
-        .headers({
-          'upstash-cron': cron,
-        })
-        .post({
-          botId: bot.id,
-          locale,
-        }, `/schedules/${url}`) // todo
-        .json(ZCreateScheduleResponse.parse);
-
-      /** @todo db retry or session */
-      await db.scheduleBot(bot.teamId, {
-        scheduleId,
-        cron,
+      const scheduledAt = await setBotSchedule(c, bot.teamId, {
+        selectedTime,
+        timeZone,
+        locale: bot.locale,
+        currentScheduleId: bot.schedule?.jobId,
       });
 
       const message = interpolate(localized.blocks.scheduleConfirmation, {
-        timeString: localizeZonedTime(scheduledAt, timeZone, locale),
+        timeString: localizeZonedCronTime(scheduledAt, timeZone, bot.locale),
       });
-
 
       /** @todo error handling */
-      wretch(responseUrl).post({
-        replace_original: true,
-        text: message,
-      });
+      wretch(responseUrl)
+        .post({
+          replace_original: true,
+          text: message,
+        })
+        .res()
+        .catch(console.error);
 
       return c.text('ok', 200);
-    },
+    }
   )
   /** Get and set scheduled delivery time */
   .post(
     '/schedule',
-    zodValidator('form', ZSlashCommandRequest),
+    zodValidator('form', ZSlashCommandBody),
     botContext(),
     async (c) => {
-      const { locale, localized } = c.var;
+      const {
+        bot: { locale, schedule },
+        localized,
+      } = c.var;
 
-      const _scheduledAt = bot.getScheduledAt();
-      const scheduledAt = _scheduledAt
-        ? utcTimeToZoned(_scheduledAt, timeZone)
+      const scheduledAt = schedule
+        ? utcCronTimeToZoned(
+          parseCronTime(schedule.cron),
+          schedule.timeZone
+        )
         : undefined;
 
-      const initialTime = scheduledAt
-        ? formatTimeInput(scheduledAt)
-        : '12:00';
-
-      const message = scheduledAt
+      // todo: does this need additional zoning?
+      const message = schedule && scheduledAt
         ? interpolate(localized.blocks.scheduleInfo, {
-          timeString: localizeZonedTime(scheduledAt, timeZone, locale),
+          timeString: localizeZonedCronTime(scheduledAt, schedule.timeZone, locale),
         })
         : localized.blocks.schedulePrompt;
 
       return c.json({
         blocks: [
-          blocks.section({ text: message }),
+          blocks.section({
+            text: message,
+          }),
           {
             type: 'actions',
             block_id: 'timepicker-block',
             elements: [
               {
                 type: 'timepicker',
-                initial_time: initialTime,
+                initial_time: scheduledAt
+                  ? formatTimeInput(scheduledAt)
+                  : '12:00',
                 placeholder: {
                   type: 'plain_text',
                   text: localized.blocks.scheduleSelectTime,
@@ -160,10 +250,9 @@ export const slack = new Hono()
           },
         ],
       }, 200);
-    },
+    }
   )
   .notFound(async (c) => {
-
     return c.json({
       response_type: 'ephemeral',
       text: 'Unknown command',
@@ -172,7 +261,7 @@ export const slack = new Hono()
   .onError(async (error, c) => {
     const message = error instanceof Error
       ? error.message
-      : 'Something went wrong'
+      : 'Something went wrong';
 
     return c.json({
       response_type: 'ephemeral',

@@ -22,8 +22,12 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.1.8",
+    "@oslojs/crypto": "^1.0.1",
+    "@oslojs/encoding": "^1.1.0",
     "date-fns": "2.0.0",
     "date-fns-tz": "2.0.0",
+    "drizzle-orm": "^0.38.4",
+    "drizzle-zod": "^0.6.1",
     "hono": "^4.6.15",
     "jsonwebtoken": "^9.0.2",
     "pug": "^3.0.2",
@@ -33,6 +37,7 @@
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@slack/web-api": "^6.9.0",
+    "@stylistic/eslint-plugin-ts": "^2.13.0",
     "@types/bun": "^1.1.16",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/pug": "^2.0.10",
