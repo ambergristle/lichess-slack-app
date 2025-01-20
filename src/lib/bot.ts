@@ -1,20 +1,19 @@
+import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
-import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
+import { HTTPException } from 'hono/http-exception';
 import { sha256 } from '@oslojs/crypto/sha2';
+import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
 import wretch from 'wretch';
 import FormUrlAddon from 'wretch/addons/formUrl';
 import QueryStringAddon from 'wretch/addons/queryString';
 import { z } from 'zod';
 
+import { type CronTime, stringifyCron, zonedToUtc } from './cron';
 import { getDb } from './db';
 import { Bot } from './db/schema';
 import { getEnvironmentVariable } from './request';
 import { encryptString } from './encryption';
-import { eq } from 'drizzle-orm';
-import { HTTPException } from 'hono/http-exception';
 import { SlackError, slackResponseBody } from './slack';
-import { getLocalized } from './locale';
-import { stringifyCron, zonedCronTimeToUtc } from './cron';
 import { isString } from './types';
 
 
@@ -34,6 +33,7 @@ const getAuthToken = (c: Context) => {
   return btoa(`${clientId}:${secret}`);
 };
 
+// todo
 
 type Schedule<T extends string | null> = {
   jobId: T;
@@ -250,10 +250,7 @@ export const setBotSchedule = async (
     locale,
     currentScheduleId,
   }: {
-    selectedTime: {
-      hour: number;
-      minute: number;
-    },
+    selectedTime: CronTime,
     timeZone: string,
     locale: string,
     currentScheduleId?: string
@@ -261,13 +258,13 @@ export const setBotSchedule = async (
 ) => {
   const botId = generatBotId(teamId);
 
-  const cronTime = zonedCronTimeToUtc(selectedTime, timeZone);
-  const cron = stringifyCron(cronTime);
-
   const authToken = getEnvironmentVariable(c, 'QSTASH_TOKEN');
 
   const baseUrl = getEnvironmentVariable(c, 'REDIRECT_URL');
   const redirectUrl = `${baseUrl}/webhooks/scheduled-puzzle`;
+
+  const { cronTime } = zonedToUtc(selectedTime, timeZone);
+  const cron = stringifyCron(cronTime);
 
   /**
    * @see https://upstash.com/docs/qstash/api/schedules/create

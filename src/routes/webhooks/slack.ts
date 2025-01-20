@@ -4,12 +4,16 @@ import wretch from 'wretch';
 import { z } from 'zod';
 
 import { setBotSchedule } from '@/lib/bot';
-import { localizeZonedCronTime, parseCronTime, utcCronTimeToZoned } from '@/lib/cron';
+import { localizeUtc, parseCronTime } from '@/lib/cron';
 import { getDailyPuzzle } from '@/lib/lichess';
 import { interpolate } from '@/lib/locale';
-import { blocks, formatTimeInput, verifySignature } from '@/lib/slack';
+import { blocks, verifySignature } from '@/lib/slack';
 import { botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
+
+
+const TIME_ZONE_OPTIONS = Intl.supportedValuesOf('timeZone')
+  .map((timeZone) => ({ text: timeZone, value: timeZone }));
 
 /**
  * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
@@ -33,45 +37,63 @@ const ZSlashCommandBody = z.object({
 // todo: this is nuts
 // also time zone
 
+// https://api.slack.com/interactivity/handling#payloads
+const parseInteractivePayload = z.object({
+  payload: z.string(),
+}).transform(({ payload }) => {
+  return JSON.parse(payload);
+}).parse;
+
 /**
  * @see https://api.slack.com/reference/interaction-payloads/block-actions
+ * @see https://api.slack.com/reference/block-kit/block-elements#timepicker
  */
 const ZTimePickerActionBody = z.preprocess(
-  (data) => {
-    const { payload } = z.object({
-      payload: z.string()
-        .transform((data) => JSON.parse(data)),
-    }).parse(data);
-
-    return payload;
-  },
+  parseInteractivePayload,
   z.object({
     team: z.object({
       id: z.string(),
     }),
-    user: z.object({
-      id: z.string(),
-    }),
     token: z.string(),
     response_url: z.string(),
-    actions: z.object({
-      action_id: z.string(),
-      block_id: z.string(),
-      selected_time: z.string()
-        .trim()
-        .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
-        .transform((selectedTime) => {
-          const [hour, minute] = selectedTime.split(':');
-          return {
-            hour,
-            minute,
-          };
-        }),
-    }).array().min(1),
+    // add another action
+    actions: z.tuple([
+      z.object({
+        action_id: z.string(),
+        block_id: z.string(),
+        selected_time: z.string()
+          .trim()
+          .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+      }),
+      z.object({
+        action_id: z.string(),
+        block_id: z.string(),
+        value: z.string(),
+      }),
+    ]),
   }, {
     message: 'Recieved unprocessable request',
   })
-);
+).transform((body) => {
+  const timeStrings = body.actions[0].selected_time.split(':');
+  const timeZone = body.actions[1].value;
+
+  // Regex enforces string shape
+  // eslint-disable-next-line
+  const hourString = timeStrings[0]!;
+  // eslint-disable-next-line
+  const minuteString = timeStrings[1]!;
+
+  return {
+    teamId: body.team.id,
+    responseUrl: body.response_url,
+    timeZone,
+    selectedTime: {
+      hour: Number(hourString),
+      minute: Number(minuteString),
+    },
+  };
+});
 
 
 // 3s window for response
@@ -184,8 +206,10 @@ export const slack = new Hono()
         currentScheduleId: bot.schedule?.jobId,
       });
 
+      const { display } = localizeUtc(scheduledAt, timeZone, bot.locale);
+
       const message = interpolate(localized.blocks.scheduleConfirmation, {
-        timeString: localizeZonedCronTime(scheduledAt, timeZone, bot.locale),
+        timeString: display,
       });
 
       /** @todo error handling */
@@ -211,17 +235,14 @@ export const slack = new Hono()
         localized,
       } = c.var;
 
-      const scheduledAt = schedule
-        ? utcCronTimeToZoned(
-          parseCronTime(schedule.cron),
-          schedule.timeZone
-        )
+      const zonedSchedule = schedule
+        ? localizeUtc(parseCronTime(schedule.cron), schedule.timeZone, locale)
         : undefined;
 
       // todo: does this need additional zoning?
-      const message = schedule && scheduledAt
+      const message = zonedSchedule
         ? interpolate(localized.blocks.scheduleInfo, {
-          timeString: localizeZonedCronTime(scheduledAt, schedule.timeZone, locale),
+          timeString: zonedSchedule.display,
         })
         : localized.blocks.schedulePrompt;
 
@@ -235,16 +256,22 @@ export const slack = new Hono()
             block_id: 'timepicker-block',
             elements: [
               {
+                action_id: 'select-time',
                 type: 'timepicker',
-                initial_time: scheduledAt
-                  ? formatTimeInput(scheduledAt)
+                initial_time: zonedSchedule
+                  ? zonedSchedule.defaultValue
                   : '12:00',
                 placeholder: {
                   type: 'plain_text',
                   text: localized.blocks.scheduleSelectTime,
                   emoji: true,
                 },
-                action_id: 'timepicker-action',
+                focus_on_load: true,
+              },
+              {
+                actionId: 'select-timezone',
+                type: 'static_select',
+                options: TIME_ZONE_OPTIONS,
               },
             ],
           },

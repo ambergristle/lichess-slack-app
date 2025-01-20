@@ -1,5 +1,6 @@
-import zonedToUtc from 'date-fns-tz/zonedTimeToUtc';
-import utcToZoned from 'date-fns-tz/utcToZonedTime';
+import { UTCDate } from '@date-fns/utc';
+import { TZDate } from '@date-fns/tz';
+import { formatInTimeZone } from 'date-fns-tz';
 import { z } from 'zod';
 
 import { isNumber, isString } from './types';
@@ -95,60 +96,30 @@ export const stringifyCron = (data: Cron): string => {
 };
 
 
-const padDigits = (num: number) => {
-  return num.toString().padStart(2, '0');
-};
+// time-picker selections
 
-export const zonedCronTimeToUtc = (cronTime: CronTime, timeZone: string) => {
-  const hh = padDigits(cronTime.hour);
-  const mm = padDigits(cronTime.minute);
-
-  const dateTimeString = `1969-12-31T${hh}:${mm}:00.000`;
-  const utcDate = zonedToUtc(dateTimeString, timeZone);
+export const zonedToUtc = (zonedTime: CronTime, timeZone: string) => {
+  const tzDate = new TZDate(2022, 2, 13, zonedTime.hour, zonedTime.minute, 0, 0, timeZone);
 
   return {
-    hour: utcDate.getUTCHours(),
-    minute: utcDate.getUTCMinutes(),
-  };
-};
-
-
-export const utcCronTimeToZoned = (cronTime: CronTime, timeZone: string) => {
-  const hh = padDigits(cronTime.hour);
-  const mm = padDigits(cronTime.minute);
-
-  const dateTimeString = `1969-12-31T${hh}:${mm}:00.000Z`;
-  const zonedDate = utcToZoned(dateTimeString, timeZone);
-
-  const [hours, minutes] = zonedDate
-    .toLocaleTimeString(['en-US'], {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone,
-    }).split(':');
-
-  // Values will never actually be undefined
-  return {
-    hour: Number(hours),
-    minute: Number(minutes),
-  };
-};
-
-
-export const localizeZonedCronTime = (
-  cronTime: CronTime,
-  timeZone: string,
-  locale: string
-) => {
-  const hh = padDigits(cronTime.hour);
-  const mm = padDigits(cronTime.minute);
-
-  const dateTimeString = `1969-12-31T${hh}:${mm}:00.000`;
-  const utcDate = zonedToUtc(dateTimeString, timeZone);
-
-  return utcDate.toLocaleTimeString(locale, {
+    cronTime: {
+      hour: tzDate.getUTCHours(),
+      minute: tzDate.getUTCMinutes(),
+    },
     timeZone,
-    timeStyle: 'short',
-  });
+  };
+};
+
+// utc cron to display
+
+export const localizeUtc = (utcTime: CronTime, timeZone: string, locale: string) => {
+  const utcDate = new UTCDate(2022, 2, 13, utcTime.hour, utcTime.minute, 0, 0);
+
+  return {
+    display: utcDate.toLocaleTimeString(locale, {
+      timeZone,
+      timeStyle: 'short',
+    }),
+    defaultValue: formatInTimeZone(utcDate, timeZone, 'HH:mm'),
+  };
 };

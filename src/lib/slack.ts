@@ -41,22 +41,6 @@ export const blocks = {
   // eslint-disable-next-line
 } satisfies Record<string, ((...args: any[]) => KnownBlock)>;
 
-export const formatTimeInput = ({ hour, minute }: CronTime) => {
-  const hh = padDigits(hour);
-  const mm = padDigits(minute);
-
-  const dateTimeString = `1969-12-31T${hh}:${mm}:00.000Z`;
-
-  return new Date(dateTimeString).toLocaleTimeString(['en-US'], {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  });
-};
-
-
-
 
 const APP_SCOPES = [
   'commands',

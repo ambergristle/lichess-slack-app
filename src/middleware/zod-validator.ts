@@ -8,13 +8,13 @@ export const zodValidator = <
     Target extends keyof ValidationTargets,
     Schema extends z.ZodSchema
 > (target: Target, schema: Schema) => {
-  return validator(target, async (value) => {
+  return validator(target, async (value): Promise<z.output<Schema>> => {
     const result = await schema.safeParseAsync(value);
     if (!result.success) {
       // todo: issues
       throw new HTTPException(400, {
         message: 'Invalid Request',
-        // cause: result.error
+        cause: result.error,
       });
     }
 

@@ -68,3 +68,20 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - comments
 - figure out state; by session?
 - serialize/parse pattern
+
+
+
+
+
+
+
+so i get an hhmm and a tz from the form
+- i convert the hhmm to utc
+- i create a expression using utc hhmm
+- i write cron + tz, returning crontime
+- i zone + localize cron time for display/confirmation
+
+
+then i grab the schedule if it exists
+- then i zone + localize cron for display
+- i also zone and format cron for form default
