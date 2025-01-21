@@ -24,7 +24,6 @@ export const Bot = sqliteTable(
   ]
 );
 
-// todo: composite keys?
 export const ScheduledPuzzleJob = sqliteTable(
   'scheduled-puzzle-jobs',
   {

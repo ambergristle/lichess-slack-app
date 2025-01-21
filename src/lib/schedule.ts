@@ -119,7 +119,7 @@ export const setBotSchedule = async (
     timeZone,
   };
 
-  /** @todo db retry or session */
+  // db retry or session
   const db = getDb(c);
   await db
     .insert(ScheduledPuzzleJob)

@@ -29,8 +29,6 @@ export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
       .get('/puzzle/daily')
       .json(ZDailyPuzzleResponse.parse);
 
-
-    /** @todo safely construct query strings */
     return {
       puzzleUrl: `https://lichess.org/training/${puzzle.id}`,
       puzzleThumbUrl:

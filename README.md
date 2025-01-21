@@ -44,24 +44,28 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - Webhooks: [https://api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks)
 
 ## Todo
-- handle errors/invalid requests 
-  - add explicit handlers + return blocks
-  - throw/handle explicit
 - finish styling landing page
 - configure slack app for distribution
 - localization, message generation?
 - clear todos
+  - handle invalid method calls
+  - error handling
+  - delete _utils?
+  - standardize urls
+  - fine-tune cron regex
+  - communicate locale/tz setup
+  - look into qstash jobs, verifying requests
+  - figure out retry/rollback logic
+  - format zod issues/errors
 - comments
 - figure out state; by session?
 - serialize/parse pattern
 
 
 ## Enhancements
+- rate limiting
+- what if no teamid? can botid be leaned on?
+- multiple channel registration?
+- submit button for noon-ok
 - clean up messages
   - if i add some kind of id maybe?
-- splitting tables?
-  - bot schedules in different table allows for schedules by user
-- submit button for noon-ok
-- unsub button
-- multiple channel registration?
-- what if no teamid? can botid be leaned on?

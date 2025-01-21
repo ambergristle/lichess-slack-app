@@ -17,6 +17,9 @@ const ZButtonAction = ZAction.extend({
   value: action.value,
 }));
 
+/**
+ * @see https://api.slack.com/reference/block-kit/block-elements#timepicker
+ */
 const ZTimePickerAction = ZAction.extend({
   type: z.literal('timepicker'),
   selected_time: z.string()
@@ -42,6 +45,9 @@ const ZTimePickerAction = ZAction.extend({
   };
 });
 
+/**
+ * @see https://api.slack.com/reference/interaction-payloads/block-actions
+ */
 const ZInteractivePayload = z.object({
   api_app_id: z.string(),
   // bot_access_token: z.string(),
@@ -75,17 +81,6 @@ export const ZInteractiveRequestBody = z.preprocess(
   ZInteractivePayload
 );
 
-const interactivePayload = <S extends z.AnyZodObject>(schema: S) => {
-  return z.preprocess(
-    ZInteractiveRequestBody.parse,
-    schema
-  );
-};
-
-
-
-
-
 /**
  * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
  */
@@ -99,63 +94,10 @@ export const ZSlashCommandBody = z.object({
 }, {
   message: 'Recieved unprocessable request',
 }).transform((body) => ({
+  appId: body.api_app_id,
   teamId: body.team_id,
   userId: body.user_id,
   command: body.command,
   text: body.text,
-  apiAppId: body.api_app_id,
   responseUrl: body.response_url,
 }));
-
-// todo: this is nuts
-
-
-
-
-
-/**
- * @see https://api.slack.com/reference/interaction-payloads/block-actions
- * @see https://api.slack.com/reference/block-kit/block-elements#timepicker
- */
-export const ZTimePickerActionBody = interactivePayload(
-  z.object({
-    user: z.object({
-      id: z.string(),
-    }),
-    team: z.object({
-      id: z.string(),
-    }),
-    token: z.string(),
-    response_url: z.string(),
-    // add another action
-    actions: z.tuple([
-      z.object({
-        action_id: z.string(),
-        block_id: z.string(),
-        selected_time: z.string()
-          .trim()
-          .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-      }),
-    ]),
-  }, {
-    message: 'Recieved unprocessable request',
-  })
-).transform((body) => {
-  const timeStrings = body.actions[0].selected_time.split(':');
-
-  // Regex enforces string shape
-  // eslint-disable-next-line
-  const hourString = timeStrings[0]!;
-  // eslint-disable-next-line
-  const minuteString = timeStrings[1]!;
-
-  return {
-    userId: body.user.id,
-    teamId: body.team.id,
-    responseUrl: body.response_url,
-    selectedTime: {
-      hour: Number(hourString),
-      minute: Number(minuteString),
-    },
-  };
-});

@@ -1,16 +1,13 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import wretch from 'wretch';
-import { z } from 'zod';
 
-import { generatBotId, setBotSchedule } from '@/lib/bot';
 import { localizeUtc, parseCronTime } from '@/lib/cron';
 import { getDailyPuzzle } from '@/lib/lichess';
 import { interpolate } from '@/lib/locale';
-import { TIME_ZONE_OPTIONS, blocks, getUserTimeZone, verifySignature } from '@/lib/slack';
+import { blocks, getUserTimeZone, verifySignature } from '@/lib/slack';
 import { botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
-import { ZInteractiveRequestBody, ZSlashCommandBody, ZTimePickerActionBody } from '@/lib/slack/dtos';
+import { ZSlashCommandBody } from '@/lib/slack/dtos';
 import { interactionsRoute } from './interactions';
 
 

@@ -15,7 +15,6 @@ export const getLocalized = async (
     return key.includes(locale);
   });
 
-  // todo: no match?
   const filePath = filePaths[preferredLocaleKey ?? ''] ?? 'en_us';
 
   return await import(`@/locale/${filePath}`)

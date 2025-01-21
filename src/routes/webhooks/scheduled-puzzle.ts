@@ -21,7 +21,8 @@ export const ZScheduledPuzzleData = z.object({
 
 export const scheduledPuzzle = new Hono()
   .use(async (c, next) => {
-    // upstash-schedule-id
+    // todo: could grab upstash-schedule-id instead of
+    // passing the botId/locale in the payload
     const signature = c.req.header('upstash-signature');
     if (!signature) {
       throw new HTTPException(401, {
@@ -30,7 +31,6 @@ export const scheduledPuzzle = new Hono()
       });
     }
 
-    // todo: will this break?
     const body = await c.req.text();
     verifyRequest(c, body, signature);
 
@@ -40,11 +40,10 @@ export const scheduledPuzzle = new Hono()
   .post(
     '/',
     zodValidator('json', ZScheduledPuzzleData),
-    // bot check
+    // todo: verify bot?
     async (c) => {
       const { botId, locale } = c.req.valid('json');
 
-      // todo: middleware magic to split out getting localized
       const localized = await getLocalized(locale);
       const { puzzleThumbUrl, puzzleUrl } = await getDailyPuzzle();
 
@@ -65,6 +64,5 @@ export const scheduledPuzzle = new Hono()
         .res()
         .catch(console.error);
 
-      /** @todo response? */
-      return c.text('ok');
+      return c.body(null, 200);
     });

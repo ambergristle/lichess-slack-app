@@ -63,7 +63,7 @@ export const slackRequestFactory = <A extends any[], R>(
     try {
       return fn(..._args);
     } catch (cause) {
-      /** @todo find a better way to distinguish fetch errors */
+      // todo: find a better way to distinguish fetch errors
       const code = (cause as any).code;
 
       if (!code) throw cause;

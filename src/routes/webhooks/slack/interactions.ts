@@ -26,7 +26,7 @@ export const interactionsRoute = new Hono<BotContext>()
             if (action.actionId === 'cancel-schedule') {
               await cancelBotSchedule(c, bot.id, bot.userId);
 
-              /** @todo error handling */
+              // todo: error handling
               wretch(responseUrl)
                 .post({
                   replace_original: true,
@@ -63,7 +63,7 @@ export const interactionsRoute = new Hono<BotContext>()
               timeString: display,
             });
 
-            /** @todo error handling */
+            // todo: error handling
             wretch(responseUrl)
               .post({
                 replace_original: true,
@@ -82,7 +82,7 @@ export const interactionsRoute = new Hono<BotContext>()
   .notFound((c) => {
     const webhookUrl = c.var.bot?.webhookUrl;
     if (webhookUrl) {
-      /** @todo error handling */
+      // todo: error handling
       wretch(webhookUrl)
         .post({
           response_type: 'ephemeral',
@@ -104,7 +104,7 @@ export const interactionsRoute = new Hono<BotContext>()
 
     const webhookUrl = c.var.bot?.webhookUrl;
     if (webhookUrl) {
-      /** @todo error handling */
+      // todo: error handling
       wretch(webhookUrl)
         .post({
           response_type: 'ephemeral',

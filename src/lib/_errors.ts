@@ -67,7 +67,7 @@ interface PersistenceErrorOptions extends ErrorOptions {
   code: string;
   collection: string;
   op: 'read' | 'write';
-  /** @todo typing */
+  // todo: typing
   filter?: Record<string, any>;
 }
 

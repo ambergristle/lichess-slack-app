@@ -46,7 +46,6 @@ export const register = new Hono()
     async (c) => {
       const { code } = c.req.valid('query');
 
-      // todo: responseUrl, preferences?
       await registerBot(c, code);
 
       const { localized } = c.var;
