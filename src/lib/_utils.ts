@@ -7,15 +7,6 @@ import { getConnInfo } from 'hono/bun';
 import { getEnvironmentVariable } from './request';
 
 
-export const getClientIp = (c: Context): string | null => {
-  // Proxied IP
-  return c.req.header('X-Forwarded-For')
-    ?? getConnInfo(c).remote.address
-    ?? null;
-};
-
-
-
 const BROWSERS = [
   'Mozilla',
   'AppleWebKit',

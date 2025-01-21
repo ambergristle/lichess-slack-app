@@ -119,7 +119,7 @@ export const verifySignature = (c: Context, body: string, signature: string, tim
 
 export const getUserTimeZone = async (c: Context, botId: string, userId: string) => {
   const accessToken = await getBotAccessToken(c, botId);
-
+  // https://api.slack.com/methods/users.info
   const response = await slackClient
     .addon(QueryStringAddon)
     .auth(`Bearer ${accessToken}`)

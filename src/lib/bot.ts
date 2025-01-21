@@ -52,6 +52,7 @@ export const getBotAccessToken = async (c: Context, botId: string) => {
 export const getBotContext = async (c: Context, teamId: string, userId: string) => {
   const botId = generatBotId(teamId);
 
+  // todo: merge queries
   const db = getDb(c);
   const [bot] = await db
     .select({

@@ -19,6 +19,7 @@ export const ZRegistrationRequest = z.object({
 
 
 export const register = new Hono()
+  // todo: verify request
   /** Process registration request and render results */
   .get(
     '/',

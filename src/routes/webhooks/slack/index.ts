@@ -9,6 +9,7 @@ import { botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
 import { ZSlashCommandBody } from '@/lib/slack/dtos';
 import { interactionsRoute } from './interactions';
+import { slackBucket, userLimiter } from '@/middleware/rate-limiter';
 
 
 // 3s window for response
@@ -69,6 +70,7 @@ export const slack = new Hono()
   .post(
     '/help',
     zodValidator('form', ZSlashCommandBody),
+    userLimiter(slackBucket, 1),
     botContext(),
     async (c) => {
       const { localized } = c.var;
@@ -87,6 +89,7 @@ export const slack = new Hono()
   .post(
     '/puzzle',
     zodValidator('form', ZSlashCommandBody),
+    userLimiter(slackBucket, 1),
     botContext(),
     async (c) => {
       const { localized } = c.var;
@@ -109,6 +112,7 @@ export const slack = new Hono()
   .post(
     '/schedule',
     zodValidator('form', ZSlashCommandBody),
+    userLimiter(slackBucket, 2),
     botContext(),
     async (c) => {
       const {

@@ -1,6 +1,15 @@
 import type { Context } from 'hono';
 import { env } from 'hono/adapter';
+import { getConnInfo } from 'hono/bun';
 import { HTTPException } from 'hono/http-exception';
+
+
+export const getClientIp = (c: Context): string | null => {
+  // Proxied IP
+  return c.req.header('X-Forwarded-For')
+    ?? getConnInfo(c).remote.address
+    ?? null;
+};
 
 
 /**

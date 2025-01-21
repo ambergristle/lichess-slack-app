@@ -5,6 +5,7 @@ import { ErrorPage } from '@/lib/components/errors';
 import { Layout } from '@/lib/components/layout';
 import { generateOAuthRedirectUrl } from '@/lib/slack';
 import { localizer } from '@/middleware/localizer';
+import { globalRateLimiter } from '@/middleware/rate-limiter';
 
 
 const REPO_URL = 'https://github.com/ambergristle/lichess-slack-app';
@@ -17,6 +18,7 @@ const REPO_URL = 'https://github.com/ambergristle/lichess-slack-app';
  * route, along with a registration code
  */
 export const landing = new Hono()
+  .use(globalRateLimiter())
   .get(
     '/',
     localizer(),

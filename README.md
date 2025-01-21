@@ -63,7 +63,6 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 
 
 ## Enhancements
-- rate limiting
 - what if no teamid? can botid be leaned on?
 - multiple channel registration?
 - submit button for noon-ok
