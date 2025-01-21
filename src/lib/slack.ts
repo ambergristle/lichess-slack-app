@@ -1,11 +1,17 @@
-import { Context } from 'hono';
-import type { KnownBlock } from '@slack/web-api';
+import type { Context } from 'hono';
+import type { KnownBlock, PlainTextOption, SectionBlock } from '@slack/web-api';
+import wretch from 'wretch';
+import FormUrlAddon from 'wretch/addons/formUrl';
+import QueryStringAddon from 'wretch/addons/queryString';
 
 import hmac from './hmac';
 import { getEnvironmentVariable } from './request';
 import { unixMilliseconds } from './dates';
 import { z } from 'zod';
 import { CronTime } from './cron';
+import { Accessory } from '@slack/web-api/dist/response/ChannelsInfoResponse';
+import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
+import { getBotAccessToken } from './bot';
 
 
 /**
@@ -29,23 +35,33 @@ export const blocks = {
       alt_text: props.alt,
     };
   },
-  section: (props: { text: string; }) => {
+  section: (props: { text: string; accessory?: SectionBlock['accessory'] }) => {
     return {
       type: 'section',
       text: {
         type: 'mrkdwn',
         text: props.text,
       },
+      accessory: props.accessory,
     };
   },
   // eslint-disable-next-line
 } satisfies Record<string, ((...args: any[]) => KnownBlock)>;
 
+export const TIME_ZONE_OPTIONS = SUPPORTED_TIME_ZONES
+  .map((timeZone): PlainTextOption => ({
+    text: {
+      type: 'plain_text',
+      text: timeZone,
+    },
+    value: timeZone,
+  }));
 
 const APP_SCOPES = [
   'commands',
   'incoming-webhook',
   'channels:read',
+  'users:read',
 ];
 
 const APP_SCOPE = APP_SCOPES.join(',');
@@ -57,11 +73,13 @@ const APP_SCOPE = APP_SCOPES.join(',');
  * @see https://api.slack.com/authentication/oauth-v2#asking
  */
 export const generateOAuthRedirectUrl = (c: Context) => {
+  const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
+
   const searchParams = new URLSearchParams({
     client_id: getEnvironmentVariable(c, 'SLACK_CLIENT_ID'),
     scope: APP_SCOPE,
     state: getEnvironmentVariable(c, 'STATE'),
-    redirect_uri: getEnvironmentVariable(c, 'REGISTRATION_URL'),
+    redirect_uri: `${baseUrl}/register`,
   });
 
   return `https://slack.com/oauth/v2/authorize?${searchParams.toString()}`;
@@ -110,6 +128,42 @@ export const verifySignature = (c: Context, body: string, signature: string, tim
     signatureIsValid,
   };
 };
+
+/**
+ * Slack API Client
+ *
+ */
+
+export const slackClient = wretch('https://slack.com/api')
+  .addon(QueryStringAddon);
+
+export const getUserTimeZone = async (c: Context, botId: string, userId: string) => {
+  const accessToken = await getBotAccessToken(c, botId);
+
+  const response = await slackClient
+    .auth(`Bearer ${accessToken}`)
+    .query({
+      user: userId,
+      include_locale: true,
+    })
+    .get('/users.info')
+    .json(
+      slackResponseBody({
+        user: z.object({
+          tz: z.string(),
+        }),
+      }).parse
+    );
+
+  if (!response.ok) {
+    throw new SlackError('Failed to get User info', {
+      code: response.error,
+    });
+  }
+
+  return response.user.tz;
+};
+
 
 
 

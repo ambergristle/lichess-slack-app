@@ -1,5 +1,6 @@
-import { Context } from 'hono';
-import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import type { Context } from 'hono';
+import { Logger } from 'drizzle-orm/logger';
+import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
 
 /**
  * Initializes the database connection using a default
@@ -18,10 +19,10 @@ export const getDb = <E>(c: Context<E & {
   }
 
   // If using Cloudflare bindings, grab client from c.env.DB_BINDING
-  const _db = drizzle('kurz-db-local.sqlite', {
+  const _db = drizzle('file:local-db.sqlite', {
     // Set for Drizzle auto-casing
     casing: 'snake_case',
-    logger: true,
+    logger: new Something(),
   });
 
   c.set('db', _db);
@@ -29,4 +30,14 @@ export const getDb = <E>(c: Context<E & {
   return _db;
 };
 
-export type DrizzleDb = BunSQLiteDatabase;
+export type DrizzleDb = LibSQLDatabase;
+
+class Something implements Logger {
+  logQuery(query: string, params: unknown[]): void {
+    console.log(
+      'Query:\n'
+      + `> ${query}\n`
+      + `Params:${JSON.stringify(params, null, 2)}`
+    );
+  }
+}

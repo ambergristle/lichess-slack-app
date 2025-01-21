@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { sha256 } from '@oslojs/crypto/sha2';
@@ -12,9 +12,8 @@ import { type CronTime, stringifyCron, zonedToUtc } from './cron';
 import { getDb } from './db';
 import { Bot } from './db/schema';
 import { getEnvironmentVariable } from './request';
-import { encryptString } from './encryption';
-import { SlackError, slackResponseBody } from './slack';
-import { isString } from './types';
+import { decryptToString, encryptString } from './encryption';
+import { SlackError, getUserTimeZone, slackClient, slackResponseBody } from './slack';
 
 
 /**
@@ -26,26 +25,13 @@ export const generatBotId = (teamId: string): string => {
   return encodeBase32LowerCaseNoPadding(hashedTokenBytes);
 };
 
-const getAuthToken = (c: Context) => {
+const getSlackAuthToken = (c: Context) => {
   const clientId = getEnvironmentVariable(c, 'SLACK_CLIENT_ID');
   const secret = getEnvironmentVariable(c, 'SLACK_CLIENT_SECRET');
 
   return btoa(`${clientId}:${secret}`);
 };
 
-// todo
-
-type Schedule<T extends string | null> = {
-  jobId: T;
-  cron: T;
-  timeZone: T;
-}
-
-type BotWithValidSchedule = Pick<typeof Bot.$inferSelect,
-  | 'appId'
-  | 'channelId'
-  | 'webhookUrl'
-> & (Schedule<string> | Schedule<null>)
 
 type BotData = Pick<typeof Bot.$inferSelect,
 | 'appId'
@@ -55,20 +41,6 @@ type BotData = Pick<typeof Bot.$inferSelect,
 | 'cron'
 | 'timeZone'
 >
-
-const botHasValidSchedule = (bot: BotData): bot is BotWithValidSchedule => {
-  return bot.jobId === null
-    ? bot.cron === null && bot.timeZone === null
-    : isString(bot.cron) && isString(bot.timeZone);
-};
-
-/**
- * Slack API Client
- *
- */
-
-const slack = wretch('https://slack.com/api')
-  .addon(QueryStringAddon);
 
 /**
  *
@@ -94,12 +66,34 @@ const getBotSchedule = (botData: BotData) => {
   };
 };
 
+
+export const getBotAccessToken = async (c: Context, botId: string) => {
+  const db = getDb(c);
+  const [bot] = await db
+    .select({
+      accessToken: Bot.accessToken,
+    })
+    .from(Bot)
+    .where(eq(Bot.id, botId))
+    .limit(1);
+
+  if (!bot) {
+    throw new HTTPException(401, {
+      message: 'Unauthorized',
+      cause: { botId },
+    });
+  }
+
+  return decryptToString(bot.accessToken);
+};
+
 export const getBotContext = async (c: Context, teamId: string) => {
   const botId = generatBotId(teamId);
 
   const db = getDb(c);
   const [bot] = await db
     .select({
+      id: Bot.id,
       appId: Bot.appId,
       channelId: Bot.channelId,
       webhookUrl: Bot.webhookUrl,
@@ -112,17 +106,18 @@ export const getBotContext = async (c: Context, teamId: string) => {
     .limit(1);
 
   if (!bot) {
-    throw new HTTPException(404, {
-      message: `Bot for team ${teamId} not found`,
-      cause: { botId },
+    throw new HTTPException(401, {
+      message: 'Unauthorized',
+      cause: { botId, teamId },
     });
   }
 
   const botSchedule = getBotSchedule(bot);
+  const accessToken = await getBotAccessToken(c, botId);
 
   // https://api.slack.com/methods/conversations.info
-  const { channel } = await slack
-    .auth(`Bearer ${getAuthToken(c)}`)
+  const { channel } = await slackClient
+    .auth(`Bearer ${accessToken}`)
     .query({
       channel: bot.channelId,
       include_locale: true,
@@ -137,6 +132,12 @@ export const getBotContext = async (c: Context, teamId: string) => {
     )
     .then((response) => {
       if (!response.ok) {
+        if (response.error === 'channel_not_found') {
+          throw new SlackError('Slack Channel is Private', {
+            code: response.error,
+          });
+        }
+
         throw new SlackError('Failed to get Channel info', {
           code: response.error,
         });
@@ -146,8 +147,10 @@ export const getBotContext = async (c: Context, teamId: string) => {
     });
 
   return {
+    id: bot.id,
     teamId,
     locale: channel.locale,
+    timezone: bot.timeZone,
     schedule: botSchedule,
   };
 };
@@ -185,9 +188,9 @@ export const registerBot = async (c: Context, code: string) => {
   const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
   const redirectUrl = `${baseUrl}/register`;
 
-  const registrationData = await slack
+  const registrationData = await slackClient
     .addon(FormUrlAddon)
-    .auth(`Bearer ${getAuthToken(c)}`)
+    .auth(`Basic ${getSlackAuthToken(c)}`)
     .formUrl({
       code,
       redirect_uri: redirectUrl,
@@ -217,21 +220,42 @@ export const registerBot = async (c: Context, code: string) => {
       return response;
     });
 
-  const now = new Date();
+  const appId = registrationData.app_id;
+  const botId = generatBotId(registrationData.team.id);
 
   const db = getDb(c);
-  await db
+
+  const now = new Date();
+  const botData = {
+    updatedAt: now,
+    channelId: registrationData.incoming_webhook.channel_id,
+    scope: registrationData.scope,
+    accessToken: Buffer.from(encryptString(registrationData.access_token)),
+    webhookUrl: registrationData.incoming_webhook.url,
+  };
+
+  const result = await db
     .insert(Bot)
     .values({
-      id: generatBotId(registrationData.team.id),
+      id: botId,
       appId: registrationData.app_id,
       createdAt: now,
-      updatedAt: now,
-      channelId: registrationData.incoming_webhook.channel_id,
-      scope: registrationData.scope,
-      accessToken: Buffer.from(encryptString(registrationData.access_token)),
-      webhookUrl: registrationData.incoming_webhook.url,
+      ...botData,
+    })
+    .onConflictDoUpdate({
+      target: Bot.id,
+      set: {
+        ...botData,
+      },
+      setWhere: and(
+        eq(Bot.appId, appId)
+      ),
     });
+
+  if (result.rowsAffected !== 1) {
+    throw new Error('Unable to upsert bot', { cause: result });
+  }
+
 };
 
 const ZCreateScheduleResponse = z.object({
@@ -240,18 +264,16 @@ const ZCreateScheduleResponse = z.object({
   message: 'Recieved invalid response',
 });
 
-
 export const setBotSchedule = async (
   c: Context,
   teamId: string,
+  userId: string,
   {
     selectedTime,
-    timeZone,
     locale,
     currentScheduleId,
   }: {
     selectedTime: CronTime,
-    timeZone: string,
     locale: string,
     currentScheduleId?: string
   }
@@ -260,9 +282,10 @@ export const setBotSchedule = async (
 
   const authToken = getEnvironmentVariable(c, 'QSTASH_TOKEN');
 
-  const baseUrl = getEnvironmentVariable(c, 'REDIRECT_URL');
+  const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
   const redirectUrl = `${baseUrl}/webhooks/scheduled-puzzle`;
 
+  const timeZone = await getUserTimeZone(c, botId, userId);
   const { cronTime } = zonedToUtc(selectedTime, timeZone);
   const cron = stringifyCron(cronTime);
 
@@ -302,5 +325,8 @@ export const setBotSchedule = async (
       .res();
   }
 
-  return cronTime;
+  return {
+    utcCronTime: cronTime,
+    timeZone,
+  };
 };

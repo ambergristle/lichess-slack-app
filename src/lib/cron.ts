@@ -70,7 +70,7 @@ const parseCron = (expression: string): Cron => {
 
 export const parseCronTime = (expression: string): CronTime => {
   const { hour, minute } = parseCron(expression);
-  if (!hour || !minute) {
+  if (hour === undefined || minute === undefined) {
     throw new Error(`Invalid Cron Time: ${expression}`);
   }
   return { hour, minute };

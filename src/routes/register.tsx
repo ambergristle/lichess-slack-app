@@ -63,6 +63,7 @@ export const register = new Hono()
     }
   )
   .onError((error, c) => {
+    console.error(error);
     const message = error instanceof Error
       ? error.message
       : 'Server Error';

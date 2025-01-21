@@ -72,13 +72,14 @@ export const landing = new Hono()
       );
     })
   .onError((error, c) => {
+    console.error(error);
     const message = error instanceof Error
       ? error.message
       : 'Server Error';
 
     return c.render(
       <ErrorPage
-        heading={'Registration failed'}
+        heading={'Server error'}
         details={message}
       />
     );

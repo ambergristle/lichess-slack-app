@@ -11,6 +11,7 @@ export const botContext = () => {
     Variables: {
       localized: Localized;
       bot: {
+        id: string;
         teamId: string;
         locale: string;
         schedule?: {
