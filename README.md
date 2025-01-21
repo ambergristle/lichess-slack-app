@@ -44,44 +44,21 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - Webhooks: [https://api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks)
 
 ## Todo
-- map out app
-
 - handle errors/invalid requests 
   - add explicit handlers + return blocks
   - throw/handle explicit
-
 - fill in/finish styling landing page
-
 - configure slack app for distribution
-
-- who owns parsing?
-- who owns date/time utils
-- how to get client locale?
-
 - localization, message generation?
-
-- where should pug be compiled? so little is dynamic
-- review + test registration flow
-
-
 - clear todos
 - comments
 - figure out state; by session?
 - serialize/parse pattern
 
 
-
-
-
-
-
-so i get an hhmm and a tz from the form
-- i convert the hhmm to utc
-- i create a expression using utc hhmm
-- i write cron + tz, returning crontime
-- i zone + localize cron time for display/confirmation
-
-
-then i grab the schedule if it exists
-- then i zone + localize cron for display
-- i also zone and format cron for form default
+## Enhancements
+- clean up messages
+  - if i add some kind of id maybe?
+- splitting tables?
+- submit button for noon-ok
+- unsub button

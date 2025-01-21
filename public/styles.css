@@ -1,11 +1,16 @@
 
 @font-face {
   font-family: 'Lato';
-  src:  url('/public/Lato-Regular.ttf') format('truetype'),
+  src:  url('/public/assets/Lato-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('/public/assets/NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
 }
 
 body {
-  background: #161512 linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 116px) no-repeat;
+  background: #161512 linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px) no-repeat;
   color: #bababa;
   font-family: 'Noto Sans', sans-serif;
   height: 100vh;
@@ -32,11 +37,23 @@ a:visited {
   color: inherit;
 }
 
+h1 {
+  font-weight: 300;
+}
+
 p {
   color: #999;
   font-size: 20px;
+  font-weight: 300;
   white-space: 'pre-wrap';
 }
+
+.text-small {
+  font-size: 16px;
+}
+
+
+
 
 .container {
   max-width: 50%;
@@ -45,7 +62,7 @@ p {
 .register-button {
   align-items: center;
   color: #fff;
-  background-color: #4A154B;
+  background-color: rgba(74, 21, 75, 1);
   border: 0;
   border-radius: 4px;
   display: inline-flex;
@@ -58,3 +75,6 @@ p {
   width: 236px;
 }
 
+.register-button:hover {
+  background-color: rgba(74, 21, 75, 0.9);
+}
