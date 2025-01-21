@@ -1,19 +1,24 @@
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
 import wretch from 'wretch';
 import FormUrlAddon from 'wretch/addons/formUrl';
-import QueryStringAddon from 'wretch/addons/queryString';
 import { z } from 'zod';
 
 import { type CronTime, stringifyCron, zonedToUtc } from './cron';
 import { getDb } from './db';
-import { Bot } from './db/schema';
+import { Bot, ScheduledPuzzleJob } from './db/schema';
 import { getEnvironmentVariable } from './request';
 import { decryptToString, encryptString } from './encryption';
-import { SlackError, getUserTimeZone, slackClient, slackResponseBody } from './slack';
+import {
+  SlackError,
+  getUserTimeZone,
+  slackClient,
+  slackResponseBody,
+} from './slack';
+import { generateRowId } from './db/utils';
 
 
 /**
@@ -32,16 +37,6 @@ const getSlackAuthToken = (c: Context) => {
   return btoa(`${clientId}:${secret}`);
 };
 
-
-type BotData = Pick<typeof Bot.$inferSelect,
-| 'appId'
-| 'channelId'
-| 'webhookUrl'
-| 'jobId'
-| 'cron'
-| 'timeZone'
->
-
 /**
  *
  * QStash API Client
@@ -49,23 +44,6 @@ type BotData = Pick<typeof Bot.$inferSelect,
  */
 
 const qStash = wretch('https://qstash.upstash.io/v2');
-
-const getBotSchedule = (botData: BotData) => {
-  if (!botData.jobId) {
-    return;
-  }
-
-  if (!botData.cron || !botData.timeZone) {
-    throw new Error('Scheduled bot missing job ID or cron');
-  }
-
-  return {
-    jobId: botData.jobId,
-    cron: botData.cron,
-    timeZone: botData.timeZone,
-  };
-};
-
 
 export const getBotAccessToken = async (c: Context, botId: string) => {
   const db = getDb(c);
@@ -87,7 +65,7 @@ export const getBotAccessToken = async (c: Context, botId: string) => {
   return decryptToString(bot.accessToken);
 };
 
-export const getBotContext = async (c: Context, teamId: string) => {
+export const getBotContext = async (c: Context, teamId: string, userId: string) => {
   const botId = generatBotId(teamId);
 
   const db = getDb(c);
@@ -97,9 +75,6 @@ export const getBotContext = async (c: Context, teamId: string) => {
       appId: Bot.appId,
       channelId: Bot.channelId,
       webhookUrl: Bot.webhookUrl,
-      jobId: Bot.jobId,
-      cron: Bot.cron,
-      timeZone: Bot.timeZone,
     })
     .from(Bot)
     .where(eq(Bot.id, botId))
@@ -112,7 +87,22 @@ export const getBotContext = async (c: Context, teamId: string) => {
     });
   }
 
-  const botSchedule = getBotSchedule(bot);
+  const [schedule] = await db
+    .select({
+      jobId: ScheduledPuzzleJob.jobId,
+      cron: ScheduledPuzzleJob.cron,
+      timeZone: ScheduledPuzzleJob.timeZone,
+    })
+    .from(ScheduledPuzzleJob)
+    .where(
+      and(
+        eq(ScheduledPuzzleJob.botId, botId),
+        eq(ScheduledPuzzleJob.userId, userId)
+      )
+    )
+    .limit(1);
+
+
   const accessToken = await getBotAccessToken(c, botId);
 
   // https://api.slack.com/methods/conversations.info
@@ -150,8 +140,7 @@ export const getBotContext = async (c: Context, teamId: string) => {
     id: bot.id,
     teamId,
     locale: channel.locale,
-    timezone: bot.timeZone,
-    schedule: botSchedule,
+    schedule,
   };
 };
 
@@ -225,9 +214,8 @@ export const registerBot = async (c: Context, code: string) => {
 
   const db = getDb(c);
 
-  const now = new Date();
   const botData = {
-    updatedAt: now,
+    updatedAt: new Date(),
     channelId: registrationData.incoming_webhook.channel_id,
     scope: registrationData.scope,
     accessToken: Buffer.from(encryptString(registrationData.access_token)),
@@ -239,7 +227,7 @@ export const registerBot = async (c: Context, code: string) => {
     .values({
       id: botId,
       appId: registrationData.app_id,
-      createdAt: now,
+      createdAt: botData.updatedAt,
       ...botData,
     })
     .onConflictDoUpdate({
@@ -306,17 +294,34 @@ export const setBotSchedule = async (
     }, `/schedules/${redirectUrl}`)
     .json(ZCreateScheduleResponse.parse);
 
+  const scheduleData = {
+    updatedAt: new Date(),
+    jobId,
+    cron,
+    timeZone,
+  };
+
   /** @todo db retry or session */
   const db = getDb(c);
   await db
-    .update(Bot)
-    .set({
-      updatedAt: new Date(),
-      jobId,
-      cron,
-      timeZone,
+    .insert(ScheduledPuzzleJob)
+    .values({
+      id: generateRowId(),
+      createdAt: scheduleData.updatedAt,
+      botId,
+      userId,
+      ...scheduleData,
     })
-    .where(eq(Bot.id, botId));
+    .onConflictDoUpdate({
+      target: ScheduledPuzzleJob.userId,
+      set: {
+        ...scheduleData,
+      },
+      setWhere: and(
+        eq(ScheduledPuzzleJob.botId, botId),
+        eq(ScheduledPuzzleJob.userId, userId)
+      ),
+    });
 
   if (currentScheduleId) {
     await qStash

@@ -1,7 +1,5 @@
-import { sql } from 'drizzle-orm';
 import {
   blob,
-  check,
   integer,
   sqliteTable,
   text,
@@ -11,7 +9,6 @@ import {
 export const Bot = sqliteTable(
   'bots',
   {
-    // uid + team id?
     id: text().primaryKey(),
     createdAt: integer({ mode: 'timestamp' }).notNull(),
     updatedAt: integer({ mode: 'timestamp' }).notNull(),
@@ -20,14 +17,19 @@ export const Bot = sqliteTable(
     scope: text().notNull(),
     accessToken: blob({ mode: 'buffer' }).notNull(),
     webhookUrl: text().notNull(),
-    jobId: text(),
-    cron: text(),
-    timeZone: text(),
-  },
-  (table) => [
-    check(
-      'schedule-id',
-      sql`${table.jobId} IS NULL OR (${table.cron} IS NOT NULL AND ${table.timeZone} IS NOT NULL)`
-    ),
-  ]
+  }
+);
+
+export const ScheduledPuzzleJob = sqliteTable(
+  'scheduled-puzzle-jobs',
+  {
+    id: text().primaryKey(),
+    createdAt: integer({ mode: 'timestamp' }).notNull(),
+    updatedAt: integer({ mode: 'timestamp' }).notNull(),
+    botId: text().notNull().references(() => Bot.id),
+    userId: text().notNull(), // encode/hash?
+    jobId: text().notNull(),
+    cron: text().notNull(),
+    timeZone: text().notNull(),
+  }
 );

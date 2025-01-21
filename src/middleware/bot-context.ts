@@ -26,15 +26,15 @@ export const botContext = () => {
   {
     out: {
       form: {
-        // this isn't quite going to work
         teamId: string;
+        userId: string;
       }
     }
   }
   >(async (c, next) => {
-    const { teamId } = c.req.valid('form');
+    const { teamId, userId } = c.req.valid('form');
 
-    const bot = await getBotContext(c, teamId);
+    const bot = await getBotContext(c, teamId, userId);
     c.set('bot', bot);
 
     const localized = await getLocalized(bot.locale);

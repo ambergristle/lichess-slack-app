@@ -47,7 +47,7 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - handle errors/invalid requests 
   - add explicit handlers + return blocks
   - throw/handle explicit
-- fill in/finish styling landing page
+- finish styling landing page
 - configure slack app for distribution
 - localization, message generation?
 - clear todos
@@ -60,5 +60,7 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - clean up messages
   - if i add some kind of id maybe?
 - splitting tables?
+  - bot schedules in different table allows for schedules by user
 - submit button for noon-ok
 - unsub button
+- multiple channel registration?
