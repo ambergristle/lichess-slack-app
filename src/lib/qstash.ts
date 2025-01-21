@@ -1,9 +1,27 @@
 import type { Context } from 'hono';
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
+import wretch from 'wretch';
 
 import { isString } from '@/lib/types';
 import { getEnvironmentVariable } from './request';
+
+
+/**
+ *
+ * QStash API Client
+ *
+ */
+
+const qStash = wretch('https://qstash.upstash.io/v2');
+
+export const cancelScheduledJob = async (c: Context, jobId: string) => {
+  const authToken = getEnvironmentVariable(c, 'QSTASH_TOKEN');
+  return await qStash
+    .auth(`Bearer ${authToken}`)
+    .delete(`/schedules/${jobId}`)
+    .res();
+};
 
 
 const fiveSeconds = 5;
@@ -35,7 +53,7 @@ export const verifyRequest = (c: Context, body: string, signature: string) => {
     }
 
     const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
-    if (payload.sub !== `${baseUrl}/webooks/scheduled-puzzle`) {
+    if (payload.sub !== `${baseUrl}/webhooks/scheduled-puzzle`) {
       throw new QStashError('Invalid Subject');
     }
 

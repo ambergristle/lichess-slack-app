@@ -1,24 +1,23 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
-import wretch from 'wretch';
 import FormUrlAddon from 'wretch/addons/formUrl';
+import QueryStringAddon from 'wretch/addons/queryString';
 import { z } from 'zod';
 
-import { type CronTime, stringifyCron, zonedToUtc } from './cron';
 import { getDb } from './db';
 import { Bot, ScheduledPuzzleJob } from './db/schema';
-import { getEnvironmentVariable } from './request';
 import { decryptToString, encryptString } from './encryption';
+import { getEnvironmentVariable } from './request';
+import { generateScheduleId } from './schedule';
 import {
   SlackError,
-  getUserTimeZone,
+  getSlackAuthToken,
   slackClient,
   slackResponseBody,
 } from './slack';
-import { generateRowId } from './db/utils';
 
 
 /**
@@ -29,21 +28,6 @@ export const generatBotId = (teamId: string): string => {
   const hashedTokenBytes = sha256(new TextEncoder().encode(teamId));
   return encodeBase32LowerCaseNoPadding(hashedTokenBytes);
 };
-
-const getSlackAuthToken = (c: Context) => {
-  const clientId = getEnvironmentVariable(c, 'SLACK_CLIENT_ID');
-  const secret = getEnvironmentVariable(c, 'SLACK_CLIENT_SECRET');
-
-  return btoa(`${clientId}:${secret}`);
-};
-
-/**
- *
- * QStash API Client
- *
- */
-
-const qStash = wretch('https://qstash.upstash.io/v2');
 
 export const getBotAccessToken = async (c: Context, botId: string) => {
   const db = getDb(c);
@@ -87,6 +71,7 @@ export const getBotContext = async (c: Context, teamId: string, userId: string) 
     });
   }
 
+  const scheduleId = generateScheduleId(botId, userId);
   const [schedule] = await db
     .select({
       jobId: ScheduledPuzzleJob.jobId,
@@ -94,12 +79,7 @@ export const getBotContext = async (c: Context, teamId: string, userId: string) 
       timeZone: ScheduledPuzzleJob.timeZone,
     })
     .from(ScheduledPuzzleJob)
-    .where(
-      and(
-        eq(ScheduledPuzzleJob.botId, botId),
-        eq(ScheduledPuzzleJob.userId, userId)
-      )
-    )
+    .where(eq(ScheduledPuzzleJob.id, scheduleId))
     .limit(1);
 
 
@@ -107,6 +87,7 @@ export const getBotContext = async (c: Context, teamId: string, userId: string) 
 
   // https://api.slack.com/methods/conversations.info
   const { channel } = await slackClient
+    .addon(QueryStringAddon)
     .auth(`Bearer ${accessToken}`)
     .query({
       channel: bot.channelId,
@@ -139,8 +120,10 @@ export const getBotContext = async (c: Context, teamId: string, userId: string) 
   return {
     id: bot.id,
     teamId,
+    userId,
     locale: channel.locale,
     schedule,
+    webhookUrl: bot.webhookUrl,
   };
 };
 
@@ -235,103 +218,11 @@ export const registerBot = async (c: Context, code: string) => {
       set: {
         ...botData,
       },
-      setWhere: and(
-        eq(Bot.appId, appId)
-      ),
+      setWhere: eq(Bot.appId, appId),
     });
 
   if (result.rowsAffected !== 1) {
     throw new Error('Unable to upsert bot', { cause: result });
   }
 
-};
-
-const ZCreateScheduleResponse = z.object({
-  scheduleId: z.string(),
-}, {
-  message: 'Recieved invalid response',
-});
-
-export const setBotSchedule = async (
-  c: Context,
-  teamId: string,
-  userId: string,
-  {
-    selectedTime,
-    locale,
-    currentScheduleId,
-  }: {
-    selectedTime: CronTime,
-    locale: string,
-    currentScheduleId?: string
-  }
-) => {
-  const botId = generatBotId(teamId);
-
-  const authToken = getEnvironmentVariable(c, 'QSTASH_TOKEN');
-
-  const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
-  const redirectUrl = `${baseUrl}/webhooks/scheduled-puzzle`;
-
-  const timeZone = await getUserTimeZone(c, botId, userId);
-  const { cronTime } = zonedToUtc(selectedTime, timeZone);
-  const cron = stringifyCron(cronTime);
-
-  /**
-   * @see https://upstash.com/docs/qstash/api/schedules/create
-   */
-
-  // todo: callbackurl?
-  // Upstash-Forward-My-Header
-  const { scheduleId: jobId } = await qStash
-    .auth(`Bearer ${authToken}`)
-    .headers({
-      'upstash-cron': cron,
-    })
-    .post({
-      botId,
-      locale,
-    }, `/schedules/${redirectUrl}`)
-    .json(ZCreateScheduleResponse.parse);
-
-  const scheduleData = {
-    updatedAt: new Date(),
-    jobId,
-    cron,
-    timeZone,
-  };
-
-  /** @todo db retry or session */
-  const db = getDb(c);
-  await db
-    .insert(ScheduledPuzzleJob)
-    .values({
-      id: generateRowId(),
-      createdAt: scheduleData.updatedAt,
-      botId,
-      userId,
-      ...scheduleData,
-    })
-    .onConflictDoUpdate({
-      target: ScheduledPuzzleJob.userId,
-      set: {
-        ...scheduleData,
-      },
-      setWhere: and(
-        eq(ScheduledPuzzleJob.botId, botId),
-        eq(ScheduledPuzzleJob.userId, userId)
-      ),
-    });
-
-  if (currentScheduleId) {
-    await qStash
-      .auth(`Bearer ${authToken}`)
-      .delete(`/schedules/${currentScheduleId}`)
-      .res();
-  }
-
-  return {
-    utcCronTime: cronTime,
-    timeZone,
-  };
 };

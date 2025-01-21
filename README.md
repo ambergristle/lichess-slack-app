@@ -64,3 +64,4 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - submit button for noon-ok
 - unsub button
 - multiple channel registration?
+- what if no teamid? can botid be leaned on?

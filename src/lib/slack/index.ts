@@ -1,52 +1,35 @@
 import type { Context } from 'hono';
-import type { KnownBlock, PlainTextOption, SectionBlock } from '@slack/web-api';
+import type {
+  ActionsBlock,
+  KnownBlock,
+  PlainTextOption,
+  SectionBlock,
+} from '@slack/web-api';
 import wretch from 'wretch';
-import FormUrlAddon from 'wretch/addons/formUrl';
 import QueryStringAddon from 'wretch/addons/queryString';
-
-import hmac from './hmac';
-import { getEnvironmentVariable } from './request';
-import { unixMilliseconds } from './dates';
 import { z } from 'zod';
-import { CronTime } from './cron';
-import { Accessory } from '@slack/web-api/dist/response/ChannelsInfoResponse';
-import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
-import { getBotAccessToken } from './bot';
 
+import { getBotAccessToken } from '../bot';
+import hmac from '../hmac';
+import { unixMilliseconds } from '../dates';
+import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
+import { getEnvironmentVariable } from '../request';
+
+
+export const getSlackAuthToken = (c: Context) => {
+  const clientId = getEnvironmentVariable(c, 'SLACK_CLIENT_ID');
+  const secret = getEnvironmentVariable(c, 'SLACK_CLIENT_SECRET');
+
+  return btoa(`${clientId}:${secret}`);
+};
 
 /**
- * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
- * @see https://api.slack.com/block-kit
+ * Slack API Client
+ *
  */
-export const blocks = {
-  divider: () => {
-    return {
-      type: 'divider',
-    };
-  },
-  image: (props: { title: string; href: string; alt: string; }) => {
-    return {
-      type: 'image',
-      title: {
-        type: 'plain_text',
-        text: props.title,
-      },
-      image_url: props.href,
-      alt_text: props.alt,
-    };
-  },
-  section: (props: { text: string; accessory?: SectionBlock['accessory'] }) => {
-    return {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: props.text,
-      },
-      accessory: props.accessory,
-    };
-  },
-  // eslint-disable-next-line
-} satisfies Record<string, ((...args: any[]) => KnownBlock)>;
+
+export const slackClient = wretch('https://slack.com/api');
+
 
 export const TIME_ZONE_OPTIONS = SUPPORTED_TIME_ZONES
   .map((timeZone): PlainTextOption => ({
@@ -65,6 +48,10 @@ const APP_SCOPES = [
 ];
 
 const APP_SCOPE = APP_SCOPES.join(',');
+
+
+
+
 
 /**
  * Generate a link that begins process of registering bot
@@ -129,18 +116,12 @@ export const verifySignature = (c: Context, body: string, signature: string, tim
   };
 };
 
-/**
- * Slack API Client
- *
- */
-
-export const slackClient = wretch('https://slack.com/api')
-  .addon(QueryStringAddon);
 
 export const getUserTimeZone = async (c: Context, botId: string, userId: string) => {
   const accessToken = await getBotAccessToken(c, botId);
 
   const response = await slackClient
+    .addon(QueryStringAddon)
     .auth(`Bearer ${accessToken}`)
     .query({
       user: userId,
@@ -165,7 +146,45 @@ export const getUserTimeZone = async (c: Context, botId: string, userId: string)
 };
 
 
-
+/**
+ * @see https://api.slack.com/interactivity/slash-commands#responding_immediate_response
+ * @see https://api.slack.com/block-kit
+ */
+export const blocks = {
+  actions: (elements: ActionsBlock['elements']) => {
+    return {
+      type: 'actions',
+      elements,
+    };
+  },
+  divider: () => {
+    return {
+      type: 'divider',
+    };
+  },
+  image: (props: { title: string; href: string; alt: string; }) => {
+    return {
+      type: 'image',
+      title: {
+        type: 'plain_text',
+        text: props.title,
+      },
+      image_url: props.href,
+      alt_text: props.alt,
+    };
+  },
+  section: (props: { text: string; accessory?: SectionBlock['accessory'] }) => {
+    return {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: props.text,
+      },
+      accessory: props.accessory,
+    };
+  },
+  // eslint-disable-next-line
+} satisfies Record<string, ((...args: any[]) => KnownBlock)>;
 
 
 export const slackResponseBody = <S extends z.ZodRawShape>(shape: S) => {
@@ -179,6 +198,7 @@ export const slackResponseBody = <S extends z.ZodRawShape>(shape: S) => {
     }).extend(shape),
   ]);
 };
+
 
 interface SlackErrorOptions extends ErrorOptions {
   code: string;

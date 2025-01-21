@@ -1,8 +1,12 @@
 
-export type NonNullable<T> = T & {};
 
 export type MaybePromise<T> = T | Promise<T>;
 
+export type NonNullable<T> = T & {};
+
+export type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};
 
 
 export type Parser<T> = (data: unknown) => T;

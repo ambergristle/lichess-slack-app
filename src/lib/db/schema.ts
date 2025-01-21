@@ -3,6 +3,7 @@ import {
   integer,
   sqliteTable,
   text,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
 
@@ -17,9 +18,13 @@ export const Bot = sqliteTable(
     scope: text().notNull(),
     accessToken: blob({ mode: 'buffer' }).notNull(),
     webhookUrl: text().notNull(),
-  }
+  },
+  (table) => [
+    uniqueIndex('appIdUniqueIndex').on(table.appId),
+  ]
 );
 
+// todo: composite keys?
 export const ScheduledPuzzleJob = sqliteTable(
   'scheduled-puzzle-jobs',
   {

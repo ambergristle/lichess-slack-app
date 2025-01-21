@@ -62,7 +62,7 @@ export const scheduledPuzzle = new Hono()
       const webhookUrl = await getBotWebhookUrl(c, botId);
       wretch(webhookUrl)
         .post(response)
-        .json()
+        .res()
         .catch(console.error);
 
       /** @todo response? */

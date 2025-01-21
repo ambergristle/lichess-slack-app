@@ -4,24 +4,27 @@ import { getBotContext } from '@/lib/bot';
 import { getLocalized } from '@/lib/locale';
 import { Localized } from '@/locale/types';
 
+export type BotContext = {
+  Variables: {
+    localized: Localized;
+    bot: {
+      id: string;
+      teamId: string;
+      userId: string;
+      locale: string;
+      schedule?: {
+        jobId: string;
+        cron: string;
+        timeZone: string;
+      }
+      webhookUrl: string;
+    }
+  }
+}
 
 export const botContext = () => {
   return createMiddleware<
-  {
-    Variables: {
-      localized: Localized;
-      bot: {
-        id: string;
-        teamId: string;
-        locale: string;
-        schedule?: {
-          jobId: string;
-          cron: string;
-          timeZone: string;
-        }
-      }
-    }
-  },
+  BotContext,
   string,
   {
     out: {

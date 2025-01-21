@@ -1,7 +1,7 @@
 import globals from 'globals';
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import stylistic from '@stylistic/eslint-plugin';
+import stylistic from '@stylistic/eslint-plugin-ts';
 
 
 /** @type {import('eslint').Linter.Config[]} */
@@ -50,20 +50,20 @@ export default [
       '@stylistic/comma-dangle': [
         'warn',
         {
-          'arrays': 'always-multiline',
-          'objects': 'always-multiline',
-          'imports': 'always-multiline',
-          'exports': 'always-multiline',
-          'functions': 'never',
-          'importAttributes': 'always-multiline',
-          'dynamicImports': 'always-multiline',
+          arrays: 'always-multiline',
+          objects: 'always-multiline',
+          imports: 'always-multiline',
+          exports: 'always-multiline',
+          functions: 'never',
+          importAttributes: 'always-multiline',
+          dynamicImports: 'always-multiline',
         },
       ],
 
       'comma-spacing': ['warn', { after: true }],
       'dot-location': ['error', 'property'],
       'eol-last': 2,
-      'indent': ['warn', 2],
+      'indent': ['warn', 2, { SwitchCase: 2 }],
       'key-spacing': ['warn', { afterColon: true, mode: 'strict' }],
       'max-len': ['warn', { 'code': 80 }],
       'object-curly-spacing': ['warn', 'always'],
@@ -71,7 +71,7 @@ export default [
       'quotes': ['warn', 'single'],
       'semi': ['warn', 'always'],
       'space-in-parens': ['warn', 'never'],
-      'spaced-comment': ['warn', 'always', { 'markers': ['/'] }],
+      'spaced-comment': ['warn', 'always', { markers: ['/'] }],
 
       // #endregion
     },

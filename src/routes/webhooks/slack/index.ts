@@ -10,86 +10,8 @@ import { interpolate } from '@/lib/locale';
 import { TIME_ZONE_OPTIONS, blocks, getUserTimeZone, verifySignature } from '@/lib/slack';
 import { botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
-
-
-/**
- * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
- */
-const ZSlashCommandBody = z.object({
-  team_id: z.string(),
-  user_id: z.string(),
-  command: z.string(),
-  text: z.string(),
-  api_app_id: z.string(),
-  response_url: z.string(),
-}, {
-  message: 'Recieved unprocessable request',
-}).transform((body) => ({
-  teamId: body.team_id,
-  userId: body.user_id,
-  command: body.command,
-  text: body.text,
-  apiAppId: body.api_app_id,
-  responseUrl: body.response_url,
-}));
-
-// todo: this is nuts
-// also time zone
-
-// https://api.slack.com/interactivity/handling#payloads
-const parseInteractivePayload = z.object({
-  payload: z.string(),
-}).transform(({ payload }) => {
-  return JSON.parse(payload);
-}).parse;
-
-/**
- * @see https://api.slack.com/reference/interaction-payloads/block-actions
- * @see https://api.slack.com/reference/block-kit/block-elements#timepicker
- */
-const ZTimePickerActionBody = z.preprocess(
-  parseInteractivePayload,
-  z.object({
-    user: z.object({
-      id: z.string(),
-    }),
-    team: z.object({
-      id: z.string(),
-    }),
-    token: z.string(),
-    response_url: z.string(),
-    // add another action
-    actions: z.tuple([
-      z.object({
-        action_id: z.string(),
-        block_id: z.string(),
-        selected_time: z.string()
-          .trim()
-          .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-      }),
-    ]),
-  }, {
-    message: 'Recieved unprocessable request',
-  })
-).transform((body) => {
-  const timeStrings = body.actions[0].selected_time.split(':');
-
-  // Regex enforces string shape
-  // eslint-disable-next-line
-  const hourString = timeStrings[0]!;
-  // eslint-disable-next-line
-  const minuteString = timeStrings[1]!;
-
-  return {
-    userId: body.user.id,
-    teamId: body.team.id,
-    responseUrl: body.response_url,
-    selectedTime: {
-      hour: Number(hourString),
-      minute: Number(minuteString),
-    },
-  };
-});
+import { ZInteractiveRequestBody, ZSlashCommandBody, ZTimePickerActionBody } from '@/lib/slack/dtos';
+import { interactionsRoute } from './interactions';
 
 
 // 3s window for response
@@ -145,6 +67,7 @@ export const slack = new Hono()
 
     await next();
   })
+  .route('/interactions', interactionsRoute)
   /** Get command details */
   .post(
     '/help',
@@ -202,7 +125,6 @@ export const slack = new Hono()
         ? localizeUtc(parseCronTime(schedule.cron), schedule.timeZone, bot.locale)
         : undefined;
 
-      // todo: does this need additional zoning?
       const message = zonedSchedule
         ? interpolate(localized.blocks.scheduleInfo, {
           timeString: zonedSchedule.display,
@@ -211,6 +133,18 @@ export const slack = new Hono()
 
       const timezone = schedule?.timeZone
         ?? await getUserTimeZone(c, bot.id, userId);
+
+      const actions = zonedSchedule
+        ? [blocks.actions([{
+          type: 'button',
+          action_id: 'cancel-schedule',
+          value: schedule?.jobId,
+          text: {
+            type: 'plain_text',
+            text: 'Cancel Schedule',
+          },
+        }])]
+        : [];
 
       return c.json({
         blocks: [
@@ -230,64 +164,9 @@ export const slack = new Hono()
               },
             },
           }),
-          // blocks.section({
-          //   text: 'and this channel\'s preferred timezone',
-          //   accessory: {
-          //     type: 'static_select',
-          //     action_id: 'timezone-select',
-          //     initial_option: {
-          //       text: {
-          //         type: 'plain_text',
-          //         text: 'Europe/Paris',
-          //       },
-          //       value: 'Europe/Paris',
-          //     },
-          //     options: TIME_ZONE_OPTIONS,
-          //   },
-          // }),
+          ...actions,
         ],
       }, 200);
-    }
-  )
-  /** Set scheduled delivery time */
-  .post(
-    '/set-schedule',
-    zodValidator('form', ZTimePickerActionBody),
-    botContext(),
-    async (c) => {
-      const { bot, localized } = c.var;
-
-      const {
-        userId,
-        responseUrl,
-        selectedTime,
-      } = c.req.valid('form');
-
-      const {
-        utcCronTime,
-        timeZone,
-      } = await setBotSchedule(c, bot.teamId, userId, {
-        selectedTime,
-        locale: bot.locale,
-        currentScheduleId: bot.schedule?.jobId,
-      });
-
-      const { display } = localizeUtc(utcCronTime, timeZone, bot.locale);
-
-      const message = interpolate(localized.blocks.scheduleConfirmation, {
-        timeString: display,
-      });
-
-      /** @todo error handling */
-      wretch(responseUrl)
-        .post({
-          replace_original: true,
-          text: message,
-        })
-        .res()
-        .catch(console.error);
-
-      return c.text('ok', 200);
     }
   )
   .notFound(async (c) => {
@@ -298,7 +177,6 @@ export const slack = new Hono()
   })
   .onError(async (error, c) => {
     console.error(error);
-    console.log('rip');
 
     const message = error instanceof Error
       ? error.message
