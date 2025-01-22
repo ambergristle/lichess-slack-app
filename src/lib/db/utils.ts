@@ -1,11 +1,7 @@
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
 
-const generateRandomBytes = (bytes = 20) => {
-  const array = new Uint8Array(bytes);
-  crypto.getRandomValues(array);
-  return array;
-};
+import { generateRandomBytes } from '../oauth';
 
 export const generateRowId = (data?: string): string => {
   const bytes = data

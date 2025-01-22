@@ -10,39 +10,53 @@
 }
 
 body {
-  background: #161512 linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px) no-repeat;
-  color: #bababa;
+  background: hsl(37, 10%, 8%) linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px) no-repeat;
+  color: rgb(186, 186, 186);
   font-family: 'Noto Sans', sans-serif;
   height: 100vh;
 }
 
 main {
-  align-items: center;
-  display: flex;
   height: 100%;
+  padding: 0 4rem;
+  display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
 }
 
+@media only screen and (max-width: 600px) {
+  main {
+    padding: 0 2rem;
+  }
+}
+
+/* border-radius: 6px */
+/* umber: rgb(191, 129, 29) */
+/* orange: rgb(214, 79, 0) */
+/* card: hsl(37, 7% 14%) */
+
 a {
-  color: #666;
+  color: rgb(54, 146, 231);
   text-decoration: none;
 }
 
 a:hover {
-  text-decoration: underline;
-}
-
-a:visited {
-  color: inherit;
+  color: rgb(87, 174, 255);
 }
 
 h1 {
+  margin-top: 0;
   font-weight: 300;
 }
 
+h2 {
+  margin-top: 0;
+  font-weight: 400;
+}
+
 p {
-  color: #999;
+  color: rgb(148, 148, 148);
   font-size: 20px;
   font-weight: 300;
   white-space: 'pre-wrap';
@@ -52,17 +66,21 @@ p {
   font-size: 16px;
 }
 
-
-
-
-.container {
-  max-width: 50%;
+.background-image {
+  height: 40rem;
+  width: 40rem;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.0125;
+  z-index: -1;
 }
 
 .register-button {
   align-items: center;
   color: #fff;
-  background-color: rgba(74, 21, 75, 1);
+  background-color: rgba(74, 21, 75, 0.8);
   border: 0;
   border-radius: 4px;
   display: inline-flex;
@@ -77,4 +95,5 @@ p {
 
 .register-button:hover {
   background-color: rgba(74, 21, 75, 0.9);
+  color: #fff;
 }

@@ -15,7 +15,7 @@ import { AuthorizationError, processError } from '@/lib/errors';
 // 3s window for response
 // https://api.slack.com/interactivity/slash-commands#responding_to_commands
 
-export const slack = new Hono()
+export const slackRoute = new Hono()
   .use(async (c, next) => {
     const {
       'user-agent': userAgent,

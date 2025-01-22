@@ -1,2 +1,2 @@
-export { scheduledPuzzle } from './scheduled-puzzle';
-export { slack } from './slack';
+export { scheduledPuzzleRoute } from './scheduled-puzzle';
+export { slackRoute } from './slack';

@@ -21,6 +21,11 @@ const locale = {
   registrationSucceeded: 'App registered successfully!',
   closeWindowPrompt: 'You can now close this window',
 
+  puzzleCommandInfo: 'Get a link to the Lichess Daily puzzle'
+    + ' with a screenshot of the starting position.',
+  scheduleCommandInfo: 'Select a time to recieve the Lichess Daily Puzzle'
+    + ' in the registered Slack channel',
+
   blocks: {
     /** @token message */
     error: '${message} Please try again later, or contact support.',

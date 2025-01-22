@@ -19,7 +19,7 @@ export const ZScheduledPuzzleData = z.object({
 });
 
 
-export const scheduledPuzzle = new Hono()
+export const scheduledPuzzleRoute = new Hono()
   .use(async (c, next) => {
     // todo: could grab upstash-schedule-id instead of
     // passing the botId/locale in the payload

@@ -14,6 +14,7 @@ import hmac from '../hmac';
 import { unixMilliseconds } from '../dates';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
 import { getEnvironmentVariable } from '../request';
+import { generateState } from '../oauth';
 
 
 export const getSlackAuthToken = (c: Context) => {
@@ -50,9 +51,6 @@ const APP_SCOPES = [
 const APP_SCOPE = APP_SCOPES.join(',');
 
 
-
-
-
 /**
  * Generate a link that begins process of registering bot
  * to user's Slack workspace.
@@ -65,7 +63,7 @@ export const generateOAuthRedirectUrl = (c: Context) => {
   const searchParams = new URLSearchParams({
     client_id: getEnvironmentVariable(c, 'SLACK_CLIENT_ID'),
     scope: APP_SCOPE,
-    state: getEnvironmentVariable(c, 'STATE'),
+    state: generateState(),
     redirect_uri: `${baseUrl}/register`,
   });
 

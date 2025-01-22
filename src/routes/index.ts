@@ -1,4 +1,4 @@
 export * as webhooks from './webhooks';
 
-export { landing } from './landing';
-export { register } from './register';
+export { landingRoute } from './landing';
+export { registerRoute } from './register';

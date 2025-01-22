@@ -43,16 +43,18 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - Slash Commands: [https://api.slack.com/interactivity/slash-commands](https://api.slack.com/interactivity/slash-commands)
 - Webhooks: [https://api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks)
 
+
 ## Todo
 - general cleanup
 ### Critical
-- figure out state; by session?
+- figure out retry/rollback logic
 - what if no teamid? can botid be leaned on?
 - registering bot in multiple channels?
-- figure out retry/rollback logic
-- configure slack app for distribution
 - comments, docs
   - communicate locale/tz setup
+- readme
+- configure slack app for distribution
+  - ssl cert
 ### Nice-to-have
 #### Low-lift
 - finish styling landing page
@@ -60,11 +62,11 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 - fine-tune cron regex
 #### Mid-lift
 - error handling
-  - invalid method
-  - catching, logging
   - format zod issues
 - standardize urls
 - look into qstash jobs, verifying requests
+- cacheing
+- logging
 #### Heavy-lift
 - localization, message generation?
 - clean up messages

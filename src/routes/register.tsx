@@ -18,7 +18,7 @@ export const ZRegistrationRequest = z.object({
 }, { message: 'Recieved unprocessable request' });
 
 
-export const register = new Hono()
+export const registerRoute = new Hono()
   // todo: verify request
   /** Process registration request and render results */
   .get(
