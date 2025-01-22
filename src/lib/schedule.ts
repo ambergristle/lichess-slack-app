@@ -1,6 +1,5 @@
 import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import wretch from 'wretch';
 import { z } from 'zod';
 
@@ -12,6 +11,7 @@ import { generateRowId } from './db/utils';
 import { getEnvironmentVariable } from './request';
 import { getUserTimeZone } from './slack';
 import { cancelScheduledJob } from './qstash';
+import { KnownError } from './errors';
 
 
 /**
@@ -44,17 +44,14 @@ export const cancelBotSchedule = async (
     .limit(1);
 
   if (!schedule) {
-    throw new HTTPException(404, {
-      message: 'Not Found',
-      cause: { botId, userId },
-    });
+    throw new KnownError(`No Bot found with ID ${botId}`);
   }
 
   const result = await cancelScheduledJob(c, schedule.jobId);
 
   if (result.status !== 200) {
-    throw new HTTPException(500, {
-      message: 'Schedule cancellation failed',
+    throw new KnownError('Schedule cancellation failed', {
+      cause: result,
     });
   }
 

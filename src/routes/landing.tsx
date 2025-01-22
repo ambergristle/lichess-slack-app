@@ -6,6 +6,7 @@ import { Layout } from '@/lib/components/layout';
 import { generateOAuthRedirectUrl } from '@/lib/slack';
 import { localizer } from '@/middleware/localizer';
 import { globalRateLimiter } from '@/middleware/rate-limiter';
+import { processError } from '@/lib/errors';
 
 
 const REPO_URL = 'https://github.com/ambergristle/lichess-slack-app';
@@ -84,14 +85,11 @@ export const landing = new Hono()
       );
     })
   .onError((error, c) => {
-    console.error(error);
-    const message = error instanceof Error
-      ? error.message
-      : 'Server Error';
+    const { status, message } = processError(error);
 
     return c.render(
       <ErrorPage
-        heading={'Server error'}
+        heading={'Server Error'}
         details={message}
       />
     );

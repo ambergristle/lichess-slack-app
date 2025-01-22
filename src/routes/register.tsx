@@ -1,6 +1,5 @@
 import { type Env, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import { HTTPException } from 'hono/http-exception';
 import { jsxRenderer } from 'hono/jsx-renderer';
 import { z } from 'zod';
 
@@ -10,6 +9,7 @@ import { registerBot } from '@/lib/bot';
 import { localizer } from '@/middleware/localizer';
 import { zodValidator } from '@/middleware/zod-validator';
 import { getEnvironmentVariable } from '@/lib/request';
+import { AuthorizationError, processError } from '@/lib/errors';
 
 
 export const ZRegistrationRequest = z.object({
@@ -32,12 +32,7 @@ export const register = new Hono()
       const { state } = c.req.valid('query');
 
       if (state !== getEnvironmentVariable(c, 'STATE')) {
-        throw new HTTPException(401, {
-          message: 'Unauthorized',
-          cause: {
-            code: 'invalid-state',
-          },
-        });
+        throw new AuthorizationError('Invalid Slack State');
       }
 
       await next();
@@ -63,14 +58,11 @@ export const register = new Hono()
     }
   )
   .onError((error, c) => {
-    console.error(error);
-    const message = error instanceof Error
-      ? error.message
-      : 'Server Error';
+    const { status, message } = processError(error);
 
     return c.render(
       <ErrorPage
-        heading={'Registration failed'}
+        heading={'Registration Failed'}
         details={message}
       />
     );

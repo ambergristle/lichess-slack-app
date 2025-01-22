@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import wretch from 'wretch';
+import { z } from 'zod';
 
-import { verifyRequest } from '@/lib/qstash';
+import { getBotWebhookUrl } from '@/lib/bot';
+import { AuthorizationError, processError } from '@/lib/errors';
 import { getDailyPuzzle } from '@/lib/lichess';
+import { getLocalized } from '@/lib/locale';
+import { verifyRequest } from '@/lib/qstash';
 import { blocks } from '@/lib/slack';
 import { zodValidator } from '@/middleware/zod-validator';
-import { z } from 'zod';
-import { getLocalized } from '@/lib/locale';
-import { getBotWebhookUrl } from '@/lib/bot';
 
 
 export const ZScheduledPuzzleData = z.object({
@@ -25,10 +25,7 @@ export const scheduledPuzzle = new Hono()
     // passing the botId/locale in the payload
     const signature = c.req.header('upstash-signature');
     if (!signature) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized',
-        cause: { code: 'no-signature' },
-      });
+      throw new AuthorizationError('Request Unsigned');
     }
 
     const body = await c.req.text();
@@ -65,4 +62,9 @@ export const scheduledPuzzle = new Hono()
         .catch(console.error);
 
       return c.body(null, 200);
-    });
+    })
+  .onError((error, c) => {
+    const { status, message } = processError(error);
+
+    return c.body(message, 500);
+  });

@@ -1,7 +1,8 @@
 import type { ValidationTargets } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import { validator } from 'hono/validator';
 import { z } from 'zod';
+
+import { ValidationError } from '@/lib/errors';
 
 
 export const zodValidator = <
@@ -12,8 +13,8 @@ export const zodValidator = <
     const result = await schema.safeParseAsync(value);
     if (!result.success) {
       // todo: issues
-      throw new HTTPException(400, {
-        message: 'Invalid Request',
+      throw new ValidationError(`Invalid ${target} data`, {
+        issues: result.error.issues,
         cause: result.error,
       });
     }

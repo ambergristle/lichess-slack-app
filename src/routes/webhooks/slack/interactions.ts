@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import wretch from 'wretch';
-import { HTTPException } from 'hono/http-exception';
 
 import { localizeUtc } from '@/lib/cron';
 import { interpolate } from '@/lib/locale';
@@ -8,6 +7,7 @@ import { cancelBotSchedule, setBotSchedule } from '@/lib/schedule';
 import { ZInteractiveRequestBody } from '@/lib/slack/dtos';
 import { BotContext, botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
+import { processError } from '@/lib/errors';
 
 
 export const interactionsRoute = new Hono<BotContext>()
@@ -26,14 +26,14 @@ export const interactionsRoute = new Hono<BotContext>()
             if (action.actionId === 'cancel-schedule') {
               await cancelBotSchedule(c, bot.id, bot.userId);
 
-              // todo: error handling
+
               wretch(responseUrl)
                 .post({
                   replace_original: true,
                   text: 'Your scheduled Daily Puzzle has been canceled!',
                 })
                 .res()
-                .catch(console.error);
+                .catch(processError);
             }
 
             break;
@@ -63,14 +63,13 @@ export const interactionsRoute = new Hono<BotContext>()
               timeString: display,
             });
 
-            // todo: error handling
             wretch(responseUrl)
               .post({
                 replace_original: true,
                 text: message,
               })
               .res()
-              .catch(console.error);
+              .catch(processError);
 
             break;
           }
@@ -82,38 +81,31 @@ export const interactionsRoute = new Hono<BotContext>()
   .notFound((c) => {
     const webhookUrl = c.var.bot?.webhookUrl;
     if (webhookUrl) {
-      // todo: error handling
       wretch(webhookUrl)
         .post({
           response_type: 'ephemeral',
           text: 'Server Error: Update failed',
         })
         .res()
-        .catch(console.error);
+        .catch(processError);
     }
 
-    const exception = new HTTPException(404, { message: 'Not Found' });
-    return exception.getResponse();
+    return c.body('Not Found', 404);
   })
   .onError((error, c) => {
-    console.error(error);
-
-    const message = error instanceof Error
-      ? error.message
-      : 'Something went wrong';
+    const { status, message } = processError(error);
 
     const webhookUrl = c.var.bot?.webhookUrl;
     if (webhookUrl) {
-      // todo: error handling
       wretch(webhookUrl)
         .post({
           response_type: 'ephemeral',
           text: message,
         })
         .res()
-        .catch(console.error);
+        .catch(processError);
     }
 
-    const exception = new HTTPException(500, { message: 'Server Error' });
-    return exception.getResponse();
+    return c.body('Server Error', 500);
+
   });

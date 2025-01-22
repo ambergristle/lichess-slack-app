@@ -1,6 +1,5 @@
 import { eq } from 'drizzle-orm';
 import type { Context } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
 import FormUrlAddon from 'wretch/addons/formUrl';
@@ -18,6 +17,7 @@ import {
   slackClient,
   slackResponseBody,
 } from './slack';
+import { AuthorizationError, KnownError } from './errors';
 
 
 /**
@@ -40,10 +40,7 @@ export const getBotAccessToken = async (c: Context, botId: string) => {
     .limit(1);
 
   if (!bot) {
-    throw new HTTPException(401, {
-      message: 'Unauthorized',
-      cause: { botId },
-    });
+    throw new AuthorizationError(`No Bot found with ID ${botId}`);
   }
 
   return decryptToString(bot.accessToken);
@@ -66,10 +63,7 @@ export const getBotContext = async (c: Context, teamId: string, userId: string) 
     .limit(1);
 
   if (!bot) {
-    throw new HTTPException(401, {
-      message: 'Unauthorized',
-      cause: { botId, teamId },
-    });
+    throw new AuthorizationError(`No Bot found with ID ${botId}`);
   }
 
   const scheduleId = generateScheduleId(botId, userId);
@@ -140,12 +134,7 @@ export const getBotWebhookUrl = async (c: Context, botId: string) => {
     .limit(1);
 
   if (!bot) {
-    throw new HTTPException(404, {
-      message: 'Bot Not Found',
-      cause: {
-        botId,
-      },
-    });
+    throw new KnownError(`No Bot found with ID ${botId}`);
   }
 
   return bot.webhookUrl;

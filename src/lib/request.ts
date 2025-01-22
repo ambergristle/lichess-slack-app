@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { env } from 'hono/adapter';
 import { getConnInfo } from 'hono/bun';
-import { HTTPException } from 'hono/http-exception';
+import { KnownError } from './errors';
 
 
 export const getClientIp = (c: Context): string | null => {
@@ -26,9 +26,7 @@ export const getEnvironmentVariable = <
   const value = env<T>(c)[key];
 
   if (!value) {
-    throw new HTTPException(500, {
-      message: `Configuration Error: Environment missing ${key}`,
-    });
+    throw new KnownError(`Configuration Error: Environment missing ${key}`);
   }
 
   return value;

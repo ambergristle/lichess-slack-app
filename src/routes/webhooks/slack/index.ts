@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 
 import { localizeUtc, parseCronTime } from '@/lib/cron';
 import { getDailyPuzzle } from '@/lib/lichess';
@@ -10,6 +9,7 @@ import { zodValidator } from '@/middleware/zod-validator';
 import { ZSlashCommandBody } from '@/lib/slack/dtos';
 import { interactionsRoute } from './interactions';
 import { slackBucket, userLimiter } from '@/middleware/rate-limiter';
+import { AuthorizationError, processError } from '@/lib/errors';
 
 
 // 3s window for response
@@ -28,17 +28,11 @@ export const slack = new Hono()
     );
 
     if (!isFromSlackbot) {
-      throw new HTTPException(403, {
-        message: 'Forbidden',
-        // Invalid User Agent
-      });
+      throw new AuthorizationError('Invalid User Agent');
     }
 
     if (!signature || !timestamp) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized',
-        // Unsigned
-      });
+      throw new AuthorizationError('Request Unsigned');
     }
 
     const body = await c.req.text();
@@ -50,17 +44,11 @@ export const slack = new Hono()
     // Obscure implementation details by throwing
     // after both validations have resolved
     if (!timestampIsValid) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized',
-        // Invalid Timestamp
-      });
+      throw new AuthorizationError('Invalid Timestamp');
     }
 
     if (!signatureIsValid) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized',
-        // Invalid Signature
-      });
+      throw new AuthorizationError('Invalid Signature');
     }
 
     await next();
@@ -177,11 +165,7 @@ export const slack = new Hono()
     });
   })
   .onError(async (error, c) => {
-    console.error(error);
-
-    const message = error instanceof Error
-      ? error.message
-      : 'Something went wrong';
+    const { status, message } = processError(error);
 
     return c.json({
       response_type: 'ephemeral',
