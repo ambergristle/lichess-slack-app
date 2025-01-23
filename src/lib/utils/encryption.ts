@@ -1,21 +1,23 @@
+import type { Context } from 'hono';
 import { createCipheriv, createDecipheriv } from 'crypto';
 import { DynamicBuffer } from '@oslojs/binary';
 import { decodeBase64 } from '@oslojs/encoding';
 
-const ENCODED_KEY = process.env.ENCRYPTION_KEY;
-if (!ENCODED_KEY) {
-  throw new Error('ConfigurationError: Missing environment ENCRYPTION_KEY');
-}
+import { getEnvironmentVariable } from './request';
 
-const CIPHER_KEY = decodeBase64(ENCODED_KEY);
 
-export const decrypt = (encrypted: Uint8Array): Uint8Array => {
+const getCypherKey = (c: Context) => {
+  const encoded = getEnvironmentVariable(c, 'ENCRYPTION_KEY');
+  return decodeBase64(encoded);
+};
+
+const decrypt = (c: Context, encrypted: Uint8Array): Uint8Array => {
   if (encrypted.byteLength < 33) {
     throw new Error('Invalid Data');
   }
 
   const iv = encrypted.slice(0, 16);
-  const decipher = createDecipheriv('aes-128-gcm', CIPHER_KEY, iv);
+  const decipher = createDecipheriv('aes-128-gcm', getCypherKey(c), iv);
 
   const buffer = encrypted.slice(encrypted.byteLength - 16);
   decipher.setAuthTag(buffer);
@@ -29,15 +31,15 @@ export const decrypt = (encrypted: Uint8Array): Uint8Array => {
   return decrypted.bytes();
 };
 
-export const decryptToString = (data: Uint8Array): string => {
-  return new TextDecoder().decode(decrypt(data));
+export const decryptToString = (c: Context, data: Uint8Array): string => {
+  return new TextDecoder().decode(decrypt(c, data));
 };
 
-export const encrypt = (data: Uint8Array): Uint8Array => {
+const encrypt = (c: Context, data: Uint8Array): Uint8Array => {
   const iv = new Uint8Array(16);
   crypto.getRandomValues(iv);
 
-  const cipher = createCipheriv('aes-128-gcm', CIPHER_KEY, iv);
+  const cipher = createCipheriv('aes-128-gcm', getCypherKey(c), iv);
   const encrypted = new DynamicBuffer(0);
 
   encrypted.write(iv);
@@ -48,6 +50,6 @@ export const encrypt = (data: Uint8Array): Uint8Array => {
   return encrypted.bytes();
 };
 
-export const encryptString = (data: string): Uint8Array => {
-  return encrypt(new TextEncoder().encode(data));
+export const encryptString = (c: Context, data: string): Uint8Array => {
+  return encrypt(c, new TextEncoder().encode(data));
 };

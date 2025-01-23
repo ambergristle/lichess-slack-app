@@ -1,25 +1,20 @@
 import { type Env, Hono } from 'hono';
+import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import { jsxRenderer } from 'hono/jsx-renderer';
 import { z } from 'zod';
 
 import { ErrorPage } from '@/lib/components/errors';
 import { Layout } from '@/lib/components/layout';
-import { registerBot } from '@/lib/bot';
+import { registerBot } from '@/lib/entities/bot';
+import { OAUTH_STATE_COOKIE_NAME } from '@/lib/services/slack/config';
+import { ZRegistrationRequest } from '@/lib/services/slack/dtos';
+import { AuthorizationError, processError } from '@/lib/utils/errors';
 import { localizer } from '@/middleware/localizer';
 import { zodValidator } from '@/middleware/zod-validator';
-import { AuthorizationError, processError } from '@/lib/errors';
-import { validateState } from '@/lib/slack';
-
-
-export const ZRegistrationRequest = z.object({
-  code: z.string(),
-  state: z.string(),
-}, { message: 'Recieved unprocessable request' });
 
 
 export const registerRoute = new Hono()
-  // todo: verify request
   /** Process registration request and render results */
   .get(
     '/',
@@ -31,7 +26,8 @@ export const registerRoute = new Hono()
     }>(async (c, next) => {
       const { state } = c.req.valid('query');
 
-      if (!validateState(c, state)) {
+      const stateCookie = getCookie(c, OAUTH_STATE_COOKIE_NAME);
+      if (stateCookie !== state) {
         throw new AuthorizationError('Invalid Slack State');
       }
 

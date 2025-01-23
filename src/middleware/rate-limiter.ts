@@ -1,8 +1,8 @@
 import type { Env } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
-import { getClientIp } from '@/lib/request';
-import { AuthorizationError, KnownError, RatelimitError } from '@/lib/errors';
+import { getClientIp } from '@/lib/utils/request';
+import { AuthorizationError, KnownError, RatelimitError } from '@/lib/utils/errors';
 import {
   Limiter,
   RollingRefillLimiter,

@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 import wretch from 'wretch';
 
-import { localizeUtc } from '@/lib/cron';
-import { interpolate } from '@/lib/locale';
-import { cancelBotSchedule, setBotSchedule } from '@/lib/schedule';
-import { ZInteractiveRequestBody } from '@/lib/slack/dtos';
+import { cancelBotSchedule, setBotSchedule } from '@/lib/entities/schedule';
+import { ZInteractiveRequestBody } from '@/lib/services/slack/dtos';
+import { localizeUtc } from '@/lib/utils/cron';
+import { processError } from '@/lib/utils/errors';
+import { interpolate } from '@/lib/utils/locale';
 import { BotContext, botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
-import { processError } from '@/lib/errors';
 
 
 export const interactionsRoute = new Hono<BotContext>()
@@ -32,7 +32,6 @@ export const interactionsRoute = new Hono<BotContext>()
             if (action.actionId === 'cancel-schedule') {
               await cancelBotSchedule(c, bot.id, userId);
 
-
               wretch(responseUrl)
                 .post({
                   replace_original: true,
@@ -41,9 +40,9 @@ export const interactionsRoute = new Hono<BotContext>()
                 .res()
                 .catch(processError);
             }
-
             break;
           }
+
           case 'timepicker': {
             const { selectedTime } = action;
 
@@ -52,19 +51,18 @@ export const interactionsRoute = new Hono<BotContext>()
               break;
             }
 
-            /** Set scheduled delivery time */
-
             const {
               utcCronTime,
               timeZone,
-            } = await setBotSchedule(c, channelId, userId, {
+            } = await setBotSchedule(c, {
+              channelId,
+              userId,
               selectedTime,
               locale: bot.locale,
-              currentScheduleId: bot.schedule?.jobId,
+              jobId: bot.schedule?.jobId,
             });
 
             const { display } = localizeUtc(utcCronTime, timeZone, bot.locale);
-
             const message = interpolate(localized.blocks.scheduleConfirmation, {
               timeString: display,
             });

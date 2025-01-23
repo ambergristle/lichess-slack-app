@@ -28,8 +28,8 @@ const ZTimePickerAction = ZAction.extend({
 }).transform((action) => {
   const timeStrings = action.selected_time.split(':');
 
-  // Regex enforces string shape
-  // eslint-disable-next-line
+  // Regex enforces string shape (HH:MM)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const hourString = timeStrings[0]!;
   // eslint-disable-next-line
   const minuteString = timeStrings[1]!;
@@ -75,10 +75,12 @@ const unwrapInteractiveRequest = z.object({
   return JSON.parse(payload);
 }).parse;
 
+
 export const ZInteractiveRequestBody = z.preprocess(
   unwrapInteractiveRequest,
   ZInteractivePayload
 );
+
 
 /**
  * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
@@ -100,3 +102,9 @@ export const ZSlashCommandBody = z.object({
   text: body.text,
   responseUrl: body.response_url,
 }));
+
+
+export const ZRegistrationRequest = z.object({
+  code: z.string(),
+  state: z.string(),
+}, { message: 'Recieved unprocessable request' });

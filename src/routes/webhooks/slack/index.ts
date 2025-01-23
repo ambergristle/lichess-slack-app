@@ -1,57 +1,23 @@
 import { Hono } from 'hono';
 
-import { localizeUtc, parseCronTime } from '@/lib/cron';
-import { getDailyPuzzle } from '@/lib/lichess';
-import { interpolate } from '@/lib/locale';
-import { blocks, getUserTimeZone, verifySignature } from '@/lib/slack';
+import { localizeUtc, parseCronTime } from '@/lib/utils/cron';
+import { getDailyPuzzle } from '@/lib/services/lichess';
+import { interpolate } from '@/lib/utils/locale';
+import { blocks, getUserTimeZone } from '@/lib/services/slack';
 import { botContext } from '@/middleware/bot-context';
 import { zodValidator } from '@/middleware/zod-validator';
-import { ZSlashCommandBody } from '@/lib/slack/dtos';
+import { ZSlashCommandBody } from '@/lib/services/slack/dtos';
 import { interactionsRoute } from './interactions';
 import { slackBucket, userLimiter } from '@/middleware/rate-limiter';
-import { AuthorizationError, processError } from '@/lib/errors';
+import { processError } from '@/lib/utils/errors';
+import { slackAuthorizer } from '@/middleware/slack-authorizer';
 
 
 // 3s window for response
 // https://api.slack.com/interactivity/slash-commands#responding_to_commands
 
 export const slackRoute = new Hono()
-  .use(async (c, next) => {
-    const {
-      'user-agent': userAgent,
-      'x-slack-signature': signature,
-      'x-slack-request-timestamp': timestamp,
-    } = c.req.header();
-
-    const isFromSlackbot = !!userAgent?.includes(
-      'Slackbot 1.0 (+https://api.slack.com/robots)'
-    );
-
-    if (!isFromSlackbot) {
-      throw new AuthorizationError('Invalid User Agent');
-    }
-
-    if (!signature || !timestamp) {
-      throw new AuthorizationError('Request Unsigned');
-    }
-
-    const body = await c.req.text();
-    const {
-      signatureIsValid,
-      timestampIsValid,
-    } = verifySignature(c, body, signature, timestamp);
-
-    // Obscure implementation details by throwing
-    // after both validations have resolved
-    if (!timestampIsValid) {
-      throw new AuthorizationError('Invalid Timestamp');
-    }
-
-    if (!signatureIsValid) {
-      throw new AuthorizationError('Invalid Signature');
-    }
-    await next();
-  })
+  .use(slackAuthorizer())
   .route('/interactions', interactionsRoute)
   /** Get command details */
   .post(
@@ -103,35 +69,53 @@ export const slackRoute = new Hono()
     botContext(),
     async (c) => {
       const {
-        bot: { schedule, ...bot },
+        bot: { schedule, locale, ...bot },
         localized,
       } = c.var;
 
+      const {
+        message,
+        defaultPickerValue,
+      } = (() => {
+        if (schedule) {
+          const { cron, timeZone } = schedule;
+          const scheduledAt = parseCronTime(cron);
+
+          const {
+            defaultValue: defaultPickerValue,
+            display: timeString,
+          } = localizeUtc(scheduledAt, timeZone, locale);
+
+          return {
+            defaultPickerValue,
+            message: interpolate(localized.blocks.scheduleInfo, {
+              timeString,
+            }),
+          };
+        }
+
+        return {
+          defaultPickerValue: '12:00',
+          message: localized.blocks.schedulePrompt,
+        };
+      })();
+
       const { userId } = c.req.valid('form');
-
-      const zonedSchedule = schedule
-        ? localizeUtc(parseCronTime(schedule.cron), schedule.timeZone, bot.locale)
-        : undefined;
-
-      const message = zonedSchedule
-        ? interpolate(localized.blocks.scheduleInfo, {
-          timeString: zonedSchedule.display,
-        })
-        : localized.blocks.schedulePrompt;
-
       const timezone = schedule?.timeZone
         ?? await getUserTimeZone(c, bot.id, userId);
 
-      const actions = zonedSchedule
-        ? [blocks.actions([{
-          type: 'button',
-          action_id: 'cancel-schedule',
-          value: schedule?.jobId,
-          text: {
-            type: 'plain_text',
-            text: 'Cancel Schedule',
-          },
-        }])]
+      const actions = schedule
+        ? [
+          blocks.actions([{
+            type: 'button',
+            action_id: 'cancel-schedule',
+            value: schedule.jobId,
+            text: {
+              type: 'plain_text',
+              text: 'Cancel Schedule',
+            },
+          }]),
+        ]
         : [];
 
       return c.json({
@@ -141,9 +125,7 @@ export const slackRoute = new Hono()
             accessory: {
               action_id: 'select-time',
               type: 'timepicker',
-              initial_time: zonedSchedule
-                ? zonedSchedule.defaultValue
-                : '12:00',
+              initial_time: defaultPickerValue,
               timezone,
               placeholder: {
                 type: 'plain_text',

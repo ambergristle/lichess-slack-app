@@ -3,10 +3,10 @@ import { jsxRenderer } from 'hono/jsx-renderer';
 
 import { ErrorPage } from '@/lib/components/errors';
 import { Layout } from '@/lib/components/layout';
-import { generateOAuthRedirectUrl } from '@/lib/slack';
+import { generateOAuthRedirectUrl } from '@/lib/services/slack';
 import { localizer } from '@/middleware/localizer';
 import { globalRateLimiter } from '@/middleware/rate-limiter';
-import { processError } from '@/lib/errors';
+import { processError } from '@/lib/utils/errors';
 
 
 const REPO_URL = 'https://github.com/ambergristle/lichess-slack-app';

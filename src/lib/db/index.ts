@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Logger } from 'drizzle-orm/logger';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
-import { getEnvironmentVariable } from '../request';
+import { getEnvironmentVariable } from '../utils/request';
 
 /**
  * Initializes the database connection using a default

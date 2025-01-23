@@ -2,32 +2,28 @@ import wretch from 'wretch';
 import { z } from 'zod';
 
 
-const lichess = wretch('https://lichess.org/api');
-
-const ZDailyPuzzleResponse = z.object({
-  puzzle: z.object({
-    id: z.string(),
-    initialPly: z.number(),
-    plays: z.number(),
-    rating: z.number(),
-    solution: z.string().array(),
-    themes: z.string().array(),
-  }),
-}, {
-  message: 'Recieved unprocessable response from Lichess API',
-});
-
 export type DailyPuzzle = {
   puzzleUrl: string;
   puzzleThumbUrl: string;
 }
+
+/** Lichess HTTP API Client */
+const lichess = wretch('https://lichess.org/api');
 
 /** @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily */
 export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
   try {
     const { puzzle } = await lichess
       .get('/puzzle/daily')
-      .json(ZDailyPuzzleResponse.parse);
+      .json(
+        z.object({
+          puzzle: z.object({
+            id: z.string(),
+          }),
+        }, {
+          message: 'Recieved unprocessable response from Lichess API',
+        }).parse
+      );
 
     return {
       puzzleUrl: `https://lichess.org/training/${puzzle.id}`,

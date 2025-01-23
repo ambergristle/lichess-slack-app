@@ -29,8 +29,7 @@ export function getLocalSQLiteDBPath() {
       return statB.mtime.getTime() - statA.mtime.getTime();
     });
 
-    // Files array guaranteed to have min 1 element
-    // eslint-disable-next-line
+    // eslint-disable-next-line -- Files array guaranteed to have min 1 element
     return path.resolve(basePath, files[0]!);
   } catch (error) {
     if (error instanceof Error) {

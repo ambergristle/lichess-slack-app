@@ -1,38 +1,18 @@
 import { Hono } from 'hono';
 import wretch from 'wretch';
-import { z } from 'zod';
 
-import { getBotWebhookUrl } from '@/lib/bot';
-import { AuthorizationError, processError } from '@/lib/errors';
-import { getDailyPuzzle } from '@/lib/lichess';
-import { getLocalized } from '@/lib/locale';
-import { verifyRequest } from '@/lib/qstash';
-import { blocks } from '@/lib/slack';
+import { getBotWebhookUrl } from '@/lib/entities/bot';
+import { getDailyPuzzle } from '@/lib/services/lichess';
+import { blocks } from '@/lib/services/slack';
+import { ZScheduledPuzzleData } from '@/lib/services/qstash';
+import { processError } from '@/lib/utils/errors';
+import { getLocalized } from '@/lib/utils/locale';
 import { zodValidator } from '@/middleware/zod-validator';
-
-
-export const ZScheduledPuzzleData = z.object({
-  botId: z.string(),
-  locale: z.string(),
-}, {
-  message: 'Invalid job data',
-});
+import { qStashAuthorizer } from '@/middleware/qstash-authorizer';
 
 
 export const scheduledPuzzleRoute = new Hono()
-  .use(async (c, next) => {
-    // todo: could grab upstash-schedule-id instead of
-    // passing the botId/locale in the payload
-    const signature = c.req.header('upstash-signature');
-    if (!signature) {
-      throw new AuthorizationError('Request Unsigned');
-    }
-
-    const body = await c.req.text();
-    verifyRequest(c, body, signature);
-
-    await next();
-  })
+  .use(qStashAuthorizer())
   /** Dispatch scheduled puzzle delivery */
   .post(
     '/',

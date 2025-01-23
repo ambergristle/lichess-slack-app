@@ -2,7 +2,7 @@ import type { ValidationTargets } from 'hono';
 import { validator } from 'hono/validator';
 import { z } from 'zod';
 
-import { ValidationError } from '@/lib/errors';
+import { ValidationError } from '@/lib/utils/errors';
 
 
 export const zodValidator = <

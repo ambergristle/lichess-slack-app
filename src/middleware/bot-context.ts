@@ -1,8 +1,10 @@
 import { createMiddleware } from 'hono/factory';
 
-import { getBotContext } from '@/lib/bot';
-import { getLocalized } from '@/lib/locale';
+import { generatBotId, getBotSchedule } from '@/lib/entities/bot';
+import { getLocalized } from '@/lib/utils/locale';
 import { Localized } from '@/locale/types';
+import { generateScheduleId } from '@/lib/entities/schedule';
+import { getChannelLocale } from '@/lib/services/slack';
 
 export type BotContext = {
   Variables: {
@@ -35,10 +37,24 @@ export const botContext = () => {
   >(async (c, next) => {
     const { channelId, userId } = c.req.valid('form');
 
-    const bot = await getBotContext(c, channelId, userId);
-    c.set('bot', bot);
+    const botId = generatBotId(channelId);
+    const scheduleId = generateScheduleId(botId, userId);
 
-    const localized = await getLocalized(bot.locale);
+    const {
+      schedule,
+      webhookUrl,
+    } = await getBotSchedule(c, botId, scheduleId);
+
+    const locale = await getChannelLocale(c, botId, channelId);
+
+    c.set('bot', {
+      id: botId,
+      locale,
+      schedule: schedule,
+      webhookUrl: webhookUrl,
+    });
+
+    const localized = await getLocalized(locale);
     c.set('localized', localized);
 
     await next();

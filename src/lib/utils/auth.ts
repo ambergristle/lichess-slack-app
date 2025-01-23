@@ -1,4 +1,23 @@
-import { createHmac, timingSafeEqual, type BinaryToTextEncoding } from 'crypto';
+import {
+  createHmac,
+  timingSafeEqual,
+  type BinaryToTextEncoding,
+} from 'crypto';
+import { encodeBase64urlNoPadding }from '@oslojs/encoding';
+
+
+export const generateRandomBytes = (bytes = 20) => {
+  const array = new Uint8Array(bytes);
+  crypto.getRandomValues(array);
+  return array;
+};
+
+
+export function generateState(): string {
+  const randomValues = generateRandomBytes(32);
+  return encodeBase64urlNoPadding(randomValues);
+}
+
 
 /**
  * A utility exposing the logic required to verify Slack signatures
@@ -6,7 +25,7 @@ import { createHmac, timingSafeEqual, type BinaryToTextEncoding } from 'crypto';
  * @see https://nodejs.org/docs/latest-v6.x/api/crypto.html#crypto_class_hmac
  * @see https://nodejs.org/docs/latest-v6.x/api/crypto.html#crypto_crypto_timingsafeequal_a_b
  */
-const hmac = {
+export const hmac = {
   /**
    * Create a new hex-encoded HMAC using the provided secret and data
    * @param secret Secret key
@@ -41,5 +60,3 @@ const hmac = {
     }
   },
 };
-
-export default hmac;

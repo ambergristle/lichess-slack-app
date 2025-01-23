@@ -1,7 +1,7 @@
 import { accepts } from 'hono/accepts';
 import { createMiddleware } from 'hono/factory';
 
-import { getLocalized } from '@/lib/locale';
+import { getLocalized } from '@/lib/utils/locale';
 
 
 export type LocaleEnv = {

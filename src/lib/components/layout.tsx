@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import type { PropsWithChildren } from 'hono/jsx';
 
 import type { Localized } from '@/locale/types';
-import { getEnvironmentVariable } from '../request';
+import { getEnvironmentVariable } from '../utils/request';
 
 export const Layout = ({ children }: PropsWithChildren, c: Context<{
   Variables: {
