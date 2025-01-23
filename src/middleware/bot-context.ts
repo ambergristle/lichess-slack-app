@@ -9,15 +9,13 @@ export type BotContext = {
     localized: Localized;
     bot: {
       id: string;
-      teamId: string;
-      userId: string;
       locale: string;
-      schedule?: {
+      webhookUrl: string;
+      schedule: {
         jobId: string;
         cron: string;
         timeZone: string;
-      }
-      webhookUrl: string;
+      } | null;
     }
   }
 }
@@ -29,15 +27,15 @@ export const botContext = () => {
   {
     out: {
       form: {
-        teamId: string;
+        channelId: string;
         userId: string;
       }
     }
   }
   >(async (c, next) => {
-    const { teamId, userId } = c.req.valid('form');
+    const { channelId, userId } = c.req.valid('form');
 
-    const bot = await getBotContext(c, teamId, userId);
+    const bot = await getBotContext(c, channelId, userId);
     c.set('bot', bot);
 
     const localized = await getLocalized(bot.locale);

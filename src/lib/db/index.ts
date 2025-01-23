@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { Logger } from 'drizzle-orm/logger';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
+import { getEnvironmentVariable } from '../request';
 
 /**
  * Initializes the database connection using a default
@@ -19,7 +20,8 @@ export const getDb = <E>(c: Context<E & {
   }
 
   // If using Cloudflare bindings, grab client from c.env.DB_BINDING
-  const _db = drizzle('file:local-db.sqlite', {
+  const dbUrl = getEnvironmentVariable(c, 'DATABASE_URL');
+  const _db = drizzle(dbUrl, {
     // Set for Drizzle auto-casing
     casing: 'snake_case',
     logger: new Something(),

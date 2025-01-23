@@ -31,3 +31,9 @@ export const getEnvironmentVariable = <
 
   return value;
 };
+
+
+export const getIsProduction = (c: Context) => {
+  const environment = env(c);
+  return environment === 'production';
+};

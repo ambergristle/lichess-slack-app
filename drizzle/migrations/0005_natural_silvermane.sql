@@ -1,0 +1,1 @@
+ALTER TABLE `scheduled-puzzle-jobs` RENAME COLUMN "updated_at" TO "updated_aaaat";

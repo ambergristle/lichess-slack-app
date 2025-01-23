@@ -50,7 +50,6 @@ export const slackRoute = new Hono()
     if (!signatureIsValid) {
       throw new AuthorizationError('Invalid Signature');
     }
-
     await next();
   })
   .route('/interactions', interactionsRoute)

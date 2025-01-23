@@ -69,7 +69,7 @@ const ZCreateScheduleResponse = z.object({
 
 export const setBotSchedule = async (
   c: Context,
-  teamId: string,
+  channelId: string,
   userId: string,
   {
     selectedTime,
@@ -81,7 +81,7 @@ export const setBotSchedule = async (
     currentScheduleId?: string
   }
 ) => {
-  const botId = generatBotId(teamId);
+  const botId = generatBotId(channelId);
 
   const authToken = getEnvironmentVariable(c, 'QSTASH_TOKEN');
 
@@ -123,8 +123,8 @@ export const setBotSchedule = async (
     .values({
       id: generateScheduleId(botId, userId),
       createdAt: scheduleData.updatedAt,
-      botId,
       userId,
+      botId,
       ...scheduleData,
     })
     .onConflictDoUpdate({

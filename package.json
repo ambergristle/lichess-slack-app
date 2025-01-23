@@ -19,10 +19,11 @@
     "start": "bun run dist/index.js",
     "lint": "bun run eslint ./src",
     "lint:fix": "bun run lint --fix",
-    "drizzle:push": "bunx drizzle-kit push",
-    "drizzle:generate": "bunx drizzle-kit generate",
-    "drizzle:migrate": "bunx drizzle-kit migrate",
-    "drizzle:studio": "bunx drizzle-kit studio"
+    "db:push": "bunx --bun drizzle-kit push",
+    "db:generate": "bunx --bun drizzle-kit generate",
+    "db:migrate": "bunx --bun drizzle-kit migrate",
+    "db:setup": "bun run db:touch && bun run db:generate && bun run db:migrate",
+    "db:studio": "bunx drizzle-kit studio"
   },
   "dependencies": {
     "@date-fns/tz": "^1.2.0",
@@ -47,6 +48,7 @@
     "@types/bun": "^1.1.16",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/pug": "^2.0.10",
+    "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.2",
     "eslint": "^9.18.0",
     "globals": "^15.14.0",

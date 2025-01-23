@@ -18,13 +18,19 @@ export const interactionsRoute = new Hono<BotContext>()
     async (c) => {
       const { bot, localized } = c.var;
 
-      const { actions, responseUrl } = c.req.valid('form');
+      const {
+        channelId,
+        userId,
+        actions,
+        responseUrl,
+      } = c.req.valid('form');
+
       const [action] = actions;
 
       switch (action.type) {
           case 'button': {
             if (action.actionId === 'cancel-schedule') {
-              await cancelBotSchedule(c, bot.id, bot.userId);
+              await cancelBotSchedule(c, bot.id, userId);
 
 
               wretch(responseUrl)
@@ -51,7 +57,7 @@ export const interactionsRoute = new Hono<BotContext>()
             const {
               utcCronTime,
               timeZone,
-            } = await setBotSchedule(c, bot.teamId, bot.userId, {
+            } = await setBotSchedule(c, channelId, userId, {
               selectedTime,
               locale: bot.locale,
               currentScheduleId: bot.schedule?.jobId,

@@ -10,8 +10,8 @@ export default generateLocalDrizzleConfig();
  * env from accidentally being applied to another
  */
 function generateLocalDrizzleConfig() {
-
   if (process.env.ENVIRONMENT === 'production') {
+
     try {
       return defineConfig({
         out: './drizzle/migrations',
@@ -19,10 +19,7 @@ function generateLocalDrizzleConfig() {
         dialect: 'sqlite',
         casing: 'snake_case',
         dbCredentials: {
-          url: 'local-db.sqlite',
-          // accountId: CLOUDFLARE_ACCOUNT_ID,
-          // databaseId: CLOUDFLARE_DATABASE_ID,
-          // token: CLOUDFLARE_D1_TOKEN,
+          url: 'DATABASE_URL',
         },
       });
     } catch (error) {
@@ -32,10 +29,16 @@ function generateLocalDrizzleConfig() {
   }
 
   try {
-    const localDbPath = getLocalSQLiteDBPath();
+    // const localDbPath = getLocalSQLiteDBPath();
 
-    if (!localDbPath) {
-      console.error('Configuration Failed: Missing Local DB');
+    // if (!localDbPath) {
+    //   console.error('Configuration Failed: Missing Local DB');
+    //   process.exit(1);
+    // }
+    console.log(process.env.DEVELOPENT_SECRET);
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      console.error('Configuration Failed: Missing Local DB URL');
       process.exit(1);
     }
 
@@ -45,9 +48,10 @@ function generateLocalDrizzleConfig() {
       dialect: 'sqlite',
       casing: 'snake_case',
       dbCredentials: {
-        url: 'local-db.sqlite',
+        url: databaseUrl,
       },
     });
+
   } catch (error) {
     console.error(error);
     process.exit(1);

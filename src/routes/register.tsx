@@ -8,8 +8,8 @@ import { Layout } from '@/lib/components/layout';
 import { registerBot } from '@/lib/bot';
 import { localizer } from '@/middleware/localizer';
 import { zodValidator } from '@/middleware/zod-validator';
-import { getEnvironmentVariable } from '@/lib/request';
 import { AuthorizationError, processError } from '@/lib/errors';
+import { validateState } from '@/lib/slack';
 
 
 export const ZRegistrationRequest = z.object({
@@ -31,7 +31,7 @@ export const registerRoute = new Hono()
     }>(async (c, next) => {
       const { state } = c.req.valid('query');
 
-      if (state !== getEnvironmentVariable(c, 'STATE')) {
+      if (!validateState(c, state)) {
         throw new AuthorizationError('Invalid Slack State');
       }
 

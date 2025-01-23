@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { getCookie, setCookie } from 'hono/cookie';
 import type {
   ActionsBlock,
   KnownBlock,
@@ -13,7 +14,7 @@ import { getBotAccessToken } from '../bot';
 import hmac from '../hmac';
 import { unixMilliseconds } from '../dates';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
-import { getEnvironmentVariable } from '../request';
+import { getEnvironmentVariable, getIsProduction } from '../request';
 import { generateState } from '../oauth';
 
 
@@ -50,6 +51,7 @@ const APP_SCOPES = [
 
 const APP_SCOPE = APP_SCOPES.join(',');
 
+const STATE_COOKIE_NAME = 'lsa_auth_state';
 
 /**
  * Generate a link that begins process of registering bot
@@ -60,14 +62,33 @@ const APP_SCOPE = APP_SCOPES.join(',');
 export const generateOAuthRedirectUrl = (c: Context) => {
   const baseUrl = getEnvironmentVariable(c, 'BASE_URL');
 
+  const state = generateState();
   const searchParams = new URLSearchParams({
     client_id: getEnvironmentVariable(c, 'SLACK_CLIENT_ID'),
     scope: APP_SCOPE,
-    state: generateState(),
+    state,
     redirect_uri: `${baseUrl}/register`,
   });
 
+  setCookie(c, STATE_COOKIE_NAME, state, {
+    path: '/',
+    secure: getIsProduction(c),
+    httpOnly: true,
+    maxAge: 60 * 10,
+    sameSite: 'lax',
+  });
+
   return `https://slack.com/oauth/v2/authorize?${searchParams.toString()}`;
+};
+
+export const validateState = (c: Context, state: string) => {
+  const token = getCookie(c, STATE_COOKIE_NAME);
+  console.log({ token, state });
+  if (token === undefined) {
+    return false;
+  }
+
+  return token === state;
 };
 
 

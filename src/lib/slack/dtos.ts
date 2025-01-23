@@ -50,8 +50,7 @@ const ZTimePickerAction = ZAction.extend({
  */
 const ZInteractivePayload = z.object({
   api_app_id: z.string(),
-  // bot_access_token: z.string(),
-  team: z.object({
+  channel: z.object({
     id: z.string(),
   }),
   user: z.object({
@@ -63,7 +62,7 @@ const ZInteractivePayload = z.object({
   response_url: z.string(),
 }).transform((payload) => ({
   appId: payload.api_app_id,
-  teamId: payload.team.id,
+  channelId: payload.channel.id,
   userId: payload.user.id,
   actions: payload.actions,
   responseUrl: payload.response_url,
@@ -85,17 +84,17 @@ export const ZInteractiveRequestBody = z.preprocess(
  * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
  */
 export const ZSlashCommandBody = z.object({
-  team_id: z.string(),
+  api_app_id: z.string(),
+  channel_id: z.string(),
   user_id: z.string(),
   command: z.string(),
   text: z.string(),
-  api_app_id: z.string(),
   response_url: z.string(),
 }, {
   message: 'Recieved unprocessable request',
 }).transform((body) => ({
   appId: body.api_app_id,
-  teamId: body.team_id,
+  channelId: body.channel_id,
   userId: body.user_id,
   command: body.command,
   text: body.text,

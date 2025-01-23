@@ -28,7 +28,6 @@ export const landingRoute = new Hono()
       const { localized } = c.var;
 
       const registrationHref = generateOAuthRedirectUrl(c);
-      // set state cookie
 
       return c.render(
         <div>

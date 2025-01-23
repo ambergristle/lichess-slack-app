@@ -47,6 +47,7 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 ## Todo
 - general cleanup
 ### Critical
+- timeout
 - figure out retry/rollback logic
 - what if no teamid? can botid be leaned on?
 - registering bot in multiple channels?
@@ -58,7 +59,6 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 ### Nice-to-have
 #### Low-lift
 - finish styling landing page
-- submit button for noon-ok
 - fine-tune cron regex
 #### Mid-lift
 - error handling

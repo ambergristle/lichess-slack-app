@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase32LowerCaseNoPadding } from '@oslojs/encoding';
@@ -24,8 +24,8 @@ import { AuthorizationError, KnownError } from './errors';
  * Hash token bytes using SHA-256, and return with base-32 encoding
  * @param token Created by {@linkcode generateAuthSessionToken}
  */
-export const generatBotId = (teamId: string): string => {
-  const hashedTokenBytes = sha256(new TextEncoder().encode(teamId));
+export const generatBotId = (channelId: string): string => {
+  const hashedTokenBytes = sha256(new TextEncoder().encode(channelId));
   return encodeBase32LowerCaseNoPadding(hashedTokenBytes);
 };
 
@@ -46,46 +46,47 @@ export const getBotAccessToken = async (c: Context, botId: string) => {
   return decryptToString(bot.accessToken);
 };
 
-export const getBotContext = async (c: Context, teamId: string, userId: string) => {
-  const botId = generatBotId(teamId);
+export const getBotContext = async (
+  c: Context,
+  channelId: string,
+  userId: string
+) => {
 
-  // todo: merge queries
+  const botId = generatBotId(channelId);
+  const scheduleId = generateScheduleId(botId, userId);
+
   const db = getDb(c);
-  const [bot] = await db
+  const [result] = await db
     .select({
-      id: Bot.id,
-      appId: Bot.appId,
-      channelId: Bot.channelId,
       webhookUrl: Bot.webhookUrl,
+      schedule: {
+        jobId: ScheduledPuzzleJob.jobId,
+        cron: ScheduledPuzzleJob.cron,
+        timeZone: ScheduledPuzzleJob.timeZone,
+      },
     })
     .from(Bot)
+    .leftJoin(
+      ScheduledPuzzleJob,
+      and(
+        eq(ScheduledPuzzleJob.id, scheduleId),
+        eq(Bot.id, ScheduledPuzzleJob.botId)
+      )
+    )
     .where(eq(Bot.id, botId))
     .limit(1);
 
-  if (!bot) {
+  if (!result) {
     throw new AuthorizationError(`No Bot found with ID ${botId}`);
   }
 
-  const scheduleId = generateScheduleId(botId, userId);
-  const [schedule] = await db
-    .select({
-      jobId: ScheduledPuzzleJob.jobId,
-      cron: ScheduledPuzzleJob.cron,
-      timeZone: ScheduledPuzzleJob.timeZone,
-    })
-    .from(ScheduledPuzzleJob)
-    .where(eq(ScheduledPuzzleJob.id, scheduleId))
-    .limit(1);
-
-
   const accessToken = await getBotAccessToken(c, botId);
-
   // https://api.slack.com/methods/conversations.info
   const { channel } = await slackClient
     .addon(QueryStringAddon)
     .auth(`Bearer ${accessToken}`)
     .query({
-      channel: bot.channelId,
+      channel: channelId,
       include_locale: true,
     })
     .get('/conversations.info')
@@ -113,12 +114,11 @@ export const getBotContext = async (c: Context, teamId: string, userId: string) 
     });
 
   return {
-    id: bot.id,
-    teamId,
+    id: botId,
     userId,
     locale: channel.locale,
-    schedule,
-    webhookUrl: bot.webhookUrl,
+    schedule: result.schedule,
+    webhookUrl: result.webhookUrl,
   };
 };
 
@@ -182,33 +182,22 @@ export const registerBot = async (c: Context, code: string) => {
       return response;
     });
 
-  const appId = registrationData.app_id;
-  const botId = generatBotId(registrationData.team.id);
+
+  const channelId = registrationData.incoming_webhook.channel_id;
+  const botId = generatBotId(registrationData.incoming_webhook.channel_id);
+  const now = new Date();
 
   const db = getDb(c);
-
-  const botData = {
-    updatedAt: new Date(),
-    channelId: registrationData.incoming_webhook.channel_id,
-    scope: registrationData.scope,
-    accessToken: Buffer.from(encryptString(registrationData.access_token)),
-    webhookUrl: registrationData.incoming_webhook.url,
-  };
-
   const result = await db
     .insert(Bot)
     .values({
       id: botId,
-      appId: registrationData.app_id,
-      createdAt: botData.updatedAt,
-      ...botData,
-    })
-    .onConflictDoUpdate({
-      target: Bot.id,
-      set: {
-        ...botData,
-      },
-      setWhere: eq(Bot.appId, appId),
+      createdAt: now,
+      updatedAt: now,
+      channelId,
+      scope: registrationData.scope,
+      accessToken: Buffer.from(encryptString(registrationData.access_token)),
+      webhookUrl: registrationData.incoming_webhook.url,
     });
 
   if (result.rowsAffected !== 1) {
