@@ -45,24 +45,22 @@ Assuming full responsibility for staying in sync with their api isn't ideal, but
 
 
 ## Todo
-- general cleanup
 ### Critical
-- timeout
-- figure out retry/rollback logic
-- what if no teamid? can botid be leaned on?
-- registering bot in multiple channels?
+- double-check db logic
+- set up distributed? store
 - comments, docs
   - communicate locale/tz setup
 - readme
-- configure slack app for distribution
+ configure slack app for distribution
   - ssl cert
 ### Nice-to-have
 #### Low-lift
-- finish styling landing page
+* finish styling landing page
 - fine-tune cron regex
+- timeout?
 #### Mid-lift
-- error handling
-  - format zod issues
+* error handling
+  * format zod issues
 - standardize urls
 - look into qstash jobs, verifying requests
 - cacheing
