@@ -10,6 +10,7 @@ docs/
 node_modules/
 
 # Environment variable files
+.env
 .env.local
 
 # TypeScript output
