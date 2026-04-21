@@ -38,7 +38,6 @@
     "drizzle-zod": "^0.6.1",
     "hono": "^4.6.15",
     "jsonwebtoken": "^9.0.2",
-    "wretch": "^2.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

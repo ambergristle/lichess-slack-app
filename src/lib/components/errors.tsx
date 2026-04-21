@@ -1,15 +1,15 @@
 
-type ErrorPageProps = {
+type ErrorViewProps = {
   heading: string;
   subheading?: string;
   details?: string;
 }
 
-export const ErrorPage = ({
+export const ErrorView = ({
   heading,
   subheading,
   details,
-}: ErrorPageProps) => {
+}: ErrorViewProps) => {
   return (
     <div>
       <h1>

@@ -3,13 +3,6 @@ import { createMiddleware } from 'hono/factory';
 
 import { getLocalized } from '@/lib/utils/locale';
 
-
-export type LocaleEnv = {
-  Variables: {
-    localized: Awaited<ReturnType<typeof getLocalized>>;
-  }
-}
-
 export const localizer = () => {
   return createMiddleware<LocaleEnv>(async (c, next) => {
 
@@ -27,3 +20,9 @@ export const localizer = () => {
     await next();
   });
 };
+
+export type LocaleEnv = {
+  Variables: {
+    localized: Awaited<ReturnType<typeof getLocalized>>;
+  }
+}

@@ -1,20 +1,14 @@
 import { Hono } from 'hono';
-import { serveStatic } from 'hono/bun';
 import { logger } from 'hono/logger';
 
-import * as routes from './routes';
-
+import { site } from '@/routes/site';
+import { slack } from '@/routes/webhooks/slack';
+import { schedule } from '@/routes/webhooks/schedule';
 
 const app = new Hono()
   .use(logger())
-  .route('/webhooks/scheduled-puzzle', routes.webhooks.scheduledPuzzleRoute)
-  .route('/webhooks/slack', routes.webhooks.slackRoute)
-  .get('/public/*', serveStatic({
-    root: './',
-  }))
-  .route('/', routes.landingRoute)
-  .route('/register', routes.registerRoute);
-  // .notFound()
-  // .onError();
+  .route('/', site)
+  .route('/webhooks/slack', slack)
+  .route('/webhooks/schedule', schedule);
 
 export default app;

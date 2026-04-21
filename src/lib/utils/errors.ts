@@ -1,8 +1,18 @@
 import { HTTPException } from 'hono/http-exception';
+import {
+  ContentfulStatusCode,
+  SuccessStatusCode,
+} from 'hono/utils/http-status';
 
+// todo
+export const handleEffectError = (error: unknown) => {
+  //
+};
 
-
-export const processError = (error: unknown) => {
+export const processError = (error: unknown): {
+  message: string;
+  status: ContentfulStatusCode;
+} => {
   console.error(error);
 
   if (error instanceof KnownError) {
@@ -32,13 +42,14 @@ export const processError = (error: unknown) => {
   };
 };
 
+type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>
 
 interface KnownErrorOptions extends ErrorOptions {
-  status?: number;
+  status?: ErrorStatus;
 }
 
 export class KnownError extends Error {
-  public readonly status: number;
+  public readonly status: ErrorStatus;
 
   constructor(message: string, options?: KnownErrorOptions) {
     const { status, ...restOptions } = options ?? {};

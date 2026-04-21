@@ -3,8 +3,6 @@ import { TZDate } from '@date-fns/tz';
 import { formatInTimeZone } from 'date-fns-tz';
 import { z } from 'zod';
 
-import { isNumber, isString } from '../types';
-
 
 const CRON_FIELDS = [
   'minute',
@@ -33,7 +31,7 @@ export type CronTime = Required<Pick<Cron, 'hour' | 'minute'>>
 
 
 const validateCronExpression = (expression: string) => {
-  return isString(expression) && CRON_REGEX.test(expression);
+  return typeof expression === 'string' && CRON_REGEX.test(expression);
 };
 
 
@@ -80,7 +78,7 @@ export const stringifyCron = (data: Cron): string => {
   const expression = CRON_FIELDS.map((prop) => {
     const value = cronData[prop];
 
-    return isNumber(value)
+    return (typeof value === 'number' && !isNaN(value))
       ? value.toString().padStart(2, '0')
       : '*';
   }).join(' ');

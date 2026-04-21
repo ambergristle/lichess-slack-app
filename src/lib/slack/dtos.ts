@@ -86,7 +86,7 @@ export const ZInteractiveRequestBody = z.preprocess(
  * @see https://api.slack.com/interactivity/slash-commands#app_command_handling
  */
 export const ZSlashCommandBody = z.object({
-  api_app_id: z.string(),
+  api_app_id: z.string(), // <- ?
   channel_id: z.string(),
   user_id: z.string(),
   command: z.string(),
@@ -108,3 +108,23 @@ export const ZRegistrationRequest = z.object({
   code: z.string(),
   state: z.string(),
 }, { message: 'Recieved unprocessable request' });
+
+
+
+export const ZAccessResponse = z.discriminatedUnion('ok', [
+  z.object({
+    ok: z.literal(true),
+    app_id: z.string(),
+    bot_user_id: z.string(),
+    scope: z.string(),
+    incoming_webhook: z.object({
+      channel_id: z.string(),
+      url: z.string(),
+    }),
+    access_token: z.string(),
+  }),
+  z.object({
+    ok: z.literal(false),
+    error: z.string(),
+  }),
+]);

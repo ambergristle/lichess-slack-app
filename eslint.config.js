@@ -65,7 +65,7 @@ export default [
       'eol-last': 2,
       'indent': ['warn', 2, { SwitchCase: 2 }],
       'key-spacing': ['warn', { afterColon: true, mode: 'strict' }],
-      'max-len': ['warn', { 'code': 80 }],
+      'max-len': ['warn', { 'code': 85 }],
       'object-curly-spacing': ['warn', 'always'],
       'operator-linebreak': ['error', 'before'],
       'quotes': ['warn', 'single'],
