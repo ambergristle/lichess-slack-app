@@ -1,15 +1,4 @@
-import type { Context } from 'hono';
-import { getConnInfo } from 'hono/bun';
-
 import { KnownError } from './errors';
-
-
-export const getClientIp = (c: Context): string | null => {
-  // Proxied IP
-  return c.req.header('X-Forwarded-For')
-    ?? getConnInfo(c).remote.address
-    ?? null;
-};
 
 
 /**
@@ -18,7 +7,7 @@ export const getClientIp = (c: Context): string | null => {
  * @param key Environment variable key
  * @returns Value, or throws error
  */
-export const env = (key: string): string => {
+export const secret = (key: Secret): string => {
   const value = process.env[key];
 
   if (!value) {
@@ -27,3 +16,11 @@ export const env = (key: string): string => {
 
   return value;
 };
+
+type Secret =
+  | 'ENCRYPTION_KEY'
+  | 'QSTASH_TOKEN'
+  | 'QSTASH_CURRENT_SIGNING_KEY'
+  | 'QSTASH_NEXT_SIGNING_KEY'
+  | 'SLACK_CLIENT_SECRET'
+  | 'SLACK_SIGNING_SECRET'

@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import type { PropsWithChildren } from 'hono/jsx';
 
 import type { Localized } from '@/locale/types';
-import { env } from '../utils/request';
+import config from '@/config';
 
 export const Layout = ({ children }: PropsWithChildren, c: Context<{
   Variables: {
@@ -13,7 +13,7 @@ export const Layout = ({ children }: PropsWithChildren, c: Context<{
 
   const ogTitle ='';
   const ogDescription = '';
-  const baseUrl = env('BASE_URL');
+
 
   return (
     <html lang="en">
@@ -35,7 +35,7 @@ export const Layout = ({ children }: PropsWithChildren, c: Context<{
         {/* <meta name="google" content="notranslate" /> */}
         <meta property="og:title" content={ogTitle} />
         <meta property="og:description" content={ogDescription} />
-        <meta property="og:url" content={baseUrl} />
+        <meta property="og:url" content={config.baseUrl} />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="lichess daily puzzle" />
         {/* <meta property="og:image" content="https://lichess1.org/assets/lichess/lichess-tile-wide.png" /> */}

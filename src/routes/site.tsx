@@ -31,6 +31,8 @@ export const site = new Hono()
     const { localized } = c.var;
     const registrationHref = generateAuthorizationUrl(c);
 
+    const repoUrl = 'https://github.com/ambergristle/lichess-slack-app';
+
     return c.render(
       <div>
         <h1>
@@ -50,8 +52,8 @@ export const site = new Hono()
         </a>
         <p class="text-small">
           {`${localized.sourceCode}:`}&nbsp;
-          <a href={config.repoUrl} target="_blank">
-            {config.repoUrl}
+          <a href={repoUrl} target="_blank">
+            {repoUrl}
           </a>
         </p>
       </div>

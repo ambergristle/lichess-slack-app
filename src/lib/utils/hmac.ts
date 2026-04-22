@@ -3,20 +3,6 @@ import {
   timingSafeEqual,
   type BinaryToTextEncoding,
 } from 'crypto';
-import { encodeBase64urlNoPadding }from '@oslojs/encoding';
-
-
-export const generateRandomBytes = (bytes = 20) => {
-  const array = new Uint8Array(bytes);
-  crypto.getRandomValues(array);
-  return array;
-};
-
-
-export function generateState(): string {
-  const randomValues = generateRandomBytes(32);
-  return encodeBase64urlNoPadding(randomValues);
-}
 
 
 /**
@@ -50,8 +36,8 @@ export const hmac = {
    */
   compareDigests: (hmacDigestA: string, hmacDigestB: string) => {
     try {
-      const hmacBufferA = Buffer.from(hmacDigestA);
-      const hmacBufferB = Buffer.from(hmacDigestB);
+      const hmacBufferA = new TextEncoder().encode(hmacDigestA);
+      const hmacBufferB = new TextEncoder().encode(hmacDigestB);
 
       return timingSafeEqual(hmacBufferA, hmacBufferB);
     } catch (error) {

@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { Logger } from 'drizzle-orm/logger';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
-import { env } from '../utils/request';
+import config from '@/config';
 
 /**
  * Initializes the database connection using a default
@@ -19,10 +19,7 @@ export const getDb = <E>(c: Context<E & {
     return c.var.db;
   }
 
-  // If using Cloudflare bindings, grab client from c.env.DB_BINDING
-  const dbUrl = env('DATABASE_URL');
-  const _db = drizzle(dbUrl, {
-    // Set for Drizzle auto-casing
+  const _db = drizzle(config.databaseUrl, {
     casing: 'snake_case',
     logger: new QueryLogger(),
   });
@@ -33,6 +30,7 @@ export const getDb = <E>(c: Context<E & {
 };
 
 export type DB = LibSQLDatabase;
+
 
 class QueryLogger implements Logger {
   logQuery(query: string, params: unknown[]): void {

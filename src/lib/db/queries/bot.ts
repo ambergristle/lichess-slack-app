@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { DB } from '@/lib/db';
 import { Bot, BotChannel } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
-import { decryptToString, encryptString } from '@/lib/utils/encryption';
+import { decrypt, encrypt, encryptString } from '@/lib/utils/encryption';
 import { KnownError } from '@/lib/utils/errors';
 
 
@@ -45,9 +45,11 @@ export const getBotAccessToken = async (
     });
   }
 
+  const decrypted = decrypt(Uint8Array.from(bot.accessToken));
+
   return {
     botId: bot.id,
-    accessToken: decryptToString(bot.accessToken),
+    accessToken: new TextDecoder().decode(decrypted),
   };
 };
 
@@ -73,10 +75,11 @@ export const registerBot = async (
     accessToken: string;
   }
 ) => {
+  const encoded = new TextEncoder().encode(accessToken);
 
   const botData = {
     scope,
-    accessToken: Buffer.from(encryptString(accessToken)),
+    accessToken: Buffer.from(encrypt(encoded)),
     updatedAt: new Date(),
   };
 

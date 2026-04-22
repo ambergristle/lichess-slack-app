@@ -4,7 +4,7 @@ import { DB } from '@/lib/db';
 import { BotChannel, ScheduledPuzzleJob } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
 import { cancelJob, scheduleJob } from '@/lib/qstash';
-import { stringifyCron } from '@/lib/utils/cron';
+import { formatCronExpression } from '@/lib/utils/cron';
 import { KnownError } from '@/lib/utils/errors';
 
 
@@ -135,7 +135,7 @@ export const createSchedule = async (
 
     const updatedAt = new Date();
     const updates = {
-      cron: stringifyCron(cronTime),
+      cron: formatCronExpression(cronTime),
       timeZone,
       locale,
       deliveryUrl: botChannel.webhookUrl,

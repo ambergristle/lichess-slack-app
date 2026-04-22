@@ -4,11 +4,13 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
 import config from '@/config';
-import { env } from '@/lib/utils/request';
+import { secret } from '@/lib/utils/env';
 import { KnownError } from '@/lib/utils/errors';
 import { HTTPException } from 'hono/http-exception';
 import { Schedule } from '../db/schema';
 
+
+const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
 
 /**
  * Cancel a scheduled job to stop daily puzzle deliveries.
@@ -16,10 +18,10 @@ import { Schedule } from '../db/schema';
  */
 export const cancelJob = async (jobId: string) => {
   try {
-    const response = await fetch(`${config.qstashBaseUrl}/schedules/${jobId}`, {
+    const response = await fetch(`${QSTASH_BASE_URL}/schedules/${jobId}`, {
       method: 'DELETE',
       headers: {
-        'authorization': `Bearer ${env('QSTASH_TOKEN')}`,
+        'authorization': `Bearer ${secret('QSTASH_TOKEN')}`,
       },
     });
 
@@ -50,14 +52,14 @@ export const scheduleJob = async (
       jobId: schedule.jobId,
     } satisfies SchedueldPuzzleJobData);
 
-    const redirectUrl = `${env('BASE_URL')}/webhooks/schedule`;
+    const redirectUrl = `${config.baseUrl}/webhooks/schedule`;
     const response = await fetch(
-      `${config.qstashBaseUrl}/schedules/${redirectUrl}`,
+      `${QSTASH_BASE_URL}/schedules/${redirectUrl}`,
       {
         method: 'POST',
         body,
         headers: {
-          'authorization': `Bearer ${env('QSTASH_TOKEN')}`,
+          'authorization': `Bearer ${secret('QSTASH_TOKEN')}`,
           'content-type': 'application/json',
           'content-length': body.length.toString(),
           'upstash-cron': schedule.cron,
@@ -124,15 +126,14 @@ export const verifyQStashSignature = () => {
       let payload: jwt.JwtPayload;
       try {
 
-        const currentKey = env('QSTASH_CURRENT_SIGNING_KEY');
+        const currentKey = secret('QSTASH_CURRENT_SIGNING_KEY');
         payload = verifySignature(signature, currentKey);
       } catch {
-        const nextKey = env('QSTASH_NEXT_SIGNING_KEY');
+        const nextKey = secret('QSTASH_NEXT_SIGNING_KEY');
         payload = verifySignature(signature, nextKey);
       }
 
-      const baseUrl = env('BASE_URL');
-      if (payload.sub !== `${baseUrl}/webhooks/scheduled-puzzle`) {
+      if (payload.sub !== `${config.baseUrl}/webhooks/scheduled-puzzle`) {
         throw new HTTPException(401, { message: 'Invalid token subject' });
       }
 

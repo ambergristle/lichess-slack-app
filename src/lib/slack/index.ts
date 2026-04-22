@@ -9,13 +9,15 @@ import type {
 } from '@slack/web-api';
 
 import { getBotAccessToken } from '@/lib/db/queries/bot';
-import { generateState, hmac } from '@/lib/utils/auth';
+import { hmac } from '@/lib/utils/hmac';
 import { AuthorizationError, KnownError } from '@/lib/utils/errors';
-import { env } from '@/lib/utils/request';
+import { secret } from '@/lib/utils/env';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
 import { createMiddleware } from 'hono/factory';
 import { ZAccessResponse } from './dtos';
 import { DB } from '../db';
+import { encodeBase64urlNoPadding } from '@oslojs/encoding';
+import config from '@/config';
 
 // #region Config
 
@@ -28,10 +30,6 @@ export const APP_SCOPE = [
   'channels:read',
   'users:read',
 ].join(',');
-
-const OAUTH_STATE_COOKIE_NAME = 'lsa_auth_state';
-
-const SLACK_BASE_URL = 'https://slack.com/api';
 
 /**
  * @deprecated Keeping this around in case manual timezone
@@ -95,6 +93,7 @@ export const blocks = {
 
 // #endregion
 
+const SLACK_BASE_URL = 'https://slack.com/api';
 
 // #region Fetch Preferences
 
@@ -206,19 +205,17 @@ export const getUserTimeZone = async <V extends { db: DB }>(
  * @returns
  */
 export const exchangeCodeGrant = async (c: Context, code: string) => {
-  const clientId = env('SLACK_CLIENT_ID');
-  const clientSecret = env('SLACK_CLIENT_SECRET');
+  const clientSecret = secret('SLACK_CLIENT_SECRET');
 
   // todo
-  const baseUrl = env('BASE_URL');
   const response = await fetch(`${SLACK_BASE_URL}/oauth.v2.access`, {
     method: 'POST',
     body: new URLSearchParams({
       code,
-      redirect_uri: `${baseUrl}/register`,
+      redirect_uri: `${config.baseUrl}/register`,
     }),
     headers: {
-      'authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      'authorization': `Basic ${btoa(`${config.slack.clientId}:${clientSecret}`)}`,
     },
   });
 
@@ -243,7 +240,7 @@ export const exchangeCodeGrant = async (c: Context, code: string) => {
     access_token,
   } = result;
 
-  if (app_id !== env('SLACK_APP_ID')) {
+  if (app_id !== config.slack.appId) {
     throw new Error('Invalid Slack app ID', { cause: { app_id } });
   }
 
@@ -257,6 +254,8 @@ export const exchangeCodeGrant = async (c: Context, code: string) => {
 };
 
 
+const OAUTH_STATE_COOKIE_NAME = 'lsa_auth_state';
+
 /**
  * Generate a link that begins process of registering bot
  * to user's Slack workspace.
@@ -264,19 +263,20 @@ export const exchangeCodeGrant = async (c: Context, code: string) => {
  * @see https://api.slack.com/authentication/oauth-v2#asking
  */
 export const generateAuthorizationUrl = (c: Context) => {
-  const baseUrl = env('BASE_URL');
+  const buffer = new Uint8Array(32);
+  crypto.getRandomValues(buffer);
+  const state = encodeBase64urlNoPadding(buffer);
 
-  const state = generateState();
   const searchParams = new URLSearchParams({
-    client_id: env('SLACK_CLIENT_ID'),
+    client_id: config.slack.clientId,
     scope: APP_SCOPE,
     state,
-    redirect_uri: `${baseUrl}/register`,
+    redirect_uri: `${config.baseUrl}/register`,
   });
 
   setCookie(c, OAUTH_STATE_COOKIE_NAME, state, {
     path: '/',
-    secure: env('ENVIRONMENT') === 'production',
+    secure: config.environment === 'production',
     httpOnly: true,
     maxAge: 60 * 10,
     sameSite: 'lax',
@@ -285,7 +285,10 @@ export const generateAuthorizationUrl = (c: Context) => {
   return `https://slack.com/oauth/v2/authorize?${searchParams.toString()}`;
 };
 
-
+/**
+ *
+ * @see (generateAuthorizationUrl)
+ */
 export const validateRegistrationRequest = <E extends Env = Env>() => {
   return createMiddleware<E, '/register', { out: { query: { code: string } } }>(
     async (c: Context, next: Next) => {
@@ -358,7 +361,7 @@ export const verifySlackSignature = () => {
     const signatureData = `v0:${timestamp}:${body}`;
 
     const expectedSignature = hmac.createDigest(
-      env('SLACK_SIGNING_SECRET'),
+      secret('SLACK_SIGNING_SECRET'),
       signatureData,
       'hex'
     );

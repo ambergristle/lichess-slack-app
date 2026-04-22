@@ -4,17 +4,16 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { z } from 'zod';
 
 
-const CRON_FIELDS = [
-  'minute',
-  'hour',
-  'day',
-  'month',
-  'weekday',
-] as const;
+/**
+ * todo *\/2
+ */
+const validateCronExpression = (expression: string) => {
+  // eslint-disable-next-line -- Breaking up regex has problems of its own
+  const CRON_REGEX = /^(\*|[0-5]?\d)\s(\*|[01]?\d|2[0-3])\s(\*|[0-2]?\d|3[01])\s(\*|0?[1-9]|1[0-2])\s(\*|0?[0-6])$/;
+  return typeof expression === 'string' && CRON_REGEX.test(expression);
+};
 
-// todo *\/2
-// eslint-disable-next-line -- Breaking up regex has problems of its own
-const CRON_REGEX = /^(\*|[0-5]?\d)\s(\*|[01]?\d|2[0-3])\s(\*|[0-2]?\d|3[01])\s(\*|0?[1-9]|1[0-2])\s(\*|0?[0-6])$/;
+export type CronTime = Required<Pick<Cron, 'hour' | 'minute'>>
 
 type Cron = z.infer<typeof ZCron>;
 const ZCron = z.object({
@@ -27,11 +26,47 @@ const ZCron = z.object({
   message: 'Invalid Cron Expression',
 });
 
-export type CronTime = Required<Pick<Cron, 'hour' | 'minute'>>
+/**
+ * Convert structured Cron data into a
+ * CRON expression string.
+ */
+export const formatCronExpression = (data: Cron): string => {
+  const cronData = ZCron.parse(data);
+
+  const expression = ZCron.keyof().options.map((prop) => {
+    const value = cronData[prop];
+
+    return (typeof value === 'number' && !isNaN(value))
+      ? value.toString().padStart(2, '0')
+      : '*';
+  }).join(' ');
+
+  if (!validateCronExpression(expression)) {
+    throw new Error('Invalid Cron Expression');
+  }
+
+  return expression;
+};
 
 
-const validateCronExpression = (expression: string) => {
-  return typeof expression === 'string' && CRON_REGEX.test(expression);
+/**
+ * Localize and format UTC CronTime for display
+ * and form initialization.
+ */
+export const localizeUtc = (
+  { hour, minute }: CronTime,
+  timeZone: string,
+  locale: string
+) => {
+  const utcDate = new UTCDate(2010, 6, 20, hour, minute, 0, 0);
+
+  return {
+    display: utcDate.toLocaleTimeString(locale, {
+      timeZone,
+      timeStyle: 'short',
+    }),
+    defaultValue: formatInTimeZone(utcDate, timeZone, 'HH:mm'),
+  };
 };
 
 
@@ -43,7 +78,7 @@ export const parseCronTime = (expression: string): CronTime => {
   const data = expression
     .split(' ')
     .reduce((cron: Cron, value, index) => {
-      const fieldName = CRON_FIELDS[index];
+      const fieldName = ZCron.keyof().options[index];
 
       if (!fieldName) {
         throw new Error('Invalid Cron Expression');
@@ -72,31 +107,8 @@ export const parseCronTime = (expression: string): CronTime => {
 };
 
 
-export const stringifyCron = (data: Cron): string => {
-  const cronData = ZCron.parse(data);
-
-  const expression = CRON_FIELDS.map((prop) => {
-    const value = cronData[prop];
-
-    return (typeof value === 'number' && !isNaN(value))
-      ? value.toString().padStart(2, '0')
-      : '*';
-  }).join(' ');
-
-  if (!validateCronExpression(expression)) {
-    throw new Error('Invalid Cron Expression');
-  }
-
-  return expression;
-};
-
-
 /**
- *
- * @param zonedTime
- * @param timeZone
- * @param locale
- * @returns
+ * Convert CronTime from zoned to UTC
  */
 export const zonedToUtc = (
   { hour, minute }: CronTime,
@@ -109,29 +121,3 @@ export const zonedToUtc = (
     minute: tzDate.getUTCMinutes(),
   };
 };
-
-
-/**
- *
- * @param utcTime
- * @param timeZone
- * @param locale
- * @returns
- */
-export const localizeUtc = (
-  { hour, minute }: CronTime,
-  timeZone: string,
-  locale: string
-) => {
-  const utcDate = new UTCDate(2010, 6, 20, hour, minute, 0, 0);
-
-  return {
-    display: utcDate.toLocaleTimeString(locale, {
-      timeZone,
-      timeStyle: 'short',
-    }),
-    defaultValue: formatInTimeZone(utcDate, timeZone, 'HH:mm'),
-  };
-};
-
-
