@@ -1,14 +1,20 @@
 import { describe, expect, test } from 'bun:test';
-import { formatCronExpression, localizeUtc, parseCronTime, zonedToUtc } from './cron';
+import {
+  formatCronExpression,
+  localizeUtc,
+  parseCronTime,
+  zonedToUtc,
+} from './cron';
 
 describe('CRON Utils', () => {
   describe('formatCronExpression', () => {
-    const cases: [{ hour?: number; minute?: number; day?: number }, string][] = [
-      [{ hour: 0, minute: 0 }, '00 00 * * *'],
-      [{ hour: 12, minute: 0 }, '00 12 * * *'],
-      [{ hour: 0, minute: 30 }, '30 00 * * *'],
-      [{ day: 1 }, '* * 01 * *'],
-    ];
+    const cases: [{ hour?: number; minute?: number; day?: number }, string][] =
+      [
+        [{ hour: 0, minute: 0 }, '00 00 * * *'],
+        [{ hour: 12, minute: 0 }, '00 12 * * *'],
+        [{ hour: 0, minute: 30 }, '30 00 * * *'],
+        [{ day: 1 }, '* * 01 * *'],
+      ];
 
     test('Generate CRON expression', () => {
       for (const [args, expected] of cases) {
@@ -69,7 +75,10 @@ describe('CRON Utils', () => {
         { hour: number; minute: number },
       ][] = [
         [[{ hour: 0, minute: 0 }, 'Europe/Paris'], { hour: 22, minute: 0 }],
-        [[{ hour: 0, minute: 0 }, 'America/Los_Angeles'], { hour: 7, minute: 0 }],
+        [
+          [{ hour: 0, minute: 0 }, 'America/Los_Angeles'],
+          { hour: 7, minute: 0 },
+        ],
       ];
 
       for (const [args, expected] of cases) {

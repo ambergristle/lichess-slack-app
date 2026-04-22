@@ -1,7 +1,12 @@
 import type { Context, Env, Next } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
-import type { ActionsBlock, KnownBlock, PlainTextOption, SectionBlock } from '@slack/web-api';
+import type {
+  ActionsBlock,
+  KnownBlock,
+  PlainTextOption,
+  SectionBlock,
+} from '@slack/web-api';
 
 import { getBotAccessToken } from '@/lib/db/queries/bot';
 import { hmac } from '@/lib/utils/hmac';
@@ -19,7 +24,12 @@ import config from '@/config';
 /**
  * The scopes required by the app, requested on registration.
  */
-export const APP_SCOPE = ['commands', 'incoming-webhook', 'channels:read', 'users:read'].join(',');
+export const APP_SCOPE = [
+  'commands',
+  'incoming-webhook',
+  'channels:read',
+  'users:read',
+].join(',');
 
 /**
  * @deprecated Keeping this around in case manual timezone
@@ -107,7 +117,7 @@ export const getBotContext = async (db: DB, channelId: string) => {
       headers: {
         authorization: `Bearer ${accessToken}`,
       },
-    }
+    },
   );
 
   if (!response.ok) {
@@ -156,11 +166,13 @@ export const getUserTimeZone = async <V extends { db: DB }>(
 
   const { accessToken } = await getBotAccessToken(c.var.db, { botId });
   const response = await fetch(
-    `${SLACK_BASE_URL}/users.info` + '?' + queryParams, {
-    headers: {
-      authorization: `Bearer ${accessToken}`,
+    `${SLACK_BASE_URL}/users.info` + '?' + queryParams,
+    {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     throw new SlackError('Failed to get User info', {
@@ -260,7 +272,9 @@ export const generateAuthorizationUrl = (c: Context): string => {
     sameSite: 'lax',
   });
 
-  return new URL(`https://slack.com/oauth/v2/authorize?${queryParams}`).toString();
+  return new URL(
+    `https://slack.com/oauth/v2/authorize?${queryParams}`,
+  ).toString();
 };
 
 /**
@@ -329,7 +343,9 @@ export const verifySlackSignature = () => {
       'x-slack-request-timestamp': timestamp,
     } = c.req.header();
 
-    const isFromSlackbot = !!userAgent?.includes('Slackbot 1.0 (+https://api.slack.com/robots)');
+    const isFromSlackbot = !!userAgent?.includes(
+      'Slackbot 1.0 (+https://api.slack.com/robots)',
+    );
 
     const body = await c.req.text();
     const signatureData = `v0:${timestamp}:${body}`;
@@ -341,7 +357,10 @@ export const verifySlackSignature = () => {
     );
 
     const timestampIsValid = validateTimestamp(`${timestamp}`);
-    const signatureIsValid = hmac.compareDigests(`v0=${expectedSignature}`, `${signature}`);
+    const signatureIsValid = hmac.compareDigests(
+      `v0=${expectedSignature}`,
+      `${signature}`,
+    );
 
     // Obscure implementation details by throwing
     // after both validations have resolved

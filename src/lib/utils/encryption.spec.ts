@@ -1,4 +1,4 @@
-import { describe, expect, } from 'bun:test';
+import { describe, expect } from 'bun:test';
 import { test } from 'bun:test';
 import { decrypt, encrypt } from './encryption';
 
@@ -12,6 +12,8 @@ describe('Encryption', () => {
     expect(encrypted).not.toBe(encoded);
 
     const decrypted = decrypt(Uint8Array.from(encrypted));
-    expect(new TextDecoder().decode(decrypted)).toBe(new TextDecoder().decode(encoded));
+    expect(new TextDecoder().decode(decrypted)).toBe(
+      new TextDecoder().decode(encoded),
+    );
   });
 });

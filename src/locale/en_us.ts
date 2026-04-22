@@ -21,9 +21,11 @@ const locale = {
   closeWindowPrompt: 'You can now close this window',
 
   puzzleCommandInfo:
-    'Get a link to the Lichess Daily puzzle' + ' with a screenshot of the starting position.',
+    'Get a link to the Lichess Daily puzzle' +
+    ' with a screenshot of the starting position.',
   scheduleCommandInfo:
-    'Select a time to recieve the Lichess Daily Puzzle' + ' in the registered Slack channel',
+    'Select a time to recieve the Lichess Daily Puzzle' +
+    ' in the registered Slack channel',
 
   blocks: {
     /** @token message */
@@ -38,7 +40,8 @@ const locale = {
     schedulePrompt: 'Select a time to recieve the Lichess Daily Puzzle',
     scheduleSelectTime: 'Select time',
     /** @token timeString */
-    scheduleConfirmation: 'The daily puzzle will now be delivered at ${timeString}',
+    scheduleConfirmation:
+      'The daily puzzle will now be delivered at ${timeString}',
     cancelSchedule: 'Cancel Schedule',
   },
 

@@ -8,7 +8,9 @@ import { KnownError } from '@/lib/utils/errors';
 
 /** Bearer */
 export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
-  const isBotId = (identifier: BotIdentifier): identifier is { botId: string } => {
+  const isBotId = (
+    identifier: BotIdentifier,
+  ): identifier is { botId: string } => {
     const botId = (identifier as { botId: string }).botId;
     return !!botId && typeof botId === 'string';
   };

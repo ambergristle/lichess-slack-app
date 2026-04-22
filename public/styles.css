@@ -5,11 +5,13 @@
 
 @font-face {
   font-family: 'Noto Sans';
-  src: url('/public/assets/NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
+  src: url('/public/assets/NotoSans-VariableFont_wdth,wght.ttf')
+    format('truetype');
 }
 
 body {
-  background: hsl(37, 10%, 8%) linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px)
+  background: hsl(37, 10%, 8%)
+    linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px)
     no-repeat;
   color: rgb(186, 186, 186);
   font-family: 'Noto Sans', sans-serif;

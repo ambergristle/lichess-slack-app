@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 // #region OAuth Grant Flow
@@ -54,40 +53,44 @@ const zAction = z.object({
   type: z.string(),
 });
 
-const zButtonAction = zAction.extend({
-  type: z.literal('button'),
-  value: z.string(),
-}).transform((action) => ({
-  actionId: action.action_id,
-  blockId: action.block_id,
-  type: action.type,
-  value: action.value,
-}));
-
-/** @see https://api.slack.com/reference/block-kit/block-elements#timepicker */
-const zTimePickerAction = zAction.extend({
-  type: z.literal('timepicker'),
-  selected_time: z
-    .string()
-    .trim()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-}).transform((action) => {
-  const timeStrings = action.selected_time.split(':');
-
-  // String shape (HH:MM) enforced by regex
-  const hourString = timeStrings[0];
-  const minuteString = timeStrings[1];
-
-  return {
+const zButtonAction = zAction
+  .extend({
+    type: z.literal('button'),
+    value: z.string(),
+  })
+  .transform((action) => ({
     actionId: action.action_id,
     blockId: action.block_id,
     type: action.type,
-    selectedTime: {
-      hour: Number(hourString),
-      minute: Number(minuteString),
-    },
-  };
-});
+    value: action.value,
+  }));
+
+/** @see https://api.slack.com/reference/block-kit/block-elements#timepicker */
+const zTimePickerAction = zAction
+  .extend({
+    type: z.literal('timepicker'),
+    selected_time: z
+      .string()
+      .trim()
+      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  })
+  .transform((action) => {
+    const timeStrings = action.selected_time.split(':');
+
+    // String shape (HH:MM) enforced by regex
+    const hourString = timeStrings[0];
+    const minuteString = timeStrings[1];
+
+    return {
+      actionId: action.action_id,
+      blockId: action.block_id,
+      type: action.type,
+      selectedTime: {
+        hour: Number(hourString),
+        minute: Number(minuteString),
+      },
+    };
+  });
 
 /** @see https://api.slack.com/reference/interaction-payloads/block-actions */
 const zInteractivePayload = z
@@ -112,13 +115,10 @@ const zInteractivePayload = z
 
 /** @see https://api.slack.com/interactivity/handling#payloads */
 export const zInteractiveRequestBody = z.preprocess(
-  z
-    .object({ payload: z.string() })
-    .transform(({ payload }) => {
-      return JSON.parse(payload);
-    })
-    .parse,
-  zInteractivePayload
+  z.object({ payload: z.string() }).transform(({ payload }) => {
+    return JSON.parse(payload);
+  }).parse,
+  zInteractivePayload,
 );
 
 // #endregion

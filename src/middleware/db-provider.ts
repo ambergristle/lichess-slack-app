@@ -1,4 +1,4 @@
-import type { DB} from '@/lib/db';
+import type { DB } from '@/lib/db';
 import { getDb } from '@/lib/db';
 import { createMiddleware } from 'hono/factory';
 

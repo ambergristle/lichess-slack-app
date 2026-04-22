@@ -41,7 +41,9 @@ export const formatCronExpression = (data: Cron): string => {
     .options.map((prop) => {
       const value = cronData[prop];
 
-      return typeof value === 'number' && !isNaN(value) ? value.toString().padStart(2, '0') : '*';
+      return typeof value === 'number' && !isNaN(value)
+        ? value.toString().padStart(2, '0')
+        : '*';
     })
     .join(' ');
 
@@ -56,7 +58,11 @@ export const formatCronExpression = (data: Cron): string => {
  * Localize and format UTC CronTime for display
  * and form initialization.
  */
-export const localizeUtc = ({ hour, minute }: CronTime, timeZone: string, locale: string) => {
+export const localizeUtc = (
+  { hour, minute }: CronTime,
+  timeZone: string,
+  locale: string,
+) => {
   const utcDate = new UTCDate(2010, 6, 20, hour, minute, 0, 0);
 
   return {

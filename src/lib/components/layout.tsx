@@ -25,7 +25,11 @@ export const Layout = (
         {/* <meta name="theme-color" content="#2e2a24" /> */}
         <title>{localized.appName}</title>
         <meta content={ogDescription} name="description" />
-        <link rel="mask-icon" href="/public/assets/lichess/lichess.svg" color="black" />
+        <link
+          rel="mask-icon"
+          href="/public/assets/lichess/lichess.svg"
+          color="black"
+        />
         <link
           rel="icon"
           type="image/png"

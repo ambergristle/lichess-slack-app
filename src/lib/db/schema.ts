@@ -1,4 +1,10 @@
-import { blob, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  blob,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+} from 'drizzle-orm/sqlite-core';
 
 const timestamps = {
   createdAt: integer({ mode: 'timestamp' }).notNull(),

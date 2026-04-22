@@ -1,10 +1,14 @@
 import { Hono } from 'hono';
 
 import { getDailyPuzzle } from '@/lib/lichess';
-import { zScheduledDeliveryRequestBody } from '@/lib/dtos/qstash'
+import { zScheduledDeliveryRequestBody } from '@/lib/dtos/qstash';
 import { blocks } from '@/lib/slack';
 import { verifyQStashSignature } from '@/lib/qstash';
-import { handleEffectError, KnownError, processError } from '@/lib/utils/errors';
+import {
+  handleEffectError,
+  KnownError,
+  processError,
+} from '@/lib/utils/errors';
 import { getLocalized } from '@/lib/utils/locale';
 import { zodValidator } from '@/middleware/zod-validator';
 import { dbProvider } from '@/middleware/db-provider';

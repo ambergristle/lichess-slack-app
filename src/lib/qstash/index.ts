@@ -40,24 +40,29 @@ export const cancelJob = async (jobId: string) => {
  * @see https://upstash.com/docs/qstash/api-reference/schedules/create-a-schedule
  * @param jobId Job upserted on ID
  */
-export const scheduleJob = async (schedule: Pick<Schedule, 'jobId' | 'cron'>) => {
+export const scheduleJob = async (
+  schedule: Pick<Schedule, 'jobId' | 'cron'>,
+) => {
   try {
     const body = JSON.stringify({
       jobId: schedule.jobId,
     } satisfies ScheduledDeliveryRequestBody);
 
     const redirectUrl = `${config.baseUrl}/webhooks/schedule`;
-    const response = await fetch(`${QSTASH_BASE_URL}/schedules/${redirectUrl}`, {
-      method: 'POST',
-      body,
-      headers: {
-        authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
-        'content-type': 'application/json',
-        'content-length': body.length.toString(),
-        'upstash-cron': schedule.cron,
-        'upstash-schedule-id': schedule.jobId,
+    const response = await fetch(
+      `${QSTASH_BASE_URL}/schedules/${redirectUrl}`,
+      {
+        method: 'POST',
+        body,
+        headers: {
+          authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
+          'content-type': 'application/json',
+          'content-length': body.length.toString(),
+          'upstash-cron': schedule.cron,
+          'upstash-schedule-id': schedule.jobId,
+        },
       },
-    });
+    );
 
     const json = await response.json();
     const jobId = json.scheduleId;
@@ -70,8 +75,6 @@ export const scheduleJob = async (schedule: Pick<Schedule, 'jobId' | 'cron'>) =>
     throw new KnownError('Failed to schedule job', { cause });
   }
 };
-
-
 
 /**
  * @see https://upstash.com/docs/qstash/howto/signature
@@ -133,7 +136,7 @@ export const verifyQStashSignature = () => {
       const status = cause instanceof HTTPException ? cause.status : 500;
 
       throw new HTTPException(status, {
-        cause
+        cause,
       });
     }
   };

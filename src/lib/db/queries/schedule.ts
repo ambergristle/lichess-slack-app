@@ -7,11 +7,20 @@ import { cancelJob, scheduleJob } from '@/lib/qstash';
 import { formatCronExpression } from '@/lib/utils/cron';
 import { KnownError } from '@/lib/utils/errors';
 
-export const deleteSchedule = async (db: DB, botId: string, channelId: string) => {
+export const deleteSchedule = async (
+  db: DB,
+  botId: string,
+  channelId: string,
+) => {
   await db.transaction(async (tx) => {
     const result = await tx
       .delete(ScheduledPuzzleJob)
-      .where(and(eq(ScheduledPuzzleJob.botId, botId), eq(ScheduledPuzzleJob.channelId, channelId)))
+      .where(
+        and(
+          eq(ScheduledPuzzleJob.botId, botId),
+          eq(ScheduledPuzzleJob.channelId, channelId),
+        ),
+      )
       .returning({
         jobId: ScheduledPuzzleJob.jobId,
       });
@@ -106,7 +115,9 @@ export const createSchedule = async (
         webhookUrl: BotChannel.webhookUrl,
       })
       .from(BotChannel)
-      .where(and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId)));
+      .where(
+        and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId)),
+      );
 
     if (!botChannel) {
       throw new KnownError('Invalid Bot Channel', {

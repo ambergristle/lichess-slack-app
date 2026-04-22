@@ -53,7 +53,7 @@ export const site = new Hono()
             {repoUrl}
           </a>
         </p>
-      </div>
+      </div>,
     );
   })
   /**
@@ -70,12 +70,15 @@ export const site = new Hono()
       <div>
         <h1>{localized.registrationSucceeded}</h1>
         <p>{localized.closeWindowPrompt}</p>
-      </div>
+      </div>,
     );
   })
   .notFound((c) => {
     return c.render(
-      <ErrorView heading={'404'} details={"We couldn'nt find what you were looking for."} />,
+      <ErrorView
+        heading={'404'}
+        details={"We couldn'nt find what you were looking for."}
+      />,
     );
   })
   .onError((error, c) => {

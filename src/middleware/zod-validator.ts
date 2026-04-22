@@ -4,7 +4,10 @@ import type { z } from 'zod';
 
 import { ValidationError } from '@/lib/utils/errors';
 
-export const zodValidator = <Target extends keyof ValidationTargets, Schema extends z.ZodSchema>(
+export const zodValidator = <
+  Target extends keyof ValidationTargets,
+  Schema extends z.ZodSchema,
+>(
   target: Target,
   schema: Schema,
 ) => {

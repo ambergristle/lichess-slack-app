@@ -16,7 +16,10 @@ export const getLocalized = async (locale: string): Promise<Localized> => {
   return await import(`@/locale/${filePath}`).then((module) => module.default);
 };
 
-export const interpolate = (templateString: string, tokens: Record<string, string>) => {
+export const interpolate = (
+  templateString: string,
+  tokens: Record<string, string>,
+) => {
   let interpolated = templateString;
 
   Object.entries(tokens).forEach(([key, value]) => {

@@ -1,8 +1,15 @@
 import { Hono } from 'hono';
 
 import { generateRowId } from '@/lib/db/utils';
-import { deleteSchedule, createSchedule, getScheduleCurrent } from '@/lib/db/queries/schedule';
-import { zInteractiveRequestBody, zSlashCommandRequestBody } from '@/lib/dtos/slack';
+import {
+  deleteSchedule,
+  createSchedule,
+  getScheduleCurrent,
+} from '@/lib/db/queries/schedule';
+import {
+  zInteractiveRequestBody,
+  zSlashCommandRequestBody,
+} from '@/lib/dtos/slack';
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
@@ -12,8 +19,8 @@ import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
 import { zodValidator } from '@/middleware/zod-validator';
 
-const SET_SCHEDULE_ID = 'schedule:set'
-const CANCEL_SCHEDULE_ID = 'schedule:cancel'
+const SET_SCHEDULE_ID = 'schedule:set';
+const CANCEL_SCHEDULE_ID = 'schedule:cancel';
 
 export const slack = new Hono()
   .use(verifySlackSignature())
@@ -76,14 +83,8 @@ export const slack = new Hono()
               // parse (utc) cron string into structured data
               // localize UTC time
 
-              const {
-                defaultValue: defaultPickerValue,
-                display: timeString,
-              } = localizeUtc(
-                scheduledAt,
-                timeZone,
-                locale,
-              );
+              const { defaultValue: defaultPickerValue, display: timeString } =
+                localizeUtc(scheduledAt, timeZone, locale);
 
               return {
                 defaultPickerValue,
@@ -100,22 +101,23 @@ export const slack = new Hono()
           })();
 
           const { userId } = c.req.valid('form');
-          const timezone = schedule?.timeZone ?? (await getUserTimeZone(c, botId, userId));
+          const timezone =
+            schedule?.timeZone ?? (await getUserTimeZone(c, botId, userId));
 
           const actions = schedule
             ? [
-              blocks.actions([
-                {
-                  type: 'button',
-                  action_id: CANCEL_SCHEDULE_ID,
-                  value: schedule.jobId,
-                  text: {
-                    type: 'plain_text',
-                    text: localized.blocks.cancelSchedule,
+                blocks.actions([
+                  {
+                    type: 'button',
+                    action_id: CANCEL_SCHEDULE_ID,
+                    value: schedule.jobId,
+                    text: {
+                      type: 'plain_text',
+                      text: localized.blocks.cancelSchedule,
+                    },
                   },
-                },
-              ]),
-            ]
+                ]),
+              ]
             : [];
 
           return c.json(

@@ -13,7 +13,11 @@ export const hmac = {
    * @param data String data to include in token
    * @returns HMAC hex digest string
    */
-  createDigest: (secret: string, data: string, encoding: BinaryToTextEncoding) => {
+  createDigest: (
+    secret: string,
+    data: string,
+    encoding: BinaryToTextEncoding,
+  ) => {
     return createHmac('sha256', secret).update(data).digest(encoding);
   },
   /**

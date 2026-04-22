@@ -19,6 +19,8 @@ export type DB = ReturnType<typeof getDb>;
 
 class QueryLogger implements Logger {
   logQuery(query: string, params: unknown[]): void {
-    console.log('Query:\n' + `> ${query}\n` + `Params:${JSON.stringify(params, null, 2)}`);
+    console.log(
+      'Query:\n' + `> ${query}\n` + `Params:${JSON.stringify(params, null, 2)}`,
+    );
   }
 }

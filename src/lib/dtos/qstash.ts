@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-export type ScheduledDeliveryRequestBody = z.infer<typeof zScheduledDeliveryRequestBody>;
+export type ScheduledDeliveryRequestBody = z.infer<
+  typeof zScheduledDeliveryRequestBody
+>;
 
 /**
  * Data included in the scheduled callback,
