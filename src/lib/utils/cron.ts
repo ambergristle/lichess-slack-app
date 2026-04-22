@@ -4,7 +4,8 @@ import { formatInTimeZone } from 'date-fns-tz/formatInTimeZone';
 import { z } from 'zod';
 
 /**
- * todo *\/2
+ * Validate that value is string conforming to CRON spec.
+ * @see https://crontab.guru/
  */
 const validateCronExpression = (expression: string) => {
   // eslint-disable-next-line -- Breaking up regex has problems of its own

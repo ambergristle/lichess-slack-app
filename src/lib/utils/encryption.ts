@@ -41,7 +41,7 @@ export const encrypt = (data: Uint8Array): Buffer => {
 
   const cipher = createCipheriv('aes-128-gcm', getCypherKey(), iv);
 
-  // todo: Uint8Array wrapping is necessary to resolve
+  // Uint8Array wrapping is necessary to resolve
   // an issue with how @types/bun implements ArrayBuffer.
   const buffer = Buffer.concat([
     iv,

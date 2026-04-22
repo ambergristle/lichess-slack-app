@@ -74,13 +74,11 @@ export const site = new Hono()
     );
   })
   .notFound((c) => {
-    // todo: respect accepts?
     return c.render(
       <ErrorView heading={'404'} details={"We couldn'nt find what you were looking for."} />,
     );
   })
   .onError((error, c) => {
-    // todo: respect accepts?
     const { message } = processError(error);
 
     return c.render(<ErrorView heading={'Error'} details={message} />);

@@ -35,7 +35,6 @@ export const cancelJob = async (jobId: string) => {
 };
 
 /**
- * todo?: Upstash-Forward-My-Header
  * Schedule a callback to `/webhooks/schedule` with bot id and locale.
  * This triggers a daily puzzle message.
  * @see https://upstash.com/docs/qstash/api-reference/schedules/create-a-schedule
@@ -94,8 +93,6 @@ export const verifyQStashSignature = () => {
 
   return async (c: Context, next: Next) => {
     try {
-      // todo: could grab upstash-schedule-id instead of
-      // passing the botId/locale in the payload
       const signature = c.req.header('upstash-signature');
       if (!signature) {
         throw new HTTPException(401, { message: 'Missing Upstash signature' });

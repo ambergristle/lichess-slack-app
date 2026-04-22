@@ -1,7 +1,6 @@
 import { HTTPException } from 'hono/http-exception';
 import { ContentfulStatusCode, SuccessStatusCode } from 'hono/utils/http-status';
 
-// todo
 export const handleEffectError = (error: unknown) => {
   //
 };

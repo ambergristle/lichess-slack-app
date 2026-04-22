@@ -79,7 +79,6 @@ export const getScheduledDelivery = async (db: DB, scheduleId: string) => {
 };
 
 /**
- * todo: validate tz, locale?
  * Upsert delivery schedule record and third-party job (on `jobId`).
  * @param db
  * @param scheduleData

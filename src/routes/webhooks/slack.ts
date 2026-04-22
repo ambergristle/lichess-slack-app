@@ -6,11 +6,14 @@ import { zInteractiveRequestBody, zSlashCommandRequestBody } from '@/lib/dtos/sl
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
-import { processError } from '@/lib/utils/errors';
+import { handleEffectError, processError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
 import { zodValidator } from '@/middleware/zod-validator';
+
+const SET_SCHEDULE_ID = 'schedule:set'
+const CANCEL_SCHEDULE_ID = 'schedule:cancel'
 
 export const slack = new Hono()
   .use(verifySlackSignature())
@@ -70,7 +73,13 @@ export const slack = new Hono()
               const { cron, timeZone } = schedule;
               const scheduledAt = parseCronTime(cron);
 
-              const { defaultValue: defaultPickerValue, display: timeString } = localizeUtc(
+              // parse (utc) cron string into structured data
+              // localize UTC time
+
+              const {
+                defaultValue: defaultPickerValue,
+                display: timeString,
+              } = localizeUtc(
                 scheduledAt,
                 timeZone,
                 locale,
@@ -98,11 +107,11 @@ export const slack = new Hono()
               blocks.actions([
                 {
                   type: 'button',
-                  action_id: 'cancel-schedule',
+                  action_id: CANCEL_SCHEDULE_ID,
                   value: schedule.jobId,
                   text: {
                     type: 'plain_text',
-                    text: 'Cancel Schedule',
+                    text: localized.blocks.cancelSchedule,
                   },
                 },
               ]),
@@ -115,7 +124,7 @@ export const slack = new Hono()
                 blocks.section({
                   text: message,
                   accessory: {
-                    action_id: 'select-time',
+                    action_id: SET_SCHEDULE_ID,
                     type: 'timepicker',
                     initial_time: defaultPickerValue,
                     timezone,
@@ -136,7 +145,7 @@ export const slack = new Hono()
         default: {
           return c.json({
             response_type: 'ephemeral',
-            text: 'Unknown command',
+            text: localized.commandErrors.unknownCommand,
           });
         }
       }
@@ -157,10 +166,9 @@ export const slack = new Hono()
       switch (action.type) {
         case 'button': {
           // #region
-          if (action.actionId === 'schedule:cancel') {
+          if (action.actionId === CANCEL_SCHEDULE_ID) {
             await deleteSchedule(c.var.db, botId, channelId);
 
-            // todo: handle error?
             fetch(responseUrl, {
               method: 'POST',
               body: JSON.stringify({
@@ -168,7 +176,7 @@ export const slack = new Hono()
                 text: 'Your scheduled Daily Puzzle has been canceled!',
               }),
               headers: { 'content-type': 'application/json' },
-            });
+            }).catch(handleEffectError);
           }
           // #endregion
           break;
@@ -176,7 +184,6 @@ export const slack = new Hono()
         case 'timepicker': {
           // #region
           if (action.actionId !== 'schedule:set') {
-            // todo: invalid action id
             break;
           }
 
@@ -196,7 +203,6 @@ export const slack = new Hono()
             timeString: display,
           });
 
-          // todo: handle error?
           fetch(responseUrl, {
             method: 'POST',
             body: JSON.stringify({
@@ -204,12 +210,11 @@ export const slack = new Hono()
               text: message,
             }),
             headers: { 'content-type': 'application/json' },
-          });
+          }).catch(handleEffectError);
           // #endregion
           break;
         }
         default: {
-          // todo: throw?
           break;
         }
       }

@@ -305,7 +305,6 @@ const unixMilliseconds = (timestamp: string) => {
 // };
 
 /**
- * todo?: 3s window for response
  * Protect against replay attacks by requiring that timestamps
  * differ from local (server) time by no more than 5 minutes
  * @param timestamp Unix timestamp

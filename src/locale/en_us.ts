@@ -39,6 +39,7 @@ const locale = {
     scheduleSelectTime: 'Select time',
     /** @token timeString */
     scheduleConfirmation: 'The daily puzzle will now be delivered at ${timeString}',
+    cancelSchedule: 'Cancel Schedule',
   },
 
   commandErrors: {
@@ -46,6 +47,7 @@ const locale = {
     puzzle: 'The daily puzzle is currently unavailable.',
     schedule: 'Your scheduling preferences could not be retrieved.',
     set: 'Puzzle delivery could not be scheduled.',
+    unknownCommand: 'Unknown command.',
   },
 
   httpErrors: {

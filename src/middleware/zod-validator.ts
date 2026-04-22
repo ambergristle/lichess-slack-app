@@ -11,7 +11,6 @@ export const zodValidator = <Target extends keyof ValidationTargets, Schema exte
   return validator(target, async (value): Promise<z.output<Schema>> => {
     const result = await schema.safeParseAsync(value);
     if (!result.success) {
-      // todo: issues
       throw new ValidationError(`Invalid ${target} data`, {
         issues: result.error.issues,
         cause: result.error,
