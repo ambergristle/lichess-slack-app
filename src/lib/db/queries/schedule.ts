@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
-import { DB } from '@/lib/db';
+import type { DB } from '@/lib/db';
 import { BotChannel, ScheduledPuzzleJob } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
 import { cancelJob, scheduleJob } from '@/lib/qstash';

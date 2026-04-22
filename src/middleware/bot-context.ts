@@ -1,9 +1,9 @@
 import { createMiddleware } from 'hono/factory';
 
 import { getLocalized } from '@/lib/utils/locale';
-import { Localized } from '@/locale/types';
+import type { Localized } from '@/locale/types';
 import { getBotContext } from '@/lib/slack';
-import { DB } from '@/lib/db';
+import type { DB } from '@/lib/db';
 
 export const botContext = () => {
   return createMiddleware<BotContext, string, InteractionInput>(async (c, next) => {

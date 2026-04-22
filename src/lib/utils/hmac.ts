@@ -29,7 +29,7 @@ export const hmac = {
       const hmacBufferB = new TextEncoder().encode(hmacDigestB);
 
       return timingSafeEqual(hmacBufferA, hmacBufferB);
-    } catch (error) {
+    } catch {
       return false;
     }
   },

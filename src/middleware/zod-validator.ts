@@ -1,6 +1,6 @@
 import type { ValidationTargets } from 'hono';
 import { validator } from 'hono/validator';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { ValidationError } from '@/lib/utils/errors';
 

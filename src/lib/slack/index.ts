@@ -10,7 +10,7 @@ import { secret } from '@/lib/utils/env';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
 import { createMiddleware } from 'hono/factory';
 import { zOAuthAccessResponseBody } from '@/lib/dtos/slack';
-import { DB } from '../db';
+import type { DB } from '../db';
 import { encodeBase64urlNoPadding } from '@oslojs/encoding';
 import config from '@/config';
 

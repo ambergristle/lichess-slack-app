@@ -1,4 +1,4 @@
-import { Localized } from '@/locale/types';
+import type { Localized } from '@/locale/types';
 
 const filePaths: Record<string, 'en_us'> = {
   'en,en-US': 'en_us',

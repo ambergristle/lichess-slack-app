@@ -1,4 +1,4 @@
-import { Logger } from 'drizzle-orm/logger';
+import type { Logger } from 'drizzle-orm/logger';
 import { drizzle } from 'drizzle-orm/libsql';
 import config from '@/config';
 

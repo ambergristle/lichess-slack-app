@@ -4,7 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import jwt from 'jsonwebtoken';
 
 import config from '@/config';
-import { Schedule } from '@/lib/db/schema';
+import type { Schedule } from '@/lib/db/schema';
 import type { ScheduledDeliveryRequestBody } from '@/lib/dtos/qstash';
 import { secret } from '@/lib/utils/env';
 import { KnownError } from '@/lib/utils/errors';

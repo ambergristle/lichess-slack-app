@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import { DB } from '@/lib/db';
+import type { DB } from '@/lib/db';
 import { Bot, BotChannel } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
 import { decrypt, encrypt } from '@/lib/utils/encryption';

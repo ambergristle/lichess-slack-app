@@ -20,7 +20,7 @@
     "lint": "oxlint",
     "lint:fix": "bun run lint --fix",
     "fmt": "oxfmt --check",
-    "fmt:check": "oxfmt",
+    "fmt:fix": "oxfmt",
     "db:push": "bunx --bun drizzle-kit push",
     "db:generate": "bunx --bun drizzle-kit generate",
     "db:migrate": "bunx --bun drizzle-kit migrate",
