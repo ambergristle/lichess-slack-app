@@ -12,6 +12,7 @@
       }
     ],
     "no-nested-ternary": "error",
+    "typescript/consistent-type-imports": "error",
     "unicorn/empty-brace-spaces": "error"
   },
   "env": {

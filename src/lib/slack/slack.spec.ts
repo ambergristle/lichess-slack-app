@@ -110,7 +110,6 @@ describe('Verify Slack Signature', () => {
   })
 
   test('Reject malformed signature', async () => {
-
     const body = 'test'
     const timestamp = toUnix(new Date(Date.now() - 1000 * 60 * 5 + 1))
     const signature = hmac.createDigest(
@@ -136,7 +135,7 @@ describe('Generate Authorization URL', () => {
   const app = new Hono()
     .get('/', (c) => c.text(generateAuthorizationUrl(c)))
 
-  test('', async () => {
+  test('Craft URL and set `state` cookie', async () => {
     const res = await app.request('/')
     const url = new URL(await res.text())
 
@@ -174,12 +173,12 @@ describe('Validate Registration Request', () => {
     const query = new URLSearchParams({
       code: 'TEST_CODE',
       state,
-    })
+    }).toString()
 
-    const res = await app.request('/?' + query.toString(), {
+    const res = await app.request('/' + '?' + query, {
       headers: {
         'cookie': `lsa_auth_state=${state}; Max-Age=600; Path=/; HttpOnly; SameSite=Lax`
-      }
+      },
     })
 
     expect(res.status).toBe(200)
@@ -200,9 +199,9 @@ describe('Validate Registration Request', () => {
     const query = new URLSearchParams({
       code: 'TEST_CODE',
       state: 'MANIPULATED',
-    })
+    }).toString()
 
-    const res = await app.request('/?' + query.toString(), {
+    const res = await app.request('/' + '?' + query, {
       headers: {
         'cookie': `lsa_auth_state=${state}; Max-Age=600; Path=/; HttpOnly; SameSite=Lax`
       }

@@ -9,7 +9,7 @@ import { AuthorizationError, KnownError } from '@/lib/utils/errors';
 import { secret } from '@/lib/utils/env';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
 import { createMiddleware } from 'hono/factory';
-import { ZAccessResponse } from './dtos';
+import { zOAuthAccessResponseBody } from '@/lib/dtos/slack';
 import { DB } from '../db';
 import { encodeBase64urlNoPadding } from '@oslojs/encoding';
 import config from '@/config';
@@ -101,11 +101,14 @@ export const getBotContext = async (db: DB, channelId: string) => {
   }).toString();
 
   const { botId, accessToken } = await getBotAccessToken(db, { channelId });
-  const response = await fetch(`${SLACK_BASE_URL}/conversations.info` + queryParams, {
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const response = await fetch(
+    `${SLACK_BASE_URL}/conversations.info` + '?' + queryParams,
+    {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     if ((await response.text()) === 'channel_not_found') {
@@ -146,14 +149,14 @@ export const getUserTimeZone = async <V extends { db: DB }>(
   botId: string,
   userId: string,
 ) => {
-  const { accessToken } = await getBotAccessToken(c.var.db, { botId });
-
   const queryParams = new URLSearchParams({
     user: userId,
     include_locale: 'true',
   }).toString();
 
-  const response = await fetch(`${SLACK_BASE_URL}/users.info` + queryParams, {
+  const { accessToken } = await getBotAccessToken(c.var.db, { botId });
+  const response = await fetch(
+    `${SLACK_BASE_URL}/users.info` + '?' + queryParams, {
     headers: {
       authorization: `Bearer ${accessToken}`,
     },
@@ -182,16 +185,11 @@ export const getUserTimeZone = async <V extends { db: DB }>(
 // #region Registration
 
 /**
- *
+ * Exchange auth code for access token
  * @see https://api.slack.com/methods/oauth.v2.access
- * @param c
- * @param code
- * @returns
  */
-export const exchangeCodeGrant = async (c: Context, code: string) => {
+export const exchangeCodeGrant = async (code: string) => {
   const clientSecret = secret('SLACK_CLIENT_SECRET');
-
-  // todo
   const response = await fetch(`${SLACK_BASE_URL}/oauth.v2.access`, {
     method: 'POST',
     body: new URLSearchParams({
@@ -208,7 +206,7 @@ export const exchangeCodeGrant = async (c: Context, code: string) => {
   }
 
   const json = await response.json();
-  const result = ZAccessResponse.parse(json);
+  const result = zOAuthAccessResponseBody.parse(json);
 
   if (!result.ok) {
     throw new SlackError('Registration Failed', {
@@ -238,18 +236,21 @@ const OAUTH_STATE_COOKIE_NAME = 'lsa_auth_state';
  * to user's Slack workspace.
  * @note The redirect url should point to the registration webhook handler
  * @see https://api.slack.com/authentication/oauth-v2#asking
+ * @param c Context is used to set `state` cookie
  */
-export const generateAuthorizationUrl = (c: Context) => {
+export const generateAuthorizationUrl = (c: Context): string => {
+  // Generate random state to mitigate CSRF attacks.
+  // Could also encode + hash auth request data.
   const buffer = new Uint8Array(32);
   crypto.getRandomValues(buffer);
   const state = encodeBase64urlNoPadding(buffer);
 
-  const searchParams = new URLSearchParams({
+  const queryParams = new URLSearchParams({
     client_id: config.slack.clientId,
     scope: APP_SCOPE,
     state,
     redirect_uri: `${config.baseUrl}/register`,
-  });
+  }).toString();
 
   setCookie(c, OAUTH_STATE_COOKIE_NAME, state, {
     path: '/',
@@ -259,7 +260,7 @@ export const generateAuthorizationUrl = (c: Context) => {
     sameSite: 'lax',
   });
 
-  return `https://slack.com/oauth/v2/authorize?${searchParams.toString()}`;
+  return new URL(`https://slack.com/oauth/v2/authorize?${queryParams}`).toString();
 };
 
 /**

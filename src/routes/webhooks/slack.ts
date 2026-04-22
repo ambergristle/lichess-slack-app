@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 
 import { generateRowId } from '@/lib/db/utils';
 import { deleteSchedule, createSchedule, getScheduleCurrent } from '@/lib/db/queries/schedule';
+import { zInteractiveRequestBody, zSlashCommandRequestBody } from '@/lib/dtos/slack';
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
-import { ZInteractiveRequestBody, ZSlashCommandBody } from '@/lib/slack/dtos';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
 import { processError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
@@ -16,7 +16,7 @@ export const slack = new Hono()
   .use(verifySlackSignature())
   .post(
     '/commands/:command',
-    zodValidator('form', ZSlashCommandBody),
+    zodValidator('form', zSlashCommandRequestBody),
     // userLimiter(slackBucket, 1),
     dbProvider(),
     botContext(),
@@ -95,18 +95,18 @@ export const slack = new Hono()
 
           const actions = schedule
             ? [
-                blocks.actions([
-                  {
-                    type: 'button',
-                    action_id: 'cancel-schedule',
-                    value: schedule.jobId,
-                    text: {
-                      type: 'plain_text',
-                      text: 'Cancel Schedule',
-                    },
+              blocks.actions([
+                {
+                  type: 'button',
+                  action_id: 'cancel-schedule',
+                  value: schedule.jobId,
+                  text: {
+                    type: 'plain_text',
+                    text: 'Cancel Schedule',
                   },
-                ]),
-              ]
+                },
+              ]),
+            ]
             : [];
 
           return c.json(
@@ -144,7 +144,7 @@ export const slack = new Hono()
   )
   .post(
     '/interactions',
-    zodValidator('form', ZInteractiveRequestBody),
+    zodValidator('form', zInteractiveRequestBody),
     // userLimiter(slackBucket, 1),
     dbProvider(),
     botContext(),

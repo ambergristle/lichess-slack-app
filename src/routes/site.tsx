@@ -39,7 +39,12 @@ export const site = new Hono()
         <h1>{localized.appName}</h1>
         <p>{localized.appDescription}</p>
         <a href={registrationHref} class="register-button">
-          <img src="/public/assets/slack/slack-logo.svg" height="16" width="16" alt="Slack logo" />
+          <img
+            src="/public/assets/slack/slack-logo.svg"
+            height="16"
+            width="16"
+            alt="Slack logo"
+          />
           {localized.addToSlack}
         </a>
         <p class="text-small">
@@ -48,7 +53,7 @@ export const site = new Hono()
             {repoUrl}
           </a>
         </p>
-      </div>,
+      </div>
     );
   })
   /**
@@ -57,7 +62,7 @@ export const site = new Hono()
   .get('/register', validateRegistrationRequest(), dbProvider(), async (c) => {
     const { code } = c.req.valid('query');
 
-    const grant = await exchangeCodeGrant(c, code);
+    const grant = await exchangeCodeGrant(code);
     await registerBot(c.var.db, grant);
 
     const { localized } = c.var;
@@ -65,7 +70,7 @@ export const site = new Hono()
       <div>
         <h1>{localized.registrationSucceeded}</h1>
         <p>{localized.closeWindowPrompt}</p>
-      </div>,
+      </div>
     );
   })
   .notFound((c) => {

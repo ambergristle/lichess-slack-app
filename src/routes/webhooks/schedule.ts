@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 
 import { getDailyPuzzle } from '@/lib/lichess';
+import { zScheduledDeliveryRequestBody } from '@/lib/dtos/qstash'
 import { blocks } from '@/lib/slack';
-import { verifyQStashSignature, ZScheduledPuzzleJobData } from '@/lib/qstash';
+import { verifyQStashSignature } from '@/lib/qstash';
 import { handleEffectError, KnownError, processError } from '@/lib/utils/errors';
 import { getLocalized } from '@/lib/utils/locale';
 import { zodValidator } from '@/middleware/zod-validator';
@@ -14,7 +15,7 @@ export const schedule = new Hono()
   .post(
     '/',
     verifyQStashSignature(),
-    zodValidator('json', ZScheduledPuzzleJobData),
+    zodValidator('json', zScheduledDeliveryRequestBody),
     dbProvider(),
     async (c) => {
       const { jobId } = c.req.valid('json');

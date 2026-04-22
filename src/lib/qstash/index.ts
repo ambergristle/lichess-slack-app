@@ -1,13 +1,13 @@
 import { createHash } from 'crypto';
 import type { Context, Next } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import jwt from 'jsonwebtoken';
-import { z } from 'zod';
 
 import config from '@/config';
+import { Schedule } from '@/lib/db/schema';
+import type { ScheduledDeliveryRequestBody } from '@/lib/dtos/qstash';
 import { secret } from '@/lib/utils/env';
 import { KnownError } from '@/lib/utils/errors';
-import { HTTPException } from 'hono/http-exception';
-import { Schedule } from '../db/schema';
 
 const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
 
@@ -45,7 +45,7 @@ export const scheduleJob = async (schedule: Pick<Schedule, 'jobId' | 'cron'>) =>
   try {
     const body = JSON.stringify({
       jobId: schedule.jobId,
-    } satisfies SchedueldPuzzleJobData);
+    } satisfies ScheduledDeliveryRequestBody);
 
     const redirectUrl = `${config.baseUrl}/webhooks/schedule`;
     const response = await fetch(`${QSTASH_BASE_URL}/schedules/${redirectUrl}`, {
@@ -72,20 +72,7 @@ export const scheduleJob = async (schedule: Pick<Schedule, 'jobId' | 'cron'>) =>
   }
 };
 
-type SchedueldPuzzleJobData = z.infer<typeof ZScheduledPuzzleJobData>;
-/**
- * Data included in the scheduled callback,
- * specifies everything required for puzzle delivery.
- * @see {scheduleJob}
- */
-export const ZScheduledPuzzleJobData = z.object(
-  {
-    jobId: z.string(),
-  },
-  {
-    message: 'Invalid job response',
-  },
-);
+
 
 /**
  * @see https://upstash.com/docs/qstash/howto/signature
