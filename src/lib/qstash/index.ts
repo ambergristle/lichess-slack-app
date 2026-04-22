@@ -9,7 +9,6 @@ import { KnownError } from '@/lib/utils/errors';
 import { HTTPException } from 'hono/http-exception';
 import { Schedule } from '../db/schema';
 
-
 const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
 
 /**
@@ -21,7 +20,7 @@ export const cancelJob = async (jobId: string) => {
     const response = await fetch(`${QSTASH_BASE_URL}/schedules/${jobId}`, {
       method: 'DELETE',
       headers: {
-        'authorization': `Bearer ${secret('QSTASH_TOKEN')}`,
+        authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
       },
     });
 
@@ -30,12 +29,10 @@ export const cancelJob = async (jobId: string) => {
         cause: response,
       });
     }
-
   } catch (cause) {
     throw new KnownError('Failed to cancel schedule', { cause });
   }
 };
-
 
 /**
  * todo?: Upstash-Forward-My-Header
@@ -44,29 +41,24 @@ export const cancelJob = async (jobId: string) => {
  * @see https://upstash.com/docs/qstash/api-reference/schedules/create-a-schedule
  * @param jobId Job upserted on ID
  */
-export const scheduleJob = async (
-  schedule: Pick<Schedule, 'jobId' | 'cron'>
-) => {
+export const scheduleJob = async (schedule: Pick<Schedule, 'jobId' | 'cron'>) => {
   try {
     const body = JSON.stringify({
       jobId: schedule.jobId,
     } satisfies SchedueldPuzzleJobData);
 
     const redirectUrl = `${config.baseUrl}/webhooks/schedule`;
-    const response = await fetch(
-      `${QSTASH_BASE_URL}/schedules/${redirectUrl}`,
-      {
-        method: 'POST',
-        body,
-        headers: {
-          'authorization': `Bearer ${secret('QSTASH_TOKEN')}`,
-          'content-type': 'application/json',
-          'content-length': body.length.toString(),
-          'upstash-cron': schedule.cron,
-          'upstash-schedule-id': schedule.jobId,
-        },
-      }
-    );
+    const response = await fetch(`${QSTASH_BASE_URL}/schedules/${redirectUrl}`, {
+      method: 'POST',
+      body,
+      headers: {
+        authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
+        'content-type': 'application/json',
+        'content-length': body.length.toString(),
+        'upstash-cron': schedule.cron,
+        'upstash-schedule-id': schedule.jobId,
+      },
+    });
 
     const json = await response.json();
     const jobId = json.scheduleId;
@@ -80,19 +72,20 @@ export const scheduleJob = async (
   }
 };
 
-
-type SchedueldPuzzleJobData = z.infer<typeof ZScheduledPuzzleJobData>
+type SchedueldPuzzleJobData = z.infer<typeof ZScheduledPuzzleJobData>;
 /**
  * Data included in the scheduled callback,
  * specifies everything required for puzzle delivery.
  * @see {scheduleJob}
  */
-export const ZScheduledPuzzleJobData = z.object({
-  jobId: z.string(),
-}, {
-  message: 'Invalid job response',
-});
-
+export const ZScheduledPuzzleJobData = z.object(
+  {
+    jobId: z.string(),
+  },
+  {
+    message: 'Invalid job response',
+  },
+);
 
 /**
  * @see https://upstash.com/docs/qstash/howto/signature
@@ -125,7 +118,6 @@ export const verifyQStashSignature = () => {
 
       let payload: jwt.JwtPayload;
       try {
-
         const currentKey = secret('QSTASH_CURRENT_SIGNING_KEY');
         payload = verifySignature(signature, currentKey);
       } catch {
@@ -143,9 +135,7 @@ export const verifyQStashSignature = () => {
 
       let bodyHash: string;
       try {
-        bodyHash = createHash('sha256')
-          .update(body)
-          .digest('base64url');
+        bodyHash = createHash('sha256').update(body).digest('base64url');
       } catch {
         throw new HTTPException(401, { message: 'Invalid token body' });
       }
@@ -156,11 +146,11 @@ export const verifyQStashSignature = () => {
 
       await next();
     } catch (cause) {
-      const status = cause instanceof HTTPException
-        ? cause.status
-        : 500;
+      const status = cause instanceof HTTPException ? cause.status : 500;
 
-      throw new HTTPException(status, { cause });
+      throw new HTTPException(status, {
+        cause
+      });
     }
   };
 };

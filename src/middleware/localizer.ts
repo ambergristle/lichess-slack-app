@@ -5,7 +5,6 @@ import { getLocalized } from '@/lib/utils/locale';
 
 export const localizer = () => {
   return createMiddleware<LocaleEnv>(async (c, next) => {
-
     const locale = accepts(c, {
       header: 'Accept-Language',
       supports: ['en', 'en-US'],
@@ -24,5 +23,5 @@ export const localizer = () => {
 export type LocaleEnv = {
   Variables: {
     localized: Awaited<ReturnType<typeof getLocalized>>;
-  }
-}
+  };
+};

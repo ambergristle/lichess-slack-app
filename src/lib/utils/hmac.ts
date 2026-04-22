@@ -1,9 +1,4 @@
-import {
-  createHmac,
-  timingSafeEqual,
-  type BinaryToTextEncoding,
-} from 'crypto';
-
+import { createHmac, timingSafeEqual, type BinaryToTextEncoding } from 'crypto';
 
 /**
  * A utility exposing the logic required to verify Slack signatures
@@ -18,14 +13,8 @@ export const hmac = {
    * @param data String data to include in token
    * @returns HMAC hex digest string
    */
-  createDigest: (
-    secret: string,
-    data: string,
-    encoding: BinaryToTextEncoding
-  ) => {
-    return createHmac('sha256', secret)
-      .update(data)
-      .digest(encoding);
+  createDigest: (secret: string, data: string, encoding: BinaryToTextEncoding) => {
+    return createHmac('sha256', secret).update(data).digest(encoding);
   },
   /**
    * Compare two strings using a time-constant algo, preventing malicious
@@ -41,7 +30,6 @@ export const hmac = {
 
       return timingSafeEqual(hmacBufferA, hmacBufferB);
     } catch (error) {
-      console.error(error);
       return false;
     }
   },

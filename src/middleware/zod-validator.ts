@@ -4,11 +4,10 @@ import { z } from 'zod';
 
 import { ValidationError } from '@/lib/utils/errors';
 
-
-export const zodValidator = <
-    Target extends keyof ValidationTargets,
-    Schema extends z.ZodSchema
->(target: Target, schema: Schema) => {
+export const zodValidator = <Target extends keyof ValidationTargets, Schema extends z.ZodSchema>(
+  target: Target,
+  schema: Schema,
+) => {
   return validator(target, async (value): Promise<z.output<Schema>> => {
     const result = await schema.safeParseAsync(value);
     if (!result.success) {
@@ -22,7 +21,6 @@ export const zodValidator = <
     return result.data;
   });
 };
-
 
 // /**
 //  *

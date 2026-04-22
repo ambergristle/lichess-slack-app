@@ -1,47 +1,39 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 # See https://bun.sh/guides/ecosystem/docker for more about bun specifics
 
-# System
-.DS_Store
-
-# Documentation
-README.md
-LICENSE
-.obsidian/
-bruno/
-docs/
-
-# Config
-.vscode
-eslint.config.js
-# drizzle.config.dev
-# tsconfig.json
-
 # Dependencies
 node_modules
 
 # Environment variable files
 .env
-.env.local
+.env.*
 
-# SQLite
-*.sqlite
-*.sqlite-shm
-*.sqlite-wal
+# System
+.DS_Store
 
-# Docker
-Dockerfile*
-docker-compose*
-.dockerignore
+# Config
+.vscode
+.oxfmtrc.json
+.oxlintrc.json
+# drizzle.config.dev
+# tsconfig.json
 
 # Git
 .git
 .gitignore
 .gitattributes
 
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
 
+# SQLite
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
-
+# ?
 Makefile
 helm-charts
 .editorconfig

@@ -1,6 +1,5 @@
 import { defineConfig } from 'drizzle-kit';
-import { getLocalSQLiteDBPath } from 'drizzle/utils';
-
+// import { getLocalSQLiteDBPath } from 'drizzle/utils';
 
 export default generateLocalDrizzleConfig();
 
@@ -11,7 +10,6 @@ export default generateLocalDrizzleConfig();
  */
 function generateLocalDrizzleConfig() {
   if (process.env.ENVIRONMENT === 'production') {
-
     try {
       return defineConfig({
         out: './drizzle/migrations',
@@ -51,7 +49,6 @@ function generateLocalDrizzleConfig() {
         url: databaseUrl,
       },
     });
-
   } catch (error) {
     console.error(error);
     process.exit(1);

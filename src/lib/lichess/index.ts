@@ -16,12 +16,11 @@ export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
 
   return {
     puzzleUrl: `https://lichess.org/training/${puzzleId}`,
-    puzzleThumbUrl:
-        `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
+    puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
   };
 };
 
 export type DailyPuzzle = {
   puzzleUrl: string;
   puzzleThumbUrl: string;
-}
+};

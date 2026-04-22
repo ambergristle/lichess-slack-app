@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import { jsxRenderer } from 'hono/jsx-renderer';
 
-import config from '@/config';
 import { ErrorView } from '@/lib/components/errors';
 import { Layout } from '@/lib/components/layout';
 import { registerBot } from '@/lib/db/queries/bot';
@@ -15,14 +14,16 @@ import { processError } from '@/lib/utils/errors';
 import { dbProvider } from '@/middleware/db-provider';
 import { localizer } from '@/middleware/localizer';
 
-
 export const site = new Hono()
   // .use(globalRateLimiter())
   .use(localizer())
   .use(jsxRenderer(Layout))
-  .get('/public/*', serveStatic({
-    root: './',
-  }))
+  .get(
+    '/public/*',
+    serveStatic({
+      root: './',
+    }),
+  )
   /**
    * Simple landing page to facilitate registration, and
    * link to docs and privacy info.
@@ -35,19 +36,10 @@ export const site = new Hono()
 
     return c.render(
       <div>
-        <h1>
-          {localized.appName}
-        </h1>
-        <p>
-          {localized.appDescription}
-        </p>
+        <h1>{localized.appName}</h1>
+        <p>{localized.appDescription}</p>
         <a href={registrationHref} class="register-button">
-          <img
-            src="/public/assets/slack/slack-logo.svg"
-            height="16"
-            width="16"
-            alt="Slack logo"
-          />
+          <img src="/public/assets/slack/slack-logo.svg" height="16" width="16" alt="Slack logo" />
           {localized.addToSlack}
         </a>
         <p class="text-small">
@@ -56,51 +48,35 @@ export const site = new Hono()
             {repoUrl}
           </a>
         </p>
-      </div>
+      </div>,
     );
   })
   /**
    * Complete OAuth code exchange and register bot if successful.
    */
-  .get(
-    '/register',
-    validateRegistrationRequest(),
-    dbProvider(),
-    async (c) => {
-      const { code } = c.req.valid('query');
+  .get('/register', validateRegistrationRequest(), dbProvider(), async (c) => {
+    const { code } = c.req.valid('query');
 
-      const grant = await exchangeCodeGrant(c, code);
-      await registerBot(c.var.db, grant);
+    const grant = await exchangeCodeGrant(c, code);
+    await registerBot(c.var.db, grant);
 
-      const { localized } = c.var;
-      return c.render(
-        <div>
-          <h1>
-            {localized.registrationSucceeded}
-          </h1>
-          <p>
-            {localized.closeWindowPrompt}
-          </p>
-        </div>
-      );
-    })
+    const { localized } = c.var;
+    return c.render(
+      <div>
+        <h1>{localized.registrationSucceeded}</h1>
+        <p>{localized.closeWindowPrompt}</p>
+      </div>,
+    );
+  })
   .notFound((c) => {
     // todo: respect accepts?
     return c.render(
-      <ErrorView
-        heading={'404'}
-        details={'We couldn\'nt find what you were looking for.'}
-      />
+      <ErrorView heading={'404'} details={"We couldn'nt find what you were looking for."} />,
     );
   })
   .onError((error, c) => {
     // todo: respect accepts?
-    const { status, message } = processError(error);
+    const { message } = processError(error);
 
-    return c.render(
-      <ErrorView
-        heading={'Error'}
-        details={message}
-      />
-    );
+    return c.render(<ErrorView heading={'Error'} details={message} />);
   });

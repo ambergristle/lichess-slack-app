@@ -7,21 +7,12 @@ import { cancelJob, scheduleJob } from '@/lib/qstash';
 import { formatCronExpression } from '@/lib/utils/cron';
 import { KnownError } from '@/lib/utils/errors';
 
-
-export const deleteSchedule = async (
-  db: DB,
-  botId: string,
-  channelId: string
-) => {
+export const deleteSchedule = async (db: DB, botId: string, channelId: string) => {
   await db.transaction(async (tx) => {
     const result = await tx
       .delete(ScheduledPuzzleJob)
-      .where(
-        and(
-          eq(ScheduledPuzzleJob.botId, botId),
-          eq(ScheduledPuzzleJob.channelId, channelId)
-        )
-      ).returning({
+      .where(and(eq(ScheduledPuzzleJob.botId, botId), eq(ScheduledPuzzleJob.channelId, channelId)))
+      .returning({
         jobId: ScheduledPuzzleJob.jobId,
       });
 
@@ -34,7 +25,6 @@ export const deleteSchedule = async (
     await cancelJob(result[0].jobId);
   });
 };
-
 
 export const getSchedule = async (db: DB, jobId: string) => {
   const [schedule] = await db
@@ -54,7 +44,6 @@ export const getSchedule = async (db: DB, jobId: string) => {
 
   return schedule;
 };
-
 
 export const getScheduleCurrent = async (db: DB, jobId: string) => {
   const [schedule] = await db
@@ -89,7 +78,6 @@ export const getScheduledDelivery = async (db: DB, scheduleId: string) => {
   return schedule;
 };
 
-
 /**
  * todo: validate tz, locale?
  * Upsert delivery schedule record and third-party job (on `jobId`).
@@ -108,24 +96,18 @@ export const createSchedule = async (
     botId: string;
     channelId: string;
     /** Job is upserted on ID */
-    cronTime: { hour: number; minute: number; };
+    cronTime: { hour: number; minute: number };
     timeZone: string;
     locale: string;
-  }
+  },
 ) => {
-
   await db.transaction(async (tx) => {
     const [botChannel] = await db
       .select({
         webhookUrl: BotChannel.webhookUrl,
       })
       .from(BotChannel)
-      .where(
-        and(
-          eq(BotChannel.botId, botId),
-          eq(BotChannel.channelId, channelId)
-        )
-      );
+      .where(and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId)));
 
     if (!botChannel) {
       throw new KnownError('Invalid Bot Channel', {

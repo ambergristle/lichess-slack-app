@@ -3,21 +3,17 @@ import { eq } from 'drizzle-orm';
 import { DB } from '@/lib/db';
 import { Bot, BotChannel } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
-import { decrypt, encrypt, encryptString } from '@/lib/utils/encryption';
+import { decrypt, encrypt } from '@/lib/utils/encryption';
 import { KnownError } from '@/lib/utils/errors';
 
-
 /** Bearer */
-export const getBotAccessToken = async (
-  db: DB,
-  identifier: BotIdentifier
-) => {
+export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
   const isBotId = (identifier: BotIdentifier): identifier is { botId: string } => {
     const botId = (identifier as { botId: string }).botId;
     return !!botId && typeof botId === 'string';
   };
 
-  let bot: { id: string; accessToken: Buffer; } | undefined = undefined;
+  let bot: { id: string; accessToken: Buffer } | undefined = undefined;
   if (isBotId(identifier)) {
     [bot] = await db
       .select({
@@ -53,8 +49,7 @@ export const getBotAccessToken = async (
   };
 };
 
-type BotIdentifier = { botId: string } | { channelId: string }
-
+type BotIdentifier = { botId: string } | { channelId: string };
 
 /**
  * Register Slack Bot
@@ -73,13 +68,13 @@ export const registerBot = async (
     scope: string;
     webhookUrl: string;
     accessToken: string;
-  }
+  },
 ) => {
   const encoded = new TextEncoder().encode(accessToken);
 
   const botData = {
     scope,
-    accessToken: Buffer.from(encrypt(encoded)),
+    accessToken: encrypt(encoded),
     updatedAt: new Date(),
   };
 
@@ -104,14 +99,12 @@ export const registerBot = async (
       throw new KnownError('Failed to insert bot');
     }
 
-    await tx
-      .insert(BotChannel)
-      .values({
-        botId: bot.id,
-        channelId,
-        webhookUrl,
-        createdAt: botData.updatedAt,
-        updatedAt: botData.updatedAt,
-      });
+    await tx.insert(BotChannel).values({
+      botId: bot.id,
+      channelId,
+      webhookUrl,
+      createdAt: botData.updatedAt,
+      updatedAt: botData.updatedAt,
+    });
   });
 };

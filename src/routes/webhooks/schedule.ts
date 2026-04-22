@@ -53,9 +53,10 @@ export const schedule = new Hono()
       }).catch(handleEffectError);
 
       return c.body(null, 200);
-    })
+    },
+  )
   .onError((error, c) => {
-    const { status, message } = processError(error);
+    const { message } = processError(error);
 
     return c.body(message, 500);
   });

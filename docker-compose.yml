@@ -2,7 +2,7 @@ name: lichess-slack-bot
 
 services:
   app:
-    container_name: app        
+    container_name: app
     # Warning: this isn't shared when extending
     depends_on:
       - store
@@ -15,9 +15,9 @@ services:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
     restart: on-failure
     ulimits:
-        memlock: -1
+      memlock: -1
     ports:
-      - "6379:6379"
+      - '6379:6379'
     # For better performance, consider `host` mode instead `port` to avoid docker NAT.
     # `host` mode is NOT currently supported in Swarm Mode.
     # https://stackoverflow.com/questions/56582446/how-to-use-host-network-for-docker-compose/56586535#56586535

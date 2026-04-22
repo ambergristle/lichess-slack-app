@@ -1,7 +1,6 @@
-
 @font-face {
   font-family: 'Lato';
-  src:  url('/public/assets/Lato-Regular.ttf') format('truetype');
+  src: url('/public/assets/Lato-Regular.ttf') format('truetype');
 }
 
 @font-face {
@@ -10,7 +9,8 @@
 }
 
 body {
-  background: hsl(37, 10%, 8%) linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px) no-repeat;
+  background: hsl(37, 10%, 8%) linear-gradient(to bottom, hsl(37, 12%, 16%), hsl(37, 10%, 8%) 400px)
+    no-repeat;
   color: rgb(186, 186, 186);
   font-family: 'Noto Sans', sans-serif;
   height: 100vh;

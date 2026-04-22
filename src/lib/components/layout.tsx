@@ -4,16 +4,18 @@ import type { PropsWithChildren } from 'hono/jsx';
 import type { Localized } from '@/locale/types';
 import config from '@/config';
 
-export const Layout = ({ children }: PropsWithChildren, c: Context<{
-  Variables: {
-    localized: Localized;
-  }
-}>) => {
+export const Layout = (
+  { children }: PropsWithChildren,
+  c: Context<{
+    Variables: {
+      localized: Localized;
+    };
+  }>,
+) => {
   const { localized } = c.var;
 
-  const ogTitle ='';
+  const ogTitle = '';
   const ogDescription = '';
-
 
   return (
     <html lang="en">
@@ -21,17 +23,45 @@ export const Layout = ({ children }: PropsWithChildren, c: Context<{
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         {/* <meta name="theme-color" content="#2e2a24" /> */}
-        <title>
-          {localized.appName}
-        </title>
+        <title>{localized.appName}</title>
         <meta content={ogDescription} name="description" />
         <link rel="mask-icon" href="/public/assets/lichess/lichess.svg" color="black" />
-        <link rel="icon" type="image/png" href="/public/assets/lichess/lichess-favicon-512.png" sizes="512x512" />
-        <link rel="icon" type="image/png" href="/public/assets/lichess/lichess-favicon-256.png" sizes="256x256" />
-        <link rel="icon" type="image/png" href="/public/assets/lichess/lichess-favicon-192.png" sizes="192x192" />
-        <link rel="icon" type="image/png" href="/public/assets/lichess/lichess-favicon-128.png" sizes="128x128" />
-        <link rel="icon" type="image/png" href="/public/assets/lichess/lichess-favicon-64.png" sizes="64x64" />
-        <link rel="icon" type="image/png" href="/public/assets/lichess/lichess-favicon-32.png" sizes="32x32" />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/public/assets/lichess/lichess-favicon-512.png"
+          sizes="512x512"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/public/assets/lichess/lichess-favicon-256.png"
+          sizes="256x256"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/public/assets/lichess/lichess-favicon-192.png"
+          sizes="192x192"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/public/assets/lichess/lichess-favicon-128.png"
+          sizes="128x128"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/public/assets/lichess/lichess-favicon-64.png"
+          sizes="64x64"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/public/assets/lichess/lichess-favicon-32.png"
+          sizes="32x32"
+        />
         {/* <meta name="google" content="notranslate" /> */}
         <meta property="og:title" content={ogTitle} />
         <meta property="og:description" content={ogDescription} />
@@ -44,7 +74,13 @@ export const Layout = ({ children }: PropsWithChildren, c: Context<{
         <meta name="twitter:description" content={ogDescription} />
         {/* <meta name="twitter:image" content="https://lichess1.org/assets/lichess/lichess-tile.png" /> */}
         {/* <meta name="twitter:site" content="@lichess" /> */}
-        <link rel="prefetch" href="/public/assets/Lato-Regular.ttf" as="font" type="font/ttf" crossorigin="" />
+        <link
+          rel="prefetch"
+          href="/public/assets/Lato-Regular.ttf"
+          as="font"
+          type="font/ttf"
+          crossorigin=""
+        />
         {/* <link rel="manifest" href="/manifest.json" /> */}
         {/* <link rel="alternate" hreflang="x-default" href="https://lichess.org/" />
         <link rel="alternate" hreflang="en" href="https://lichess.org/" />

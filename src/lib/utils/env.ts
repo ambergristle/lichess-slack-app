@@ -1,6 +1,5 @@
 import { KnownError } from './errors';
 
-
 /**
  * Get a required value from the environment. Is compatible with
  * all runtimes that support Hono, including Cloudflare.
@@ -23,4 +22,4 @@ type Secret =
   | 'QSTASH_CURRENT_SIGNING_KEY'
   | 'QSTASH_NEXT_SIGNING_KEY'
   | 'SLACK_CLIENT_SECRET'
-  | 'SLACK_SIGNING_SECRET'
+  | 'SLACK_SIGNING_SECRET';

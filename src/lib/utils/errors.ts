@@ -1,15 +1,14 @@
 import { HTTPException } from 'hono/http-exception';
-import {
-  ContentfulStatusCode,
-  SuccessStatusCode,
-} from 'hono/utils/http-status';
+import { ContentfulStatusCode, SuccessStatusCode } from 'hono/utils/http-status';
 
 // todo
 export const handleEffectError = (error: unknown) => {
   //
 };
 
-export const processError = (error: unknown): {
+export const processError = (
+  error: unknown,
+): {
   message: string;
   status: ContentfulStatusCode;
 } => {
@@ -42,7 +41,7 @@ export const processError = (error: unknown): {
   };
 };
 
-type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>
+type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>;
 
 interface KnownErrorOptions extends ErrorOptions {
   status?: ErrorStatus;
@@ -68,8 +67,9 @@ export class KnownError extends Error {
 }
 
 export class AuthorizationError extends KnownError {
-  constructor(message: string) {
+  constructor(message: string, options?: Omit<KnownErrorOptions, 'status'>) {
     super(message, {
+      ...options,
       status: 401,
     });
 
@@ -89,7 +89,7 @@ export class ConfigurationError extends KnownError {
 
 type RateLimitErrorOptions = {
   retryAfter: number;
-}
+};
 
 export class RatelimitError extends KnownError {
   public readonly retryAfter: number;
@@ -121,7 +121,6 @@ export class ValidationError extends KnownError {
     this.issues = issues;
   }
 }
-
 
 // lichess
 // - status, message

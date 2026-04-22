@@ -4,12 +4,14 @@ import { decodeBase64 } from '@oslojs/encoding';
 
 import { secret } from './env';
 
-
 const getCypherKey = () => {
   const encoded = secret('ENCRYPTION_KEY');
   return decodeBase64(encoded);
 };
 
+/**
+ *
+ */
 export const decrypt = (encrypted: Uint8Array): Uint8Array => {
   if (encrypted.byteLength < 33) {
     throw new Error('Invalid Data');
@@ -30,22 +32,23 @@ export const decrypt = (encrypted: Uint8Array): Uint8Array => {
   return decrypted.bytes();
 };
 
-export const encrypt = (data: Uint8Array): Uint8Array => {
+/**
+ *
+ */
+export const encrypt = (data: Uint8Array): Buffer => {
   const iv = new Uint8Array(16);
   crypto.getRandomValues(iv);
 
   const cipher = createCipheriv('aes-128-gcm', getCypherKey(), iv);
 
-  const encrypted = new DynamicBuffer(0);
+  // todo: Uint8Array wrapping is necessary to resolve
+  // an issue with how @types/bun implements ArrayBuffer.
+  const buffer = Buffer.concat([
+    iv,
+    Uint8Array.from(cipher.update(data)),
+    Uint8Array.from(cipher.final()),
+    Uint8Array.from(cipher.getAuthTag()),
+  ]);
 
-  encrypted.write(iv);
-  encrypted.write(Uint8Array.from(cipher.update(data)));
-  encrypted.write(Uint8Array.from(cipher.final()));
-  encrypted.write(Uint8Array.from(cipher.getAuthTag()));
-
-  return encrypted.bytes();
-};
-
-export const encryptString = (data: string): Uint8Array => {
-  return encrypt(new TextEncoder().encode(data));
+  return buffer;
 };

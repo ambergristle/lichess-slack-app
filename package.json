@@ -1,24 +1,26 @@
 {
   "name": "lichess-slack-app",
-  "type": "module",
   "version": "1.0.0",
-  "author": "ambergristle",
-  "license": "AGPL-3.0-or-later",
   "description": "Slack integration for Lichess Daily Puzzles",
   "keywords": [
+    "daily puzzles",
     "lichess",
-    "slack",
     "node",
-    "daily puzzles"
+    "slack"
   ],
-  "module": "index.ts",
+  "license": "AGPL-3.0-or-later",
+  "author": "ambergristle",
+  "type": "module",
   "main": "dist/index.js",
+  "module": "index.ts",
   "scripts": {
     "dev": "bun --bun --hot run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target=bun",
     "start": "bun run dist/index.js",
-    "lint": "bun run eslint ./src",
+    "lint": "oxlint",
     "lint:fix": "bun run lint --fix",
+    "fmt": "oxfmt --check",
+    "fmt:check": "oxfmt",
     "db:push": "bunx --bun drizzle-kit push",
     "db:generate": "bunx --bun drizzle-kit generate",
     "db:migrate": "bunx --bun drizzle-kit migrate",
@@ -41,16 +43,13 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.18.0",
     "@slack/web-api": "^6.9.0",
-    "@stylistic/eslint-plugin-ts": "^2.13.0",
-    "@types/bun": "^1.1.16",
+    "@types/bun": "^1.3.12",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/pug": "^2.0.10",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.2",
-    "eslint": "^9.18.0",
     "globals": "^15.14.0",
-    "typescript-eslint": "^8.20.0"
+    "oxfmt": "^0.46.0",
+    "oxlint": "^1.61.0"
   }
 }

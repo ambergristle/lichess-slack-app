@@ -1,6 +1,5 @@
 import { KnownError } from './lib/utils/errors';
 
-
 const config = {
   environment: 'development',
 
@@ -16,7 +15,6 @@ const config = {
 
 export default config;
 
-
 function env(key: string): string {
   const value = process.env[key];
 
@@ -25,4 +23,4 @@ function env(key: string): string {
   }
 
   return value;
-};
+}

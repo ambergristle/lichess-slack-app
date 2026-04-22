@@ -23,13 +23,7 @@ describe('HMAC', () => {
         ],
         false,
       ],
-      [
-        [
-          'yYUiGZWlO3WOkDVzU_JHvY94zjkjYCO5l0ucsw0P9wk',
-          '',
-        ],
-        false,
-      ],
+      [['yYUiGZWlO3WOkDVzU_JHvY94zjkjYCO5l0ucsw0P9wk', ''], false],
     ];
 
     for (const [args, expected] of cases) {
