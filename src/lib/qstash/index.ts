@@ -41,7 +41,7 @@ export const cancelJob = async (jobId: string) => {
  * @param jobId Job upserted on ID
  */
 export const scheduleJob = async (
-  schedule: Pick<Schedule, 'jobId' | 'cron'>,
+  schedule: Pick<Schedule, 'jobId' | 'cron'>
 ) => {
   try {
     const body = JSON.stringify({
@@ -61,7 +61,7 @@ export const scheduleJob = async (
           'upstash-cron': schedule.cron,
           'upstash-schedule-id': schedule.jobId,
         },
-      },
+      }
     );
 
     const json = await response.json();

@@ -19,7 +19,7 @@ export const botContext = () => {
       c.set('localized', localized);
 
       await next();
-    },
+    }
   );
 };
 

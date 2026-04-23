@@ -45,7 +45,7 @@ export const slack = new Hono()
                 blocks.section({ text: localized.blocks.helpSchedule }),
               ],
             },
-            200,
+            200
           );
           // #endregion
         }
@@ -64,7 +64,7 @@ export const slack = new Hono()
                 blocks.section({ text: puzzleUrl }),
               ],
             },
-            200,
+            200
           );
           // #endregion
         }
@@ -140,7 +140,7 @@ export const slack = new Hono()
                 ...actions,
               ],
             },
-            200,
+            200
           );
           // #endregion
         }
@@ -151,7 +151,7 @@ export const slack = new Hono()
           });
         }
       }
-    },
+    }
   )
   .post(
     '/interactions',
@@ -222,7 +222,7 @@ export const slack = new Hono()
       }
 
       return c.body(null, 200);
-    },
+    }
   )
   .onError(async (error, c) => {
     const { status } = processError(error);

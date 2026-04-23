@@ -118,7 +118,7 @@ export const zInteractiveRequestBody = z.preprocess(
   z.object({ payload: z.string() }).transform(({ payload }) => {
     return JSON.parse(payload);
   }).parse,
-  zInteractivePayload,
+  zInteractivePayload
 );
 
 // #endregion

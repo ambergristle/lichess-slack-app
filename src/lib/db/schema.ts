@@ -33,7 +33,7 @@ export const BotChannel = sqliteTable(
     primaryKey({
       columns: [table.botId, table.channelId],
     }),
-  ],
+  ]
 );
 
 export type Schedule = typeof ScheduledPuzzleJob.$inferSelect;
@@ -55,5 +55,5 @@ export const ScheduledPuzzleJob = sqliteTable(
     primaryKey({
       columns: [table.botId, table.channelId],
     }),
-  ],
+  ]
 );

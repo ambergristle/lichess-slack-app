@@ -18,7 +18,7 @@ export const getLocalized = async (locale: string): Promise<Localized> => {
 
 export const interpolate = (
   templateString: string,
-  tokens: Record<string, string>,
+  tokens: Record<string, string>
 ) => {
   let interpolated = templateString;
 

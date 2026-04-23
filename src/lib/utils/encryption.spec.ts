@@ -13,7 +13,7 @@ describe('Encryption', () => {
 
     const decrypted = decrypt(Uint8Array.from(encrypted));
     expect(new TextDecoder().decode(decrypted)).toBe(
-      new TextDecoder().decode(encoded),
+      new TextDecoder().decode(encoded)
     );
   });
 });

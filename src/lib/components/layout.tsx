@@ -10,7 +10,7 @@ export const Layout = (
     Variables: {
       localized: Localized;
     };
-  }>,
+  }>
 ) => {
   const { localized } = c.var;
 

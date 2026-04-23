@@ -10,7 +10,7 @@ import { KnownError } from '@/lib/utils/errors';
 export const deleteSchedule = async (
   db: DB,
   botId: string,
-  channelId: string,
+  channelId: string
 ) => {
   await db.transaction(async (tx) => {
     const result = await tx
@@ -18,8 +18,8 @@ export const deleteSchedule = async (
       .where(
         and(
           eq(ScheduledPuzzleJob.botId, botId),
-          eq(ScheduledPuzzleJob.channelId, channelId),
-        ),
+          eq(ScheduledPuzzleJob.channelId, channelId)
+        )
       )
       .returning({
         jobId: ScheduledPuzzleJob.jobId,
@@ -107,7 +107,7 @@ export const createSchedule = async (
     cronTime: { hour: number; minute: number };
     timeZone: string;
     locale: string;
-  },
+  }
 ) => {
   await db.transaction(async (tx) => {
     const [botChannel] = await db
@@ -116,7 +116,7 @@ export const createSchedule = async (
       })
       .from(BotChannel)
       .where(
-        and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId)),
+        and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId))
       );
 
     if (!botChannel) {

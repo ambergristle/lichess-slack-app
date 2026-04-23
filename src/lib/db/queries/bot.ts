@@ -9,7 +9,7 @@ import { KnownError } from '@/lib/utils/errors';
 /** Bearer */
 export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
   const isBotId = (
-    identifier: BotIdentifier,
+    identifier: BotIdentifier
   ): identifier is { botId: string } => {
     const botId = (identifier as { botId: string }).botId;
     return !!botId && typeof botId === 'string';
@@ -70,7 +70,7 @@ export const registerBot = async (
     scope: string;
     webhookUrl: string;
     accessToken: string;
-  },
+  }
 ) => {
   const encoded = new TextEncoder().encode(accessToken);
 

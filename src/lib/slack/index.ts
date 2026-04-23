@@ -42,7 +42,7 @@ export const TIME_ZONE_OPTIONS = SUPPORTED_TIME_ZONES.map(
       text: timeZone,
     },
     value: timeZone,
-  }),
+  })
 );
 
 // #endregion
@@ -117,7 +117,7 @@ export const getBotContext = async (db: DB, channelId: string) => {
       headers: {
         authorization: `Bearer ${accessToken}`,
       },
-    },
+    }
   );
 
   if (!response.ok) {
@@ -157,7 +157,7 @@ export const getBotContext = async (db: DB, channelId: string) => {
 export const getUserTimeZone = async <V extends { db: DB }>(
   c: Context<{ Variables: V }>,
   botId: string,
-  userId: string,
+  userId: string
 ) => {
   const queryParams = new URLSearchParams({
     user: userId,
@@ -171,7 +171,7 @@ export const getUserTimeZone = async <V extends { db: DB }>(
       headers: {
         authorization: `Bearer ${accessToken}`,
       },
-    },
+    }
   );
 
   if (!response.ok) {
@@ -271,7 +271,7 @@ export const generateAuthorizationUrl = (c: Context): string => {
   });
 
   return new URL(
-    `https://slack.com/oauth/v2/authorize?${queryParams}`,
+    `https://slack.com/oauth/v2/authorize?${queryParams}`
   ).toString();
 };
 
@@ -298,7 +298,7 @@ export const validateRegistrationRequest = <E extends Env = Env>() => {
       }
 
       await next();
-    },
+    }
   );
 };
 
@@ -342,7 +342,7 @@ export const verifySlackSignature = () => {
     } = c.req.header();
 
     const isFromSlackbot = !!userAgent?.includes(
-      'Slackbot 1.0 (+https://api.slack.com/robots)',
+      'Slackbot 1.0 (+https://api.slack.com/robots)'
     );
 
     const body = await c.req.text();
@@ -351,13 +351,13 @@ export const verifySlackSignature = () => {
     const expectedSignature = hmac.createDigest(
       secret('SLACK_SIGNING_SECRET'),
       signatureData,
-      'hex',
+      'hex'
     );
 
     const timestampIsValid = validateTimestamp(`${timestamp}`);
     const signatureIsValid = hmac.compareDigests(
       `v0=${expectedSignature}`,
-      `${signature}`,
+      `${signature}`
     );
 
     // Obscure implementation details by throwing

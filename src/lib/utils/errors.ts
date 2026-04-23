@@ -9,7 +9,7 @@ export const handleEffectError = (_error: unknown) => {
 };
 
 export const processError = (
-  error: unknown,
+  error: unknown
 ): {
   message: string;
   status: ContentfulStatusCode;

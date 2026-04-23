@@ -29,7 +29,7 @@ describe('Verify Slack Signature', () => {
     const signature = hmac.createDigest(
       secret('SLACK_SIGNING_SECRET'),
       `v0:${timestamp}:${body}`,
-      'hex',
+      'hex'
     );
 
     const res = await app.request('/', {
@@ -50,7 +50,7 @@ describe('Verify Slack Signature', () => {
     const signature = hmac.createDigest(
       secret('SLACK_SIGNING_SECRET'),
       `v0:${timestamp}:${body}`,
-      'hex',
+      'hex'
     );
 
     const res = await app.request('/', {
@@ -71,7 +71,7 @@ describe('Verify Slack Signature', () => {
     const signature = hmac.createDigest(
       secret('SLACK_SIGNING_SECRET'),
       `v0:${timestamp}:${body}`,
-      'hex',
+      'hex'
     );
 
     const res = await app.request('/', {
@@ -92,7 +92,7 @@ describe('Verify Slack Signature', () => {
     const signature = hmac.createDigest(
       secret('SLACK_SIGNING_SECRET'),
       `v0:${timestamp}:${body}`,
-      'hex',
+      'hex'
     );
 
     const res = await app.request('/', {
@@ -113,7 +113,7 @@ describe('Verify Slack Signature', () => {
     const signature = hmac.createDigest(
       secret('SLACK_SIGNING_SECRET'),
       `${timestamp}:${body}`,
-      'hex',
+      'hex'
     );
 
     const res = await app.request('/', {

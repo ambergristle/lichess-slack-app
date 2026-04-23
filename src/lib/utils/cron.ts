@@ -27,7 +27,7 @@ const ZCron = z.object(
   },
   {
     message: 'Invalid Cron Expression',
-  },
+  }
 );
 
 /**
@@ -61,7 +61,7 @@ export const formatCronExpression = (data: Cron): string => {
 export const localizeUtc = (
   { hour, minute }: CronTime,
   timeZone: string,
-  locale: string,
+  locale: string
 ) => {
   const utcDate = new UTCDate(2010, 6, 20, hour, minute, 0, 0);
 
@@ -99,7 +99,7 @@ export const parseCronTime = (expression: string): CronTime => {
       day: undefined,
       month: undefined,
       weekday: undefined,
-    },
+    }
   );
 
   const { hour, minute } = ZCron.parse(data);
