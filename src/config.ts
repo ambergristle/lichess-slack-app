@@ -11,6 +11,8 @@ const config = {
   },
 
   baseUrl: '',
+
+  oauthStateCookieName: 'lsa_auth_state',
 };
 
 export default config;

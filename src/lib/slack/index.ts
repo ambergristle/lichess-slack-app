@@ -241,8 +241,6 @@ export const exchangeCodeGrant = async (code: string) => {
   };
 };
 
-const OAUTH_STATE_COOKIE_NAME = 'lsa_auth_state';
-
 /**
  * Generate a link that begins process of registering bot
  * to user's Slack workspace.
@@ -264,7 +262,7 @@ export const generateAuthorizationUrl = (c: Context): string => {
     redirect_uri: `${config.baseUrl}/register`,
   }).toString();
 
-  setCookie(c, OAUTH_STATE_COOKIE_NAME, state, {
+  setCookie(c, config.oauthStateCookieName, state, {
     path: '/',
     secure: config.environment === 'production',
     httpOnly: true,
@@ -294,7 +292,7 @@ export const validateRegistrationRequest = <E extends Env = Env>() => {
         throw new AuthorizationError('Invalid authorization code state');
       }
 
-      const stateCookie = getCookie(c, OAUTH_STATE_COOKIE_NAME);
+      const stateCookie = getCookie(c, config.oauthStateCookieName);
       if (state !== stateCookie) {
         throw new AuthorizationError('Invalid authorization code state');
       }

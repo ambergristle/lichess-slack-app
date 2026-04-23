@@ -73,14 +73,6 @@ export const site = new Hono()
       </div>,
     );
   })
-  .notFound((c) => {
-    return c.render(
-      <ErrorView
-        heading={'404'}
-        details={"We couldn'nt find what you were looking for."}
-      />,
-    );
-  })
   .onError((error, c) => {
     const { message } = processError(error);
 

@@ -9,6 +9,10 @@ const app = new Hono()
   .use(logger())
   .route('/', site)
   .route('/webhooks/slack', slack)
-  .route('/webhooks/schedule', schedule);
+  .route('/webhooks/schedule', schedule)
+  .notFound((c) => {
+    // No valid client request will ever 404
+    return c.notFound();
+  });
 
 export default app;
