@@ -4,51 +4,60 @@ import type { DB } from '@/lib/db';
 import { Bot, BotChannel } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
 import { decrypt, encrypt } from '@/lib/utils/encryption';
-import { KnownError } from '@/lib/utils/errors';
+import { Oops, PersistenceError } from '@/lib/utils/errors';
 
 /** Bearer */
 export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
-  const isBotId = (
-    identifier: BotIdentifier
-  ): identifier is { botId: string } => {
-    const botId = (identifier as { botId: string }).botId;
-    return !!botId && typeof botId === 'string';
-  };
+  try {
+    const isBotId = (
+      identifier: BotIdentifier
+    ): identifier is { botId: string } => {
+      const botId = (identifier as { botId: string }).botId;
+      return !!botId && typeof botId === 'string';
+    };
 
-  let bot: { id: string; accessToken: Buffer } | undefined = undefined;
-  if (isBotId(identifier)) {
-    [bot] = await db
-      .select({
-        id: Bot.id,
-        accessToken: Bot.accessToken,
-      })
-      .from(Bot)
-      .where(eq(Bot.id, identifier.botId))
-      .limit(1);
-  } else {
-    [bot] = await db
-      .select({
-        id: Bot.id,
-        accessToken: Bot.accessToken,
-      })
-      .from(Bot)
-      .leftJoin(BotChannel, eq(Bot.id, BotChannel.botId))
-      .where(eq(BotChannel.channelId, identifier.channelId))
-      .limit(1);
+    let bot: { id: string; accessToken: Buffer } | undefined = undefined;
+    if (isBotId(identifier)) {
+      [bot] = await db
+        .select({
+          id: Bot.id,
+          accessToken: Bot.accessToken,
+        })
+        .from(Bot)
+        .where(eq(Bot.id, identifier.botId))
+        .limit(1);
+    } else {
+      [bot] = await db
+        .select({
+          id: Bot.id,
+          accessToken: Bot.accessToken,
+        })
+        .from(Bot)
+        .leftJoin(BotChannel, eq(Bot.id, BotChannel.botId))
+        .where(eq(BotChannel.channelId, identifier.channelId))
+        .limit(1);
+    }
+
+    if (!bot) {
+      throw new PersistenceError('Invalid Bot identifier', {
+        identifier,
+      });
+    }
+
+    let decrypted: Uint8Array;
+    try {
+      decrypted = decrypt(Uint8Array.from(bot.accessToken));
+    } catch (cause) {
+      throw Oops.fromError('Failed to decrypt access token', cause)
+    }
+
+    return {
+      botId: bot.id,
+      accessToken: new TextDecoder().decode(decrypted),
+    };
+  } catch (cause) {
+    throw Oops.fromError('Failed to get Bot access token', cause);
   }
-
-  if (!bot) {
-    throw new KnownError('Invalid Bot identifier', {
-      cause: identifier,
-    });
-  }
-
-  const decrypted = decrypt(Uint8Array.from(bot.accessToken));
-
-  return {
-    botId: bot.id,
-    accessToken: new TextDecoder().decode(decrypted),
-  };
 };
 
 type BotIdentifier = { botId: string } | { channelId: string };
@@ -72,41 +81,53 @@ export const registerBot = async (
     accessToken: string;
   }
 ) => {
-  const encoded = new TextEncoder().encode(accessToken);
-
-  const botData = {
-    scope,
-    accessToken: encrypt(encoded),
-    updatedAt: new Date(),
-  };
-
-  await db.transaction(async (tx) => {
-    const [bot] = await tx
-      .insert(Bot)
-      .values({
-        id: generateRowId(botUserId),
-        botUserId,
-        ...botData,
-        createdAt: botData.updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: [Bot.botUserId],
-        set: botData,
-      })
-      .returning({
-        id: Bot.id,
-      });
-
-    if (!bot) {
-      throw new KnownError('Failed to insert bot');
+  try {
+    let botData: {
+      scope: string;
+      accessToken: Buffer;
+      updatedAt: Date;
+    };
+    try {
+      const encoded = new TextEncoder().encode(accessToken);
+      botData = {
+        scope,
+        accessToken: encrypt(encoded),
+        updatedAt: new Date(),
+      };
+    } catch (cause) {
+      throw Oops.fromError('Failed to encrypt access token', cause);
     }
 
-    await tx.insert(BotChannel).values({
-      botId: bot.id,
-      channelId,
-      webhookUrl,
-      createdAt: botData.updatedAt,
-      updatedAt: botData.updatedAt,
+    await db.transaction(async (tx) => {
+      const [bot] = await tx
+        .insert(Bot)
+        .values({
+          id: generateRowId(botUserId),
+          botUserId,
+          ...botData,
+          createdAt: botData.updatedAt,
+        })
+        .onConflictDoUpdate({
+          target: [Bot.botUserId],
+          set: botData,
+        })
+        .returning({
+          id: Bot.id,
+        });
+
+      if (!bot) {
+        throw new PersistenceError('Failed to insert Bot');
+      }
+
+      await tx.insert(BotChannel).values({
+        botId: bot.id,
+        channelId,
+        webhookUrl,
+        createdAt: botData.updatedAt,
+        updatedAt: botData.updatedAt,
+      });
     });
-  });
+  } catch (cause) {
+    throw Oops.fromError('Failed to upsert Bot records', cause)
+  }
 };

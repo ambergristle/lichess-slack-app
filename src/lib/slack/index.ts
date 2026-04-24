@@ -1,6 +1,5 @@
 import type { Context, Env, Next } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
-import { z } from 'zod';
 import type {
   ActionsBlock,
   KnownBlock,
@@ -10,11 +9,11 @@ import type {
 
 import { getBotAccessToken } from '@/lib/db/queries/bot';
 import { hmac } from '@/lib/utils/hmac';
-import { AuthorizationError, KnownError } from '@/lib/utils/errors';
+import { AuthorizationError, Oops, ResponseError } from '@/lib/utils/errors';
 import { secret } from '@/lib/utils/env';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
-import { createMiddleware } from 'hono/factory';
-import { zOAuthAccessResponseBody } from '@/lib/dtos/slack';
+import { createFactory, createMiddleware } from 'hono/factory';
+import { zChannelInfoResponse, zOAuthAccessResponseBody, zUserInfoResponse } from '@/lib/dtos/slack';
 import type { DB } from '../db';
 import { encodeBase64urlNoPadding } from '@oslojs/encoding';
 import config from '@/config';
@@ -105,46 +104,45 @@ const SLACK_BASE_URL = 'https://slack.com/api';
  * @returns
  */
 export const getBotContext = async (db: DB, channelId: string) => {
-  const queryParams = new URLSearchParams({
-    channel: channelId,
-    include_locale: 'true',
-  }).toString();
+  try {
+    const queryParams = new URLSearchParams({
+      channel: channelId,
+      include_locale: 'true',
+    }).toString();
 
-  const { botId, accessToken } = await getBotAccessToken(db, { channelId });
-  const response = await fetch(
-    `${SLACK_BASE_URL}/conversations.info` + '?' + queryParams,
-    {
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
+    const { botId, accessToken } = await getBotAccessToken(db, { channelId });
+    const res = await fetch(
+      `${SLACK_BASE_URL}/conversations.info` + '?' + queryParams,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const json = await res.json();
+    if (!res.ok) {
+      const message = json.errror === 'channel_not_found'
+        ? 'Specified Channel is private'
+        : 'Failed to get Channel info'
+
+      throw new ResponseError(message, {
+        service: 'slack',
+        status: res.status,
+        headers: res.headers,
+        code: json.error,
+      })
     }
-  );
 
-  if (!response.ok) {
-    if ((await response.text()) === 'channel_not_found') {
-      throw new KnownError('Slack Channel is Private', {
-        cause: response,
-      });
-    }
+    const { channel } = zChannelInfoResponse.parse(json);
 
-    throw new KnownError('Failed to get Channel info', {
-      cause: response,
-    });
+    return {
+      botId,
+      locale: channel.locale,
+    };
+  } catch (cause) {
+    throw Oops.fromError('Failed to get Bot context', cause)
   }
-
-  const json = await response.json();
-  const { channel } = z
-    .object({
-      channel: z.object({
-        locale: z.string(),
-      }),
-    })
-    .parse(json);
-
-  return {
-    botId,
-    locale: channel.locale,
-  };
 };
 
 /**
@@ -159,37 +157,40 @@ export const getUserTimeZone = async <V extends { db: DB }>(
   botId: string,
   userId: string
 ) => {
-  const queryParams = new URLSearchParams({
-    user: userId,
-    include_locale: 'true',
-  }).toString();
+  try {
+    const queryParams = new URLSearchParams({
+      user: userId,
+      include_locale: 'true',
+    }).toString();
 
-  const { accessToken } = await getBotAccessToken(c.var.db, { botId });
-  const response = await fetch(
-    `${SLACK_BASE_URL}/users.info` + '?' + queryParams,
-    {
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-      },
+    const { accessToken } = await getBotAccessToken(c.var.db, { botId });
+    const res = await fetch(
+      `${SLACK_BASE_URL}/users.info` + '?' + queryParams,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      throw new ResponseError('Failed to get User info', {
+        service: 'slack',
+        status: res.status,
+        headers: res.headers,
+        code: json.error,
+      });
     }
-  );
 
-  if (!response.ok) {
-    throw new SlackError('Failed to get User info', {
-      code: await response.text(),
-    });
+
+    const { user } = zUserInfoResponse.parse(json);
+
+    return user.tz;
+  } catch (cause) {
+    throw Oops.fromError('Failed to get User time zone', cause)
   }
-
-  const json = await response.json();
-  const { user } = z
-    .object({
-      user: z.object({
-        tz: z.string(),
-      }),
-    })
-    .parse(json);
-
-  return user.tz;
 };
 
 // #endregion
@@ -201,44 +202,52 @@ export const getUserTimeZone = async <V extends { db: DB }>(
  * @see https://api.slack.com/methods/oauth.v2.access
  */
 export const exchangeCodeGrant = async (code: string) => {
-  const clientSecret = secret('SLACK_CLIENT_SECRET');
-  const response = await fetch(`${SLACK_BASE_URL}/oauth.v2.access`, {
-    method: 'POST',
-    body: new URLSearchParams({
-      code,
-      redirect_uri: `${config.baseUrl}/register`,
-    }),
-    headers: {
-      authorization: `Basic ${btoa(`${config.slack.clientId}:${clientSecret}`)}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Request failed unexpectedly', { cause: response });
-  }
-
-  const json = await response.json();
-  const result = zOAuthAccessResponseBody.parse(json);
-
-  if (!result.ok) {
-    throw new SlackError('Registration Failed', {
-      code: result.error,
+  try {
+    const clientSecret = secret('SLACK_CLIENT_SECRET');
+    const res = await fetch(`${SLACK_BASE_URL}/oauth.v2.access`, {
+      method: 'POST',
+      body: new URLSearchParams({
+        code,
+        redirect_uri: `${config.baseUrl}/register`,
+      }),
+      headers: {
+        authorization: `Basic ${btoa(`${config.slack.clientId}:${clientSecret}`)}`,
+      },
     });
+
+    const json = await res.json();
+    const result = zOAuthAccessResponseBody.parse(json);
+
+    if (!res.ok || !result.ok) {
+      throw new ResponseError('Failed to exchange auth code', {
+        service: 'slack',
+        status: res.status,
+        headers: res.headers,
+        code: json.error,
+      });
+    }
+
+    const { app_id, bot_user_id, incoming_webhook, scope, access_token } = result;
+
+    if (app_id !== config.slack.appId) {
+      throw new ResponseError('Invalid Slack app ID', {
+        service: 'slack',
+        status: res.status,
+        headers: res.headers,
+        received: { app_id, bot_user_id, incoming_webhook, scope }
+      });
+    }
+
+    return {
+      botUserId: bot_user_id,
+      channelId: incoming_webhook.channel_id,
+      scope: scope,
+      accessToken: access_token,
+      webhookUrl: incoming_webhook.url,
+    };
+  } catch (cause) {
+    throw Oops.fromError('Failed to exchange code grant', cause);
   }
-
-  const { app_id, bot_user_id, incoming_webhook, scope, access_token } = result;
-
-  if (app_id !== config.slack.appId) {
-    throw new Error('Invalid Slack app ID', { cause: { app_id } });
-  }
-
-  return {
-    botUserId: bot_user_id,
-    channelId: incoming_webhook.channel_id,
-    scope: scope,
-    accessToken: access_token,
-    webhookUrl: incoming_webhook.url,
-  };
 };
 
 /**
@@ -249,30 +258,34 @@ export const exchangeCodeGrant = async (code: string) => {
  * @param c Context is used to set `state` cookie
  */
 export const generateAuthorizationUrl = (c: Context): string => {
-  // Generate random state to mitigate CSRF attacks.
-  // Could also encode + hash auth request data.
-  const buffer = new Uint8Array(32);
-  crypto.getRandomValues(buffer);
-  const state = encodeBase64urlNoPadding(buffer);
+  try {
+    // Generate random state to mitigate CSRF attacks.
+    // Could also encode + hash auth request data.
+    const buffer = new Uint8Array(32);
+    crypto.getRandomValues(buffer);
+    const state = encodeBase64urlNoPadding(buffer);
 
-  const queryParams = new URLSearchParams({
-    client_id: config.slack.clientId,
-    scope: APP_SCOPE,
-    state,
-    redirect_uri: `${config.baseUrl}/register`,
-  }).toString();
+    const queryParams = new URLSearchParams({
+      client_id: config.slack.clientId,
+      scope: APP_SCOPE,
+      state,
+      redirect_uri: `${config.baseUrl}/register`,
+    }).toString();
 
-  setCookie(c, config.oauthStateCookieName, state, {
-    path: '/',
-    secure: config.environment === 'production',
-    httpOnly: true,
-    maxAge: 60 * 10,
-    sameSite: 'lax',
-  });
+    setCookie(c, config.oauthStateCookieName, state, {
+      path: '/',
+      secure: config.environment === 'production',
+      httpOnly: true,
+      maxAge: 60 * 10,
+      sameSite: 'lax',
+    });
 
-  return new URL(
-    `https://slack.com/oauth/v2/authorize?${queryParams}`
-  ).toString();
+    return new URL(
+      `https://slack.com/oauth/v2/authorize?${queryParams}`
+    ).toString();
+  } catch (cause) {
+    throw Oops.fromError('Failed to generate Authorization URL', cause)
+  }
 };
 
 /**
@@ -308,7 +321,10 @@ export const validateRegistrationRequest = <E extends Env = Env>() => {
 
 const unixMilliseconds = (timestamp: string) => {
   const epochSeconds = Number(timestamp);
-  if (isNaN(epochSeconds)) throw new Error('Invalid timestamp');
+  if (isNaN(epochSeconds)) throw new TypeError('Invalid timestamp', {
+    cause: { timestamp },
+  });
+
   return epochSeconds * 1000;
 };
 
@@ -334,69 +350,62 @@ const validateTimestamp = (timestamp: string) => {
  * @see https://api.slack.com/interactivity/slash-commands#responding_to_commands
  */
 export const verifySlackSignature = () => {
-  return createMiddleware(async (c, next) => {
-    const {
-      'user-agent': userAgent,
-      'x-slack-signature': signature,
-      'x-slack-request-timestamp': timestamp,
-    } = c.req.header();
+  return createMiddleware<{
+    Variables: { slackVerified?: boolean }
+  }>(async (c, next) => {
+    try {
+      const {
+        'user-agent': userAgent,
+        'x-slack-signature': signature,
+        'x-slack-request-timestamp': timestamp,
+      } = c.req.header();
 
-    const isFromSlackbot = !!userAgent?.includes(
-      'Slackbot 1.0 (+https://api.slack.com/robots)'
-    );
+      const isFromSlackbot = !!userAgent?.includes(
+        'Slackbot 1.0 (+https://api.slack.com/robots)'
+      );
 
-    const body = await c.req.text();
-    const signatureData = `v0:${timestamp}:${body}`;
+      const body = await c.req.text();
+      const signatureData = `v0:${timestamp}:${body}`;
 
-    const expectedSignature = hmac.createDigest(
-      secret('SLACK_SIGNING_SECRET'),
-      signatureData,
-      'hex'
-    );
+      const expectedSignature = hmac.createDigest(
+        secret('SLACK_SIGNING_SECRET'),
+        signatureData,
+        'hex'
+      );
 
-    const timestampIsValid = validateTimestamp(`${timestamp}`);
-    const signatureIsValid = hmac.compareDigests(
-      `v0=${expectedSignature}`,
-      `${signature}`
-    );
+      const timestampIsValid = validateTimestamp(`${timestamp}`);
+      const signatureIsValid = hmac.compareDigests(
+        `v0=${expectedSignature}`,
+        `${signature}`
+      );
 
-    // Obscure implementation details by throwing
-    // after both validations have resolved
-    if (!isFromSlackbot) {
-      throw new AuthorizationError('Invalid User Agent');
+      // Obscure implementation details by throwing
+      // after both validations have resolved
+      if (!isFromSlackbot) {
+        throw new AuthorizationError('Invalid User Agent');
+      }
+
+      if (!signature || !timestamp) {
+        throw new AuthorizationError('Request Unsigned');
+      }
+
+      if (!timestampIsValid) {
+        throw new AuthorizationError('Invalid Timestamp', {
+          cause: { userAgent, signature, timestamp },
+        });
+      }
+
+      if (!signatureIsValid) {
+        throw new AuthorizationError('Invalid Signature');
+      }
+
+      c.set('slackVerified', true);
+
+      await next();
+    } catch (cause) {
+      throw new AuthorizationError('Invalid request', { cause })
     }
-
-    if (!signature || !timestamp) {
-      throw new AuthorizationError('Request Unsigned');
-    }
-
-    if (!timestampIsValid) {
-      throw new AuthorizationError('Invalid Timestamp', {
-        cause: { userAgent, signature, timestamp },
-      });
-    }
-
-    if (!signatureIsValid) {
-      throw new AuthorizationError('Invalid Signature');
-    }
-
-    await next();
   });
 };
 
 // #endregion
-
-interface SlackErrorOptions extends ErrorOptions {
-  code: string;
-}
-
-export class SlackError extends Error {
-  public readonly code;
-
-  constructor(message: string, { code, ...options }: SlackErrorOptions) {
-    super(message, options);
-
-    this.name = 'SlackError';
-    this.code = code;
-  }
-}

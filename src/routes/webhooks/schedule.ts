@@ -6,8 +6,8 @@ import { blocks } from '@/lib/slack';
 import { verifyQStashSignature } from '@/lib/qstash';
 import {
   handleEffectError,
-  KnownError,
   processError,
+  RequestError,
 } from '@/lib/utils/errors';
 import { getLocalized } from '@/lib/utils/locale';
 import { zodValidator } from '@/middleware/zod-validator';
@@ -25,8 +25,9 @@ export const schedule = new Hono()
       const { jobId } = c.req.valid('json');
       const scheduledDelivery = await getScheduledDelivery(c.var.db, jobId);
       if (!scheduledDelivery) {
-        throw new KnownError('Invalid job ID', {
-          cause: { jobId },
+        throw new RequestError('Invalid job ID', {
+          headers: c.req.raw.headers,
+          body: { jobId },
         });
       }
 

@@ -22,6 +22,18 @@ export const zOAuthAccessResponseBody = z.discriminatedUnion('ok', [
 
 // #endregion
 
+export const zChannelInfoResponse = z.object({
+  channel: z.object({
+    locale: z.string(),
+  }),
+})
+
+export const zUserInfoResponse = z.object({
+  user: z.object({
+    tz: z.string(),
+  }),
+})
+
 // #region Slash Commands
 
 /** @see https://api.slack.com/interactivity/slash-commands#app_command_handling */

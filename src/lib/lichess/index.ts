@@ -1,23 +1,38 @@
-import { KnownError } from '@/lib/utils/errors';
+import { Oops, ResponseError } from '@/lib/utils/errors';
 
 /**
- * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
+ * @see https://lichess.org/api#tag/puzzles/GET/api/puzzle/daily
  */
 export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
-  const response = await fetch('https://lichess.org/api/puzzle/daily');
-  const json = await response.json();
+  try {
+    const res = await fetch('https://lichess.org/api/puzzle/daily');
+    const json = await res.json();
 
-  const puzzleId = json.puzzle.id;
-  if (!puzzleId || typeof puzzleId !== 'string') {
-    throw new KnownError('Unprocessable response', {
-      cause: response,
-    });
+    if (!res.ok) {
+      throw new ResponseError(json.error, {
+        service: 'lichess',
+        status: res.status,
+        headers: res.headers,
+      });
+    }
+
+    const puzzleId = json.puzzle.id;
+    if (!puzzleId || typeof puzzleId !== 'string') {
+      throw new ResponseError('Unexpected Daily Puzzle response', {
+        service: 'lichess',
+        status: res.status,
+        headers: res.headers,
+        received: json,
+      });
+    }
+
+    return {
+      puzzleUrl: `https://lichess.org/training/${puzzleId}`,
+      puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
+    };
+  } catch (cause) {
+    throw Oops.fromError('Failed to get Daily Puzzle', cause);
   }
-
-  return {
-    puzzleUrl: `https://lichess.org/training/${puzzleId}`,
-    puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
-  };
 };
 
 export type DailyPuzzle = {

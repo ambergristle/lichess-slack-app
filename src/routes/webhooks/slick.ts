@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { } from 'drizzle-orm'
 
 import { generateRowId } from '@/lib/db/utils';
 import {
@@ -13,7 +14,7 @@ import {
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
-import { handleEffectError, processError } from '@/lib/utils/errors';
+import { handleEffectError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
@@ -22,8 +23,8 @@ import { zodValidator } from '@/middleware/zod-validator';
 const SET_SCHEDULE_ID = 'schedule:set';
 const CANCEL_SCHEDULE_ID = 'schedule:cancel';
 
-export const slack = new Hono()
-  .use(verifySlackSignature())
+const commands = new Hono()
+  .use('/commands/:command', verifySlackSignature())
   .post(
     '/commands/:command',
     zodValidator('form', zSlashCommandRequestBody),
@@ -153,6 +154,21 @@ export const slack = new Hono()
       }
     }
   )
+  .onError((error, c) => {
+    // error
+
+    if (c.var.slackVerified) {
+      return c.json({
+        response_type: 'ephemeral',
+        text: 'Something went wrong',
+      })
+    }
+
+    return c.text('Forbidden', 403);
+  })
+
+const interactions = new Hono()
+  .use('/interactions', verifySlackSignature())
   .post(
     '/interactions',
     zodValidator('form', zInteractiveRequestBody),
@@ -224,13 +240,16 @@ export const slack = new Hono()
       return c.body(null, 200);
     }
   )
-  .onError(async (error, c) => {
-    const { status } = processError(error);
+  .onError((error, c) => {
+    // error
 
     if (c.var.slackVerified) {
-      if ()
+      return c.text('Oops', 500);
     }
 
+    return c.text('Forbidden', 403);
+  })
 
-    return c.text('Something went wrong.', status);
-  });
+export const slack = new Hono()
+  .route('/', commands)
+  .route('/', interactions)

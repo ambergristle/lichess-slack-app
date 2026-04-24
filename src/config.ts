@@ -1,4 +1,4 @@
-import { KnownError } from './lib/utils/errors';
+import { ConfigurationError } from './lib/utils/errors';
 
 const config = {
   environment: 'development',
@@ -21,7 +21,7 @@ function env(key: string): string {
   const value = process.env[key];
 
   if (!value) {
-    throw new KnownError(`Configuration Error: Environment missing ${key}`);
+    throw new ConfigurationError(`Environment missing ${key} variable`);
   }
 
   return value;

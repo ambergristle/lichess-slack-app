@@ -1,90 +1,100 @@
 import { and, eq } from 'drizzle-orm';
 
 import type { DB } from '@/lib/db';
-import { BotChannel, ScheduledPuzzleJob } from '@/lib/db/schema';
+import { BotChannel, ScheduledPuzzleJob, type Schedule } from '@/lib/db/schema';
 import { generateRowId } from '@/lib/db/utils';
 import { cancelJob, scheduleJob } from '@/lib/qstash';
 import { formatCronExpression } from '@/lib/utils/cron';
-import { KnownError } from '@/lib/utils/errors';
+import { Oops, PersistenceError } from '@/lib/utils/errors';
 
 export const deleteSchedule = async (
   db: DB,
   botId: string,
   channelId: string
-) => {
-  await db.transaction(async (tx) => {
-    const result = await tx
-      .delete(ScheduledPuzzleJob)
-      .where(
-        and(
-          eq(ScheduledPuzzleJob.botId, botId),
-          eq(ScheduledPuzzleJob.channelId, channelId)
+): Promise<void> => {
+  try {
+    await db.transaction(async (tx) => {
+      const result = await tx
+        .delete(ScheduledPuzzleJob)
+        .where(
+          and(
+            eq(ScheduledPuzzleJob.botId, botId),
+            eq(ScheduledPuzzleJob.channelId, channelId)
+          )
         )
-      )
-      .returning({
-        jobId: ScheduledPuzzleJob.jobId,
-      });
+        .returning({
+          jobId: ScheduledPuzzleJob.jobId,
+        });
 
-    if (result.length !== 1 || !result[0]) {
-      throw new KnownError('Unexpected delete result: Multiple items found', {
-        cause: result,
-      });
+      if (result.length !== 1 || !result[0]) {
+        throw new PersistenceError(
+          'Multiple items found',
+          {
+            identifier: { botId, channelId },
+          }
+        );
+      }
+
+      await cancelJob(result[0].jobId);
+    });
+  } catch (cause) {
+    throw Oops.fromError('Failed to cancel Schedule', cause)
+  }
+};
+
+export const getSchedule = async (
+  db: DB,
+  jobId: string
+): Promise<Nullable<Pick<Schedule, 'jobId' | 'cron' | 'timeZone'>>> => {
+  try {
+    const [schedule] = await db
+      .select({
+        jobId: ScheduledPuzzleJob.jobId,
+        cron: ScheduledPuzzleJob.cron,
+        timeZone: ScheduledPuzzleJob.timeZone,
+      })
+      .from(ScheduledPuzzleJob)
+      .where(eq(ScheduledPuzzleJob.jobId, jobId));
+
+    if (!schedule) {
+      return null;
     }
 
-    await cancelJob(result[0].jobId);
-  });
+    return schedule;
+  } catch (cause) {
+    throw new PersistenceError('Failed to get current Schedule', {
+      identifier: { jobId },
+      cause
+    })
+  }
 };
 
-export const getSchedule = async (db: DB, jobId: string) => {
-  const [schedule] = await db
-    .select({
-      jobId: ScheduledPuzzleJob.jobId,
-      cron: ScheduledPuzzleJob.cron,
-      timeZone: ScheduledPuzzleJob.timeZone,
-      locale: ScheduledPuzzleJob.locale,
-      deliveryUrl: ScheduledPuzzleJob.deliveryUrl,
-    })
-    .from(ScheduledPuzzleJob)
-    .where(eq(ScheduledPuzzleJob.jobId, jobId));
+type Nullable<T> = T | null;
 
-  if (!schedule) {
-    return null;
+export const getScheduledDelivery = async (
+  db: DB,
+  scheduleId: string
+): Promise<Nullable<Pick<Schedule, 'locale' | 'deliveryUrl'>>> => {
+  try {
+    const [schedule] = await db
+      .select({
+        locale: ScheduledPuzzleJob.locale,
+        deliveryUrl: ScheduledPuzzleJob.deliveryUrl,
+      })
+      .from(ScheduledPuzzleJob)
+      .where(eq(ScheduledPuzzleJob.jobId, scheduleId));
+
+    if (!schedule) {
+      return null;
+    }
+
+    return schedule;
+  } catch (cause) {
+    throw new PersistenceError('Failed to get invoked Schedule', {
+      identifier: { scheduleId },
+      cause,
+    });
   }
-
-  return schedule;
-};
-
-export const getScheduleCurrent = async (db: DB, jobId: string) => {
-  const [schedule] = await db
-    .select({
-      jobId: ScheduledPuzzleJob.jobId,
-      cron: ScheduledPuzzleJob.cron,
-      timeZone: ScheduledPuzzleJob.timeZone,
-    })
-    .from(ScheduledPuzzleJob)
-    .where(eq(ScheduledPuzzleJob.jobId, jobId));
-
-  if (!schedule) {
-    return null;
-  }
-
-  return schedule;
-};
-
-export const getScheduledDelivery = async (db: DB, scheduleId: string) => {
-  const [schedule] = await db
-    .select({
-      locale: ScheduledPuzzleJob.locale,
-      deliveryUrl: ScheduledPuzzleJob.deliveryUrl,
-    })
-    .from(ScheduledPuzzleJob)
-    .where(eq(ScheduledPuzzleJob.jobId, scheduleId));
-
-  if (!schedule) {
-    return null;
-  }
-
-  return schedule;
 };
 
 /**
@@ -108,54 +118,58 @@ export const createSchedule = async (
     timeZone: string;
     locale: string;
   }
-) => {
-  await db.transaction(async (tx) => {
-    const [botChannel] = await db
-      .select({
-        webhookUrl: BotChannel.webhookUrl,
-      })
-      .from(BotChannel)
-      .where(
-        and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId))
-      );
+): Promise<void> => {
+  try {
+    await db.transaction(async (tx) => {
+      const [botChannel] = await db
+        .select({
+          webhookUrl: BotChannel.webhookUrl,
+        })
+        .from(BotChannel)
+        .where(
+          and(eq(BotChannel.botId, botId), eq(BotChannel.channelId, channelId))
+        );
 
-    if (!botChannel) {
-      throw new KnownError('Invalid Bot Channel', {
-        cause: { botId, channelId },
-      });
-    }
+      if (!botChannel) {
+        throw new PersistenceError('Invalid Bot Channel', {
+          identifier: { botId, channelId },
+        });
+      }
 
-    const updatedAt = new Date();
-    const updates = {
-      cron: formatCronExpression(cronTime),
-      timeZone,
-      locale,
-      deliveryUrl: botChannel.webhookUrl,
-      updatedAt,
-    };
+      const updatedAt = new Date();
+      const updates = {
+        cron: formatCronExpression(cronTime),
+        timeZone,
+        locale,
+        deliveryUrl: botChannel.webhookUrl,
+        updatedAt,
+      };
 
-    const [schedule] = await tx
-      .insert(ScheduledPuzzleJob)
-      .values({
-        jobId: generateRowId(`${botId}:${channelId}`),
-        botId,
-        channelId,
-        ...updates,
-        createdAt: updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: ScheduledPuzzleJob.jobId,
-        set: updates,
-      })
-      .returning({
-        jobId: ScheduledPuzzleJob.jobId,
-        cron: ScheduledPuzzleJob.cron,
-      });
+      const [schedule] = await tx
+        .insert(ScheduledPuzzleJob)
+        .values({
+          jobId: generateRowId(`${botId}:${channelId}`),
+          botId,
+          channelId,
+          ...updates,
+          createdAt: updatedAt,
+        })
+        .onConflictDoUpdate({
+          target: ScheduledPuzzleJob.jobId,
+          set: updates,
+        })
+        .returning({
+          jobId: ScheduledPuzzleJob.jobId,
+          cron: ScheduledPuzzleJob.cron,
+        });
 
-    if (!schedule) {
-      throw new KnownError('Failed to insert schedule');
-    }
+      if (!schedule) {
+        throw new PersistenceError('No Schedule returned');
+      }
 
-    await scheduleJob(schedule);
-  });
+      await scheduleJob(schedule);
+    });
+  } catch (cause) {
+    throw Oops.fromError('Failed to upsert Schedule', cause);
+  }
 };

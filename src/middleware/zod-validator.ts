@@ -2,7 +2,7 @@ import type { ValidationTargets } from 'hono';
 import { validator } from 'hono/validator';
 import type { z } from 'zod';
 
-import { ValidationError } from '@/lib/utils/errors';
+import { RequestError } from '@/lib/utils/errors';
 
 export const zodValidator = <
   Target extends keyof ValidationTargets,
@@ -14,7 +14,7 @@ export const zodValidator = <
   return validator(target, async (value): Promise<z.output<Schema>> => {
     const result = await schema.safeParseAsync(value);
     if (!result.success) {
-      throw new ValidationError(`Invalid ${target} data`, {
+      throw new RequestError(`Invalid ${target} data`, {
         issues: result.error.issues,
         cause: result.error,
       });

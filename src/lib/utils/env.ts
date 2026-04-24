@@ -1,4 +1,4 @@
-import { KnownError } from './errors';
+import { ConfigurationError } from './errors';
 
 /**
  * Get a required value from the environment. Is compatible with
@@ -10,7 +10,7 @@ export const secret = (key: Secret): string => {
   const value = process.env[key];
 
   if (!value) {
-    throw new KnownError(`Configuration Error: Environment missing ${key}`);
+    throw new ConfigurationError(`Environment missing ${key} variable`);
   }
 
   return value;

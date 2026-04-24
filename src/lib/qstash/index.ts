@@ -1,13 +1,13 @@
 import { createHash } from 'crypto';
 import type { Context, Next } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import jwt from 'jsonwebtoken';
 
 import config from '@/config';
 import type { Schedule } from '@/lib/db/schema';
 import type { ScheduledDeliveryRequestBody } from '@/lib/dtos/qstash';
 import { secret } from '@/lib/utils/env';
-import { KnownError } from '@/lib/utils/errors';
+import { AuthorizationError, Oops, RequestError, ResponseError } from '@/lib/utils/errors';
+import { createMiddleware } from 'hono/factory';
 
 const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
 
@@ -17,20 +17,22 @@ const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
  */
 export const cancelJob = async (jobId: string) => {
   try {
-    const response = await fetch(`${QSTASH_BASE_URL}/schedules/${jobId}`, {
+    const res = await fetch(`${QSTASH_BASE_URL}/schedules/${jobId}`, {
       method: 'DELETE',
       headers: {
         authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
       },
     });
 
-    if (response.status !== 200) {
-      throw new KnownError(await response.text(), {
-        cause: response,
+    if (res.status !== 200) {
+      throw new ResponseError(await res.text(), {
+        service: 'qstash',
+        status: res.status,
+        headers: res.headers,
       });
     }
   } catch (cause) {
-    throw new KnownError('Failed to cancel schedule', { cause });
+    throw Oops.fromError('Failed to cancel schedule', cause);
   }
 };
 
@@ -49,7 +51,7 @@ export const scheduleJob = async (
     } satisfies ScheduledDeliveryRequestBody);
 
     const redirectUrl = `${config.baseUrl}/webhooks/schedule`;
-    const response = await fetch(
+    const res = await fetch(
       `${QSTASH_BASE_URL}/schedules/${redirectUrl}`,
       {
         method: 'POST',
@@ -64,15 +66,28 @@ export const scheduleJob = async (
       }
     );
 
-    const json = await response.json();
+    const json = await res.json();
+    if (!res.ok) {
+      throw new ResponseError(json.error, {
+        service: 'qstash',
+        status: res.status,
+        headers: res.headers,
+      });
+    }
+
     const jobId = json.scheduleId;
     if (!jobId || typeof jobId !== 'string') {
-      throw new Error('Invalid response', { cause: response });
+      throw new ResponseError('Unexpected Create Schedule response', {
+        service: 'qstash',
+        status: res.status,
+        headers: res.headers,
+        received: json,
+      });
     }
 
     return jobId;
   } catch (cause) {
-    throw new KnownError('Failed to schedule job', { cause });
+    throw Oops.fromError('Failed to schedule Daily Puzzle delivery', cause);
   }
 };
 
@@ -88,17 +103,19 @@ export const verifyQStashSignature = () => {
     });
 
     if (typeof payload === 'string') {
-      throw new HTTPException(400, { message: 'Invalid token' });
+      throw new Oops('Signature unwrapped to string');
     }
 
     return payload;
   };
 
-  return async (c: Context, next: Next) => {
+  return createMiddleware<{
+    Variables: { qstashVerified?: boolean }
+  }>(async (c: Context, next: Next) => {
     try {
       const signature = c.req.header('upstash-signature');
       if (!signature) {
-        throw new HTTPException(401, { message: 'Missing Upstash signature' });
+        throw new AuthorizationError('Missing Upstash signature');
       }
 
       const body = await c.req.text();
@@ -113,7 +130,7 @@ export const verifyQStashSignature = () => {
       }
 
       if (payload.sub !== `${config.baseUrl}/webhooks/scheduled-puzzle`) {
-        throw new HTTPException(401, { message: 'Invalid token subject' });
+        throw new AuthorizationError('Invalid token subject');
       }
 
       const trimHash = (hash: string) => {
@@ -124,20 +141,18 @@ export const verifyQStashSignature = () => {
       try {
         bodyHash = createHash('sha256').update(body).digest('base64url');
       } catch {
-        throw new HTTPException(401, { message: 'Invalid token body' });
+        throw new AuthorizationError('Invalid token body');
       }
 
       if (trimHash(payload.body) !== trimHash(bodyHash)) {
-        throw new HTTPException(401, { message: 'Invalid token body' });
+        throw new AuthorizationError('Invalid token body');
       }
+
+      c.set('qstashVerified', true);
 
       await next();
     } catch (cause) {
-      const status = cause instanceof HTTPException ? cause.status : 500;
-
-      throw new HTTPException(status, {
-        cause,
-      });
+      throw Oops.fromError('Failed to verify QStash request', cause);
     }
-  };
+  });
 };
