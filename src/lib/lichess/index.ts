@@ -11,7 +11,7 @@ export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
     if (!res.ok) {
       throw new ResponseError(json.error, {
         service: 'lichess',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
       });
     }
@@ -20,7 +20,7 @@ export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
     if (!puzzleId || typeof puzzleId !== 'string') {
       throw new ResponseError('Unexpected Daily Puzzle response', {
         service: 'lichess',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
         received: json,
       });

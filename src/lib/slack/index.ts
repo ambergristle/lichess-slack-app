@@ -12,7 +12,7 @@ import { hmac } from '@/lib/utils/hmac';
 import { AuthorizationError, Oops, ResponseError } from '@/lib/utils/errors';
 import { secret } from '@/lib/utils/env';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
-import { createFactory, createMiddleware } from 'hono/factory';
+import { createMiddleware } from 'hono/factory';
 import { zChannelInfoResponse, zOAuthAccessResponseBody, zUserInfoResponse } from '@/lib/dtos/slack';
 import type { DB } from '../db';
 import { encodeBase64urlNoPadding } from '@oslojs/encoding';
@@ -128,7 +128,7 @@ export const getBotContext = async (db: DB, channelId: string) => {
 
       throw new ResponseError(message, {
         service: 'slack',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
         code: json.error,
       })
@@ -178,7 +178,7 @@ export const getUserTimeZone = async <V extends { db: DB }>(
     if (!res.ok) {
       throw new ResponseError('Failed to get User info', {
         service: 'slack',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
         code: json.error,
       });
@@ -221,7 +221,7 @@ export const exchangeCodeGrant = async (code: string) => {
     if (!res.ok || !result.ok) {
       throw new ResponseError('Failed to exchange auth code', {
         service: 'slack',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
         code: json.error,
       });
@@ -232,7 +232,7 @@ export const exchangeCodeGrant = async (code: string) => {
     if (app_id !== config.slack.appId) {
       throw new ResponseError('Invalid Slack app ID', {
         service: 'slack',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
         received: { app_id, bot_user_id, incoming_webhook, scope }
       });
@@ -351,7 +351,9 @@ const validateTimestamp = (timestamp: string) => {
  */
 export const verifySlackSignature = () => {
   return createMiddleware<{
-    Variables: { slackVerified?: boolean }
+    Variables: {
+      slackVerified?: boolean;
+    }
   }>(async (c, next) => {
     try {
       const {

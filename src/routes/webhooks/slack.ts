@@ -13,7 +13,7 @@ import {
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
-import { handleEffectError, processError } from '@/lib/utils/errors';
+import { handleEffectError, Oops } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
@@ -225,7 +225,7 @@ export const slack = new Hono()
     }
   )
   .onError(async (error, c) => {
-    const { status } = processError(error);
+    const { status } = Oops.parseError(error);
 
     if (c.var.slackVerified) {
       if ()

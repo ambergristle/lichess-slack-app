@@ -6,7 +6,7 @@ import config from '@/config';
 import type { Schedule } from '@/lib/db/schema';
 import type { ScheduledDeliveryRequestBody } from '@/lib/dtos/qstash';
 import { secret } from '@/lib/utils/env';
-import { AuthorizationError, Oops, RequestError, ResponseError } from '@/lib/utils/errors';
+import { AuthorizationError, Oops, ResponseError } from '@/lib/utils/errors';
 import { createMiddleware } from 'hono/factory';
 
 const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
@@ -27,7 +27,7 @@ export const cancelJob = async (jobId: string) => {
     if (res.status !== 200) {
       throw new ResponseError(await res.text(), {
         service: 'qstash',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
       });
     }
@@ -70,7 +70,7 @@ export const scheduleJob = async (
     if (!res.ok) {
       throw new ResponseError(json.error, {
         service: 'qstash',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
       });
     }
@@ -79,7 +79,7 @@ export const scheduleJob = async (
     if (!jobId || typeof jobId !== 'string') {
       throw new ResponseError('Unexpected Create Schedule response', {
         service: 'qstash',
-        status: res.status,
+        statusCode: res.status,
         headers: res.headers,
         received: json,
       });

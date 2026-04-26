@@ -9,9 +9,11 @@ type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>;
 
 interface OopsOptions extends ErrorOptions { }
 
+// 408 for timeout -- add error code?
+
 export class Oops extends Error {
   public readonly name: string = 'Oops';
-  public readonly statusCode: ErrorStatus = 500;
+  public readonly status: ErrorStatus = 500;
 
   constructor(message: string, options?: OopsOptions) {
     super(message, options);
@@ -25,6 +27,34 @@ export class Oops extends Error {
     return new Oops(message, { cause });
   }
 
+  public static parseError(error: unknown): { status: ContentfulStatusCode; message: string; } {
+    if (error instanceof Oops) {
+      return {
+        status: error.status,
+        message: error.message,
+      }
+    }
+
+    if (error instanceof HTTPException) {
+      return {
+        status: error.status,
+        message: error.message,
+      }
+    }
+
+    if (error instanceof Error) {
+      return {
+        status: 500,
+        message: error.message,
+      }
+    }
+
+    return {
+      status: 500,
+      message: 'Something unexpected happened.'
+    }
+  }
+
   public json(): JSONObject {
     return JSON.parse(JSON.stringify(this));
   }
@@ -32,7 +62,7 @@ export class Oops extends Error {
 
 export class AuthorizationError extends Oops {
   public readonly name = 'AuthorizationError';
-  public readonly statusCode = 401;
+  public readonly status = 401;
 
   constructor(message: string, options?: OopsOptions) {
     super(message, options);
@@ -67,7 +97,7 @@ export class PersistenceError extends Oops {
 }
 
 type ResponseErrorOptions = {
-  status: number;
+  statusCode: number;
   headers: Headers;
   received?: unknown;
 } & (
@@ -82,10 +112,9 @@ type ResponseErrorOptions = {
 
 export class ResponseError extends Oops {
   public readonly name = 'ResponseError';
-  public readonly statusCode = 500;
 
   public readonly service: 'lichess' | 'qstash' | 'slack';
-  public readonly status: number;
+  public readonly statusCode: number;
   public readonly code?: string;
   private readonly headers: Headers;
   private readonly received?: unknown;
@@ -93,7 +122,7 @@ export class ResponseError extends Oops {
   constructor(message: string, options: ResponseErrorOptions) {
     const {
       service,
-      status,
+      statusCode,
       code,
       headers,
       received,
@@ -103,7 +132,7 @@ export class ResponseError extends Oops {
     super(message, optionsRest);
 
     this.service = service;
-    this.status = status;
+    this.statusCode = statusCode;
 
     if (code) {
       this.code = code;
@@ -121,7 +150,7 @@ interface RequestErrorOptions extends OopsOptions {
 
 export class RequestError extends Oops {
   public readonly name = 'RequestError';
-  public readonly statusCode = 400;
+  public readonly status = 400;
 
   private readonly headers: Headers;
   private readonly body?: unknown;
@@ -136,8 +165,9 @@ export class RequestError extends Oops {
 }
 
 
-
-
+export const handleEffectError = (_error: unknown) => {
+  //
+};
 
 // export class ValidationError extends KnownError {
 //   public readonly issues: any[];
@@ -171,43 +201,3 @@ export class RequestError extends Oops {
 // - invalid response/data
 // - auth error
 // - unexpected data in db (or insert result)
-
-
-export const handleEffectError = (_error: unknown) => {
-  //
-};
-
-export const processError = (
-  error: unknown
-): {
-  message: string;
-  status: ContentfulStatusCode;
-} => {
-  console.error(error);
-
-  if (error instanceof KnownError) {
-    return {
-      message: error.message,
-      status: error.status,
-    };
-  }
-
-  if (error instanceof HTTPException) {
-    return {
-      message: error.message,
-      status: error.status,
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      status: 500,
-    };
-  }
-
-  return {
-    status: 500,
-    message: 'Something went wrong',
-  };
-};

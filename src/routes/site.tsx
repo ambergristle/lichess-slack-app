@@ -10,7 +10,7 @@ import {
   generateAuthorizationUrl,
   validateRegistrationRequest,
 } from '@/lib/slack';
-import { processError } from '@/lib/utils/errors';
+import { Oops } from '@/lib/utils/errors';
 import { dbProvider } from '@/middleware/db-provider';
 import { localizer } from '@/middleware/localizer';
 
@@ -74,7 +74,11 @@ export const site = new Hono()
     );
   })
   .onError((error, c) => {
-    const { message } = processError(error);
+    // registration errors should prompt re-try
+    // or admin contact
+    // ig can revoke hanging at some point?
+    // https://docs.slack.dev/reference/methods/auth.revoke/
+    const { message } = Oops.parseError(error);
 
     return c.render(<ErrorView heading={'Error'} details={message} />);
   });

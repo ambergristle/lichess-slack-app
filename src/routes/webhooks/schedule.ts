@@ -6,7 +6,7 @@ import { blocks } from '@/lib/slack';
 import { verifyQStashSignature } from '@/lib/qstash';
 import {
   handleEffectError,
-  processError,
+  Oops,
   RequestError,
 } from '@/lib/utils/errors';
 import { getLocalized } from '@/lib/utils/locale';
@@ -62,7 +62,7 @@ export const schedule = new Hono()
     }
   )
   .onError((error, c) => {
-    const { message } = processError(error);
+    const { status, message } = Oops.parseError(error);
 
     return c.body(message, 500);
   });

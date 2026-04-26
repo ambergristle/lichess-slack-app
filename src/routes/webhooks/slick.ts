@@ -14,11 +14,13 @@ import {
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
-import { handleEffectError } from '@/lib/utils/errors';
+import { handleEffectError, Oops, RequestError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
 import { zodValidator } from '@/middleware/zod-validator';
+import { timeout } from 'hono/timeout';
+import { HTTPException } from 'hono/http-exception';
 
 const SET_SCHEDULE_ID = 'schedule:set';
 const CANCEL_SCHEDULE_ID = 'schedule:cancel';
@@ -155,7 +157,7 @@ const commands = new Hono()
     }
   )
   .onError((error, c) => {
-    // error
+    // const { status, message } = Oops.parseError(error);
 
     if (c.var.slackVerified) {
       return c.json({
@@ -164,17 +166,17 @@ const commands = new Hono()
       })
     }
 
-    return c.text('Forbidden', 403);
+    return c.json({ error: 'Forbidden' }, 403);
   })
 
 const interactions = new Hono()
   .use('/interactions', verifySlackSignature())
+  // .use('/interactions', userLimiter(slackBucket, 1))
+  .use('/interactions', dbProvider())
+  .use('/interactions', botContext())
   .post(
     '/interactions',
     zodValidator('form', zInteractiveRequestBody),
-    // userLimiter(slackBucket, 1),
-    dbProvider(),
-    botContext(),
     async (c) => {
       const { botId, locale, localized } = c.var;
 
@@ -233,7 +235,10 @@ const interactions = new Hono()
           break;
         }
         default: {
-          break;
+          throw new RequestError('Invalid Action payload.', {
+            headers: c.req.raw.headers,
+            body: { channelId, userId, actions, responseUrl },
+          })
         }
       }
 
@@ -241,15 +246,32 @@ const interactions = new Hono()
     }
   )
   .onError((error, c) => {
-    // error
+    const { status } = Oops.parseError(error);
 
     if (c.var.slackVerified) {
-      return c.text('Oops', 500);
+      if (c.req.path) {
+        return c.json({
+          response_type: 'ephemeral',
+          text: 'Something went wrong',
+        })
+      }
+
+      // if a response url is available
+      // and the error is a 500?
+      // use the response url?
+
+      return c.json(null, status)
     }
 
-    return c.text('Forbidden', 403);
+    return c.json({ error: 'Forbidden' }, 403);
   })
 
 export const slack = new Hono()
+  // cors
+  .use('*', timeout(2.8 * 1000, () => {
+    return new HTTPException(408, {
+      message: 'Request took longer than 2.8 seconds',
+    });
+  }))
   .route('/', commands)
   .route('/', interactions)
