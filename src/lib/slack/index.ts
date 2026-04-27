@@ -114,7 +114,20 @@ export const getBotContext = async (db: DB, channelId: string) => {
       include_locale: 'true',
     }).toString();
 
-    const { botId, accessToken } = await getBotAccessToken(db, { channelId });
+    const {
+      botId,
+      accessToken,
+      locale,
+      checkedAt,
+    } = await getBotAccessToken(db, { channelId });
+
+    // Only fetch locale the first time,
+    // and every six months after.
+    const sixMonthsMilliseconds = 1000 * 60 * 60 * 24 * 180
+    if (locale && checkedAt >= Date.now() - sixMonthsMilliseconds) {
+      return { botId, locale };
+    }
+
     const res = await fetch(
       `${SLACK_BASE_URL}/conversations.info` + '?' + queryParams,
       {

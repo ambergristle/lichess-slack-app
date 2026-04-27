@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   blob,
   integer,
@@ -6,9 +7,15 @@ import {
   text,
 } from 'drizzle-orm/sqlite-core';
 
+const timestamp = () => {
+  return integer({ mode: 'number' })
+    .notNull()
+    .default(sql`(current_timestamp)`)
+}
+
 const timestamps = {
-  createdAt: integer({ mode: 'timestamp' }).notNull(),
-  updatedAt: integer({ mode: 'timestamp' }).notNull(),
+  createdAt: timestamp(),
+  updatedAt: timestamp(),
 };
 
 export const Bot = sqliteTable('bots', {
@@ -27,6 +34,8 @@ export const BotChannel = sqliteTable(
       .references(() => Bot.id),
     channelId: text().notNull(),
     webhookUrl: text().notNull(),
+    locale: text(),
+    checkedAt: timestamp(),
     ...timestamps,
   },
   (table) => [

@@ -16,25 +16,36 @@ export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
       return !!botId && typeof botId === 'string';
     };
 
-    let bot: { id: string; accessToken: Buffer } | undefined = undefined;
+    let bot: {
+      id: string;
+      accessToken: Buffer;
+      locale?: string | null;
+      checkedAt: number;
+    } | undefined = undefined;
+
     if (isBotId(identifier)) {
       [bot] = await db
         .select({
           id: Bot.id,
           accessToken: Bot.accessToken,
+          locale: BotChannel.locale,
+          checkedAt: BotChannel.checkedAt,
         })
         .from(Bot)
         .where(eq(Bot.id, identifier.botId))
+        .innerJoin(BotChannel, eq(Bot.id, BotChannel.botId))
         .limit(1);
     } else {
       [bot] = await db
         .select({
           id: Bot.id,
           accessToken: Bot.accessToken,
+          locale: BotChannel.locale,
+          checkedAt: BotChannel.checkedAt,
         })
         .from(Bot)
-        .leftJoin(BotChannel, eq(Bot.id, BotChannel.botId))
         .where(eq(BotChannel.channelId, identifier.channelId))
+        .innerJoin(BotChannel, eq(Bot.id, BotChannel.botId))
         .limit(1);
     }
 
@@ -54,6 +65,10 @@ export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
     return {
       botId: bot.id,
       accessToken: new TextDecoder().decode(decrypted),
+      ...(bot.locale && {
+        locale: bot.locale,
+      }),
+      checkedAt: bot.checkedAt,
     };
   } catch (cause) {
     throw Oops.fromError('Failed to get Bot access token', cause);
@@ -85,14 +100,14 @@ export const registerBot = async (
     let botData: {
       scope: string;
       accessToken: Buffer;
-      updatedAt: Date;
+      updatedAt: number;
     };
     try {
       const encoded = new TextEncoder().encode(accessToken);
       botData = {
         scope,
         accessToken: encrypt(encoded),
-        updatedAt: new Date(),
+        updatedAt: Date.now(),
       };
     } catch (cause) {
       throw Oops.fromError('Failed to encrypt access token', cause);
