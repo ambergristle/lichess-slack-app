@@ -1,5 +1,7 @@
 import type { Context, Env, Next } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
+import { createMiddleware } from 'hono/factory';
+import { encodeBase64urlNoPadding } from '@oslojs/encoding';
 import type {
   ActionsBlock,
   KnownBlock,
@@ -7,20 +9,19 @@ import type {
   SectionBlock,
 } from '@slack/web-api';
 
-import { getBotAccessToken } from '@/lib/db/queries/bot';
-import { hmac } from '@/lib/utils/hmac';
-import { AuthorizationError, Oops, ResponseError } from '@/lib/utils/errors';
-import { secret } from '@/lib/utils/env';
-import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
-import { createMiddleware } from 'hono/factory';
+import config from '@/config';
+import type { DB } from '@/lib/db';
+import { getBotChannelToken } from '@/lib/db/queries/bot';
 import {
   zChannelInfoResponse,
   zOAuthAccessResponseBody,
   zUserInfoResponse,
 } from '@/lib/dtos/slack';
-import type { DB } from '../db';
-import { encodeBase64urlNoPadding } from '@oslojs/encoding';
-import config from '@/config';
+import { secret } from '@/lib/utils/env';
+import { AuthorizationError, Oops, ResponseError } from '@/lib/utils/errors';
+import { hmac } from '@/lib/utils/hmac';
+import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
+
 
 // #region Config
 
@@ -102,31 +103,15 @@ const SLACK_BASE_URL = 'https://slack.com/api';
 
 /**
  * @see https://api.slack.com/methods/conversations.info
- * @param c
- * @param botId
- * @param channelId
- * @returns
  */
-export const getBotContext = async (db: DB, channelId: string) => {
+export const getChannelLocale = async (db: DB, channelId: string) => {
   try {
+    const { botId, accessToken } = await getBotChannelToken(db, channelId);
+
     const queryParams = new URLSearchParams({
       channel: channelId,
       include_locale: 'true',
     }).toString();
-
-    const {
-      botId,
-      accessToken,
-      locale,
-      checkedAt,
-    } = await getBotAccessToken(db, { channelId });
-
-    // Only fetch locale the first time,
-    // and every six months after.
-    const sixMonthsMilliseconds = 1000 * 60 * 60 * 24 * 180
-    if (locale && checkedAt >= Date.now() - sixMonthsMilliseconds) {
-      return { botId, locale };
-    }
 
     const res = await fetch(
       `${SLACK_BASE_URL}/conversations.info` + '?' + queryParams,
@@ -160,9 +145,9 @@ export const getBotContext = async (db: DB, channelId: string) => {
       locale: channel.locale,
     };
   } catch (cause) {
-    throw Oops.fromError('Failed to get Bot context', cause);
+    throw Oops.fromError('Failed to get Channel locale', cause);
   }
-};
+}
 
 /**
  * @see https://api.slack.com/methods/users.info
@@ -171,18 +156,19 @@ export const getBotContext = async (db: DB, channelId: string) => {
  * @param userId
  * @returns
  */
-export const getUserTimeZone = async <V extends { db: DB }>(
-  c: Context<{ Variables: V }>,
-  botId: string,
-  userId: string
+export const getUserTimeZone = async (
+  db: DB,
+  channelId: string,
+  userId: string,
 ) => {
   try {
+    const { accessToken } = await getBotChannelToken(db, channelId)
+
     const queryParams = new URLSearchParams({
       user: userId,
       include_locale: 'true',
     }).toString();
 
-    const { accessToken } = await getBotAccessToken(c.var.db, { botId });
     const res = await fetch(
       `${SLACK_BASE_URL}/users.info` + '?' + queryParams,
       {

@@ -8,7 +8,6 @@ import {
   getSchedule,
 } from '@/lib/db/queries/schedule';
 import {
-  type SlashCommandRequestBody,
   zInteractiveRequestBody,
   zSlashCommandRequestBody,
 } from '@/lib/dtos/slack';
@@ -19,7 +18,6 @@ import { handleEffectError, Oops, RequestError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
-import { rateLimit } from '@/middleware/rate-limit';
 import { zodValidator } from '@/middleware/zod-validator';
 import { timeout } from 'hono/timeout';
 
@@ -118,23 +116,29 @@ export const slack = new Hono()
           })();
 
           const { userId } = c.req.valid('form');
-          const timezone =
-            schedule?.timeZone ?? (await getUserTimeZone(c, botId, userId));
+
+          const timezone = await (async () => {
+            if (schedule?.timeZone) {
+              return schedule.timeZone
+            }
+
+            return await getUserTimeZone(c.var.db, channelId, userId)
+          })()
 
           const actions = schedule
             ? [
-                blocks.actions([
-                  {
-                    type: 'button',
-                    action_id: CANCEL_SCHEDULE_ID,
-                    value: schedule.jobId,
-                    text: {
-                      type: 'plain_text',
-                      text: localized.blocks.cancelSchedule,
-                    },
+              blocks.actions([
+                {
+                  type: 'button',
+                  action_id: CANCEL_SCHEDULE_ID,
+                  value: schedule.jobId,
+                  text: {
+                    type: 'plain_text',
+                    text: localized.blocks.cancelSchedule,
                   },
-                ]),
-              ]
+                },
+              ]),
+            ]
             : [];
 
           return c.json(
@@ -211,7 +215,7 @@ export const slack = new Hono()
             break;
           }
 
-          const timeZone = await getUserTimeZone(c, botId, userId);
+          const timeZone = await getUserTimeZone(c.var.db, channelId, userId);
           const cronTime = zonedToUtc(action.selectedTime, timeZone);
 
           await createSchedule(c.var.db, {

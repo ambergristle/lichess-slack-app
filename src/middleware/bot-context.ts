@@ -1,16 +1,17 @@
 import { createMiddleware } from 'hono/factory';
 
+import type { DB } from '@/lib/db';
+import { getChannelLocale } from '@/lib/slack';
 import { getLocalized } from '@/lib/utils/locale';
 import type { Localized } from '@/locale/types';
-import { getBotContext } from '@/lib/slack';
-import type { DB } from '@/lib/db';
 
-export const botContext = () => {
-  return createMiddleware<BotContext, string, InteractionInput>(
+export const botContext = <IncludeTZ extends boolean>() => {
+  return createMiddleware<BotContext<IncludeTZ>, string, InteractionInput>(
     async (c, next) => {
       const { channelId } = c.req.valid('form');
 
-      const { botId, locale } = await getBotContext(c.var.db, channelId);
+      const { botId, locale } = await getChannelLocale(c.var.db, channelId);
+
       c.set('botId', botId);
       c.set('channelId', channelId);
       c.set('locale', locale);
@@ -23,14 +24,15 @@ export const botContext = () => {
   );
 };
 
-export type BotContext = {
+export type BotContext<IncludeTZ = false> = {
   Variables: {
     db: DB;
     botId: string;
     channelId: string;
     locale: string;
     localized: Localized;
-  };
+    timeZone: IncludeTZ extends true ? string : undefined;
+  }
 };
 
 type InteractionInput = {

@@ -6,76 +6,44 @@ import { generateRowId } from '@/lib/db/utils';
 import { decrypt, encrypt } from '@/lib/utils/encryption';
 import { Oops, PersistenceError } from '@/lib/utils/errors';
 
+
 /** Bearer */
-export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
-  try {
-    const isBotId = (
-      identifier: BotIdentifier
-    ): identifier is { botId: string } => {
-      const botId = (identifier as { botId: string }).botId;
-      return !!botId && typeof botId === 'string';
-    };
+export const getBotChannelToken = async (
+  db: DB,
+  channelId: string,
+): Promise<{
+  botId: string;
+  accessToken: string;
+}> => {
+  const [bot] = await db
+    .select({
+      id: Bot.id,
+      accessToken: Bot.accessToken,
+    })
+    .from(Bot)
+    .where(eq(BotChannel.channelId, channelId))
+    .innerJoin(BotChannel, eq(Bot.id, BotChannel.botId))
+    .limit(1);
 
-    let bot: {
-      id: string;
-      accessToken: Buffer;
-      locale?: string | null;
-      checkedAt: number;
-    } | undefined = undefined;
-
-    if (isBotId(identifier)) {
-      [bot] = await db
-        .select({
-          id: Bot.id,
-          accessToken: Bot.accessToken,
-          locale: BotChannel.locale,
-          checkedAt: BotChannel.checkedAt,
-        })
-        .from(Bot)
-        .where(eq(Bot.id, identifier.botId))
-        .innerJoin(BotChannel, eq(Bot.id, BotChannel.botId))
-        .limit(1);
-    } else {
-      [bot] = await db
-        .select({
-          id: Bot.id,
-          accessToken: Bot.accessToken,
-          locale: BotChannel.locale,
-          checkedAt: BotChannel.checkedAt,
-        })
-        .from(Bot)
-        .where(eq(BotChannel.channelId, identifier.channelId))
-        .innerJoin(BotChannel, eq(Bot.id, BotChannel.botId))
-        .limit(1);
-    }
-
-    if (!bot) {
-      throw new PersistenceError('Invalid Bot identifier', {
-        identifier,
-      });
-    }
-
-    let decrypted: Uint8Array;
-    try {
-      decrypted = decrypt(Uint8Array.from(bot.accessToken));
-    } catch (cause) {
-      throw Oops.fromError('Failed to decrypt access token', cause);
-    }
-
-    return {
-      botId: bot.id,
-      accessToken: new TextDecoder().decode(decrypted),
-      ...(bot.locale && {
-        locale: bot.locale,
-      }),
-      checkedAt: bot.checkedAt,
-    };
-  } catch (cause) {
-    throw Oops.fromError('Failed to get Bot access token', cause);
+  if (!bot) {
+    throw new PersistenceError('Invalid Bot identifier', {
+      identifier: { channelId },
+    });
   }
-};
 
-type BotIdentifier = { botId: string } | { channelId: string };
+  let accessToken: string;
+  try {
+    const decrypted = decrypt(Uint8Array.from(bot.accessToken));
+    accessToken = new TextDecoder().decode(decrypted)
+  } catch (cause) {
+    throw Oops.fromError('Invalid access token', cause);
+  }
+
+  return {
+    botId: bot.id,
+    accessToken,
+  }
+}
 
 /**
  * Register Slack Bot

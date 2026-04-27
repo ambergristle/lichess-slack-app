@@ -34,8 +34,6 @@ export const BotChannel = sqliteTable(
       .references(() => Bot.id),
     channelId: text().notNull(),
     webhookUrl: text().notNull(),
-    locale: text(),
-    checkedAt: timestamp(),
     ...timestamps,
   },
   (table) => [

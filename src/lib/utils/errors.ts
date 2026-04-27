@@ -1,13 +1,10 @@
 import { HTTPException } from 'hono/http-exception';
-import type {
-  ContentfulStatusCode,
-  SuccessStatusCode,
-} from 'hono/utils/http-status';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { JSONObject } from 'hono/utils/types';
 
 // type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>;
 
-interface OopsOptions extends ErrorOptions {}
+interface OopsOptions extends ErrorOptions { }
 
 export class Oops extends Error {
   public readonly name: string = 'Oops';
@@ -108,15 +105,15 @@ type ResponseErrorOptions = {
   headers: Headers;
   received?: unknown;
 } & (
-  | {
+    | {
       service: 'lichess' | 'qstash';
       code?: never;
     }
-  | {
+    | {
       service: 'slack';
       code?: string;
     }
-);
+  );
 
 export class ResponseError extends Oops {
   public readonly name = 'ResponseError';
@@ -195,97 +192,97 @@ const errorCodes = {
 type ErrorCode = keyof typeof errorCodes;
 type ErrorStatus = (typeof errorCodes)[ErrorCode];
 
-type OtherErrorOptions =
-  | ConfigErrorOptions
-  | InvalidRequestErrorOptions
-  | _PersistenceErrorOptions
-  | RateLimitErrorOptions
-  | _ResponseErrorOptions
-  | TimeoutErrorOptions
-  | UnauthorizedErrorOptions;
+// type OtherErrorOptions =
+//   | ConfigErrorOptions
+//   | InvalidRequestErrorOptions
+//   | _PersistenceErrorOptions
+//   | RateLimitErrorOptions
+//   | _ResponseErrorOptions
+//   | TimeoutErrorOptions
+//   | UnauthorizedErrorOptions;
 
-type InvalidRequestErrorOptions = {
-  message: string;
-  data: {
-    headers: Headers;
-    body?: unknown;
-  };
-};
+// type InvalidRequestErrorOptions = {
+//   message: string;
+//   data: {
+//     headers: Headers;
+//     body?: unknown;
+//   };
+// };
 
-type UnauthorizedErrorOptions = {
-  message: string;
-  cause?: unknown;
-};
+// type UnauthorizedErrorOptions = {
+//   message: string;
+//   cause?: unknown;
+// };
 
-type TimeoutErrorOptions = {
-  cause: unknown;
-};
+// type TimeoutErrorOptions = {
+//   cause: unknown;
+// };
 
-type RateLimitErrorOptions = {
-  data: {};
-};
+// type RateLimitErrorOptions = {
+//   data: {};
+// };
 
-type ConfigErrorOptions = {
-  message: string;
-};
+// type ConfigErrorOptions = {
+//   message: string;
+// };
 
-type _PersistenceErrorOptions = {
-  data: {
-    identifier: string | Record<string, string>;
-  };
-  cause?: unknown;
-};
+// type _PersistenceErrorOptions = {
+//   data: {
+//     identifier: string | Record<string, string>;
+//   };
+//   cause?: unknown;
+// };
 
-type _ResponseErrorOptions = {
-  message: string;
-  data: {
-    service: 'lichess' | 'qstash' | 'slack';
-    status: number;
-    code?: string;
-    headers: Headers;
-    body?: unknown;
-  };
-};
+// type _ResponseErrorOptions = {
+//   message: string;
+//   data: {
+//     service: 'lichess' | 'qstash' | 'slack';
+//     status: number;
+//     code?: string;
+//     headers: Headers;
+//     body?: unknown;
+//   };
+// };
 
-class Other extends Error {
-  status: ErrorStatus;
-  data?: Record<string, unknown>;
+// class Other extends Error {
+//   status: ErrorStatus;
+//   data?: Record<string, unknown>;
 
-  constructor(code: 'invalid_request', options: InvalidRequestErrorOptions);
+//   constructor(code: 'invalid_request', options: InvalidRequestErrorOptions);
 
-  constructor(code: 'unauthorized', options?: UnauthorizedErrorOptions);
+//   constructor(code: 'unauthorized', options?: UnauthorizedErrorOptions);
 
-  constructor(code: 'request_timeout', options: TimeoutErrorOptions);
+//   constructor(code: 'request_timeout', options: TimeoutErrorOptions);
 
-  constructor(code: 'limit_exceeded', options: RateLimitErrorOptions);
+//   constructor(code: 'limit_exceeded', options: RateLimitErrorOptions);
 
-  constructor(code: 'invalid_config', options: ConfigErrorOptions);
+//   constructor(code: 'invalid_config', options: ConfigErrorOptions);
 
-  constructor(code: 'persistence_error', options?: _PersistenceErrorOptions);
+//   constructor(code: 'persistence_error', options?: _PersistenceErrorOptions);
 
-  constructor(code: 'service_error', options: _ResponseErrorOptions);
+//   constructor(code: 'service_error', options: _ResponseErrorOptions);
 
-  constructor(code: 'server_error');
+//   constructor(code: 'server_error');
 
-  constructor(code: ErrorCode, options?: OtherErrorOptions) {
-    super(options?.message ?? 'Unknown exception');
-    this.status = errorCodes[code] ?? 500;
-  }
-}
+//   constructor(code: ErrorCode, options?: OtherErrorOptions) {
+//     super(options?.message ?? 'Unknown exception');
+//     this.status = errorCodes[code] ?? 500;
+//   }
+// }
 
 // https://github.com/cellajs/cella/blob/development/backend/src/lib/error.ts
-type OopsData = {
-  name: string;
-  message: string;
-  type: string; // idk
-  status: number; // error status
-  // severity -- this is a log
-  // entityType -- (scope)
+// type OopsData = {
+//   name: string;
+//   message: string;
+//   type: string; // idk
+//   status: number; // error status
+//   // severity -- this is a log
+//   // entityType -- (scope)
 
-  // logId
-  // request path
-  // request method
-  // timestamp
-  // userId
-  // etc
-};
+//   // logId
+//   // request path
+//   // request method
+//   // timestamp
+//   // userId
+//   // etc
+// };
