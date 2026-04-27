@@ -5,13 +5,16 @@ import { Oops, ResponseError } from '@/lib/utils/errors';
  */
 export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
   try {
-    const res = await fetch('https://lichess.org/api/puzzle/daily');
+    const res = await fetch('https://lichess.org/api/puzzle/daily', {
+      signal: AbortSignal.timeout(2 * 1000),
+    });
+
     const json = await res.json();
 
     if (!res.ok) {
       throw new ResponseError(json.error, {
         service: 'lichess',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
       });
     }
@@ -20,7 +23,7 @@ export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
     if (!puzzleId || typeof puzzleId !== 'string') {
       throw new ResponseError('Unexpected Daily Puzzle response', {
         service: 'lichess',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
         received: json,
       });

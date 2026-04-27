@@ -4,6 +4,8 @@ import { decodeBase64 } from '@oslojs/encoding';
 
 import { secret } from './env';
 
+// add key generation script
+// 32‑character Base64 string (128 bit/16 byte)
 const getCypherKey = () => {
   const encoded = secret('ENCRYPTION_KEY');
   return decodeBase64(encoded);

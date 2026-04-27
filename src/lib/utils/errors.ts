@@ -5,54 +5,60 @@ import type {
 } from 'hono/utils/http-status';
 import type { JSONObject } from 'hono/utils/types';
 
-type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>;
+// type ErrorStatus = Exclude<ContentfulStatusCode, SuccessStatusCode>;
 
-interface OopsOptions extends ErrorOptions { }
-
-// 408 for timeout -- add error code?
+interface OopsOptions extends ErrorOptions {}
 
 export class Oops extends Error {
   public readonly name: string = 'Oops';
   public readonly status: ErrorStatus = 500;
+  public readonly data?: Record<string, unknown>;
 
   constructor(message: string, options?: OopsOptions) {
     super(message, options);
+
+    if (options?.cause && options.cause instanceof Error) {
+      if (options.cause.name === 'AbortError') {
+        this.status = 408;
+      }
+
+      this.stack = options.cause.stack ?? this.stack;
+    }
   }
 
   public static fromError(message: string, cause: unknown): Oops {
-    if (cause instanceof Oops) {
-      return new Oops(message, { cause });
-    }
-
     return new Oops(message, { cause });
   }
 
-  public static parseError(error: unknown): { status: ContentfulStatusCode; message: string; } {
+  public static parseError(error: unknown): {
+    status: ContentfulStatusCode;
+    message: string;
+  } {
     if (error instanceof Oops) {
       return {
         status: error.status,
         message: error.message,
-      }
+      };
     }
 
     if (error instanceof HTTPException) {
       return {
         status: error.status,
         message: error.message,
-      }
+      };
     }
 
     if (error instanceof Error) {
       return {
         status: 500,
         message: error.message,
-      }
+      };
     }
 
     return {
       status: 500,
-      message: 'Something unexpected happened.'
-    }
+      message: 'Something unexpected happened.',
+    };
   }
 
   public json(): JSONObject {
@@ -69,7 +75,6 @@ export class AuthorizationError extends Oops {
   }
 }
 
-
 export class ConfigurationError extends Oops {
   public readonly name = 'ConfigurationError';
 
@@ -84,62 +89,58 @@ interface PersistenceErrorOptions extends OopsOptions {
 
 export class PersistenceError extends Oops {
   public readonly name = 'PersistenceError';
-  public readonly identifier?: string | Record<string, string>;
+  declare public readonly data?: {
+    identifier: string | Record<string, string>;
+  };
 
   constructor(message: string, options?: PersistenceErrorOptions) {
     const { identifier, ...optionsRest } = options ?? {};
     super(message, optionsRest);
 
     if (identifier) {
-      this.identifier = identifier;
+      this.data = { identifier };
     }
   }
 }
 
 type ResponseErrorOptions = {
-  statusCode: number;
+  status: number;
   headers: Headers;
   received?: unknown;
 } & (
-    {
+  | {
       service: 'lichess' | 'qstash';
       code?: never;
-    } | {
+    }
+  | {
       service: 'slack';
       code?: string;
     }
-  )
+);
 
 export class ResponseError extends Oops {
   public readonly name = 'ResponseError';
-
-  public readonly service: 'lichess' | 'qstash' | 'slack';
-  public readonly statusCode: number;
-  public readonly code?: string;
-  private readonly headers: Headers;
-  private readonly received?: unknown;
+  declare public readonly data: {
+    service: 'lichess' | 'qstash' | 'slack';
+    status: number;
+    code?: string;
+    headers: Headers;
+    received?: unknown;
+  };
 
   constructor(message: string, options: ResponseErrorOptions) {
-    const {
-      service,
-      statusCode,
-      code,
-      headers,
-      received,
-      ...optionsRest
-    } = options;
+    const { service, status, code, headers, received, ...optionsRest } =
+      options;
 
     super(message, optionsRest);
 
-    this.service = service;
-    this.statusCode = statusCode;
-
-    if (code) {
-      this.code = code;
-    }
-
-    this.headers = headers;
-    this.received = received;
+    this.data = {
+      service,
+      status,
+      ...(!!code && { code }),
+      headers,
+      received,
+    };
   }
 }
 
@@ -151,53 +152,140 @@ interface RequestErrorOptions extends OopsOptions {
 export class RequestError extends Oops {
   public readonly name = 'RequestError';
   public readonly status = 400;
-
-  private readonly headers: Headers;
-  private readonly body?: unknown;
+  declare public readonly data: {
+    headers: Headers;
+    body?: unknown;
+  };
 
   constructor(message: string, options: RequestErrorOptions) {
-    const { headers, body, ...restOptions } = options ?? {}
-    super(message, restOptions)
+    const { headers, body, ...restOptions } = options ?? {};
+    super(message, restOptions);
 
-    this.headers = headers;
-    this.body = body;
+    this.data = {
+      headers,
+      ...(!!body && { body }),
+    };
   }
 }
 
+export class RateLimitError extends Oops {
+  public readonly name = 'RateLimitError';
+  public readonly status = 429;
 
-export const handleEffectError = (_error: unknown) => {
-  //
+  constructor() {
+    super('Rate limit exceeded');
+  }
+}
+
+export const handleEffectError = (error: unknown) => {
+  Oops.parseError(error);
 };
 
-// export class ValidationError extends KnownError {
-//   public readonly issues: any[];
+const errorCodes = {
+  invalid_request: 400,
+  unauthorized: 401,
+  request_timeout: 408,
+  limit_exceeded: 429,
+  invalid_config: 500,
+  server_error: 500,
+  persistence_error: 500,
+  service_error: 500,
+} as const;
 
-//   constructor(message: string, { issues, ...options }: ValidationErrorOptions) {
-//     super(message, {
-//       status: 429,
-//       ...options,
-//     });
+type ErrorCode = keyof typeof errorCodes;
+type ErrorStatus = (typeof errorCodes)[ErrorCode];
 
-//     this.name = 'ValidationError';
-//     this.issues = issues;
-//   }
-// }
+type OtherErrorOptions =
+  | ConfigErrorOptions
+  | InvalidRequestErrorOptions
+  | _PersistenceErrorOptions
+  | RateLimitErrorOptions
+  | _ResponseErrorOptions
+  | TimeoutErrorOptions
+  | UnauthorizedErrorOptions;
 
-// interface ValidationErrorOptions extends ErrorOptions {
-//   issues: any[];
-// }
+type InvalidRequestErrorOptions = {
+  message: string;
+  data: {
+    headers: Headers;
+    body?: unknown;
+  };
+};
 
+type UnauthorizedErrorOptions = {
+  message: string;
+  cause?: unknown;
+};
 
-// representing an error response from
-// - qstash
-// - slack
-// - lichess
-// - db
-// - storage
+type TimeoutErrorOptions = {
+  cause: unknown;
+};
 
-// wrapping a function error
+type RateLimitErrorOptions = {
+  data: {};
+};
 
-// throwing defined/known issues
-// - invalid response/data
-// - auth error
-// - unexpected data in db (or insert result)
+type ConfigErrorOptions = {
+  message: string;
+};
+
+type _PersistenceErrorOptions = {
+  data: {
+    identifier: string | Record<string, string>;
+  };
+  cause?: unknown;
+};
+
+type _ResponseErrorOptions = {
+  message: string;
+  data: {
+    service: 'lichess' | 'qstash' | 'slack';
+    status: number;
+    code?: string;
+    headers: Headers;
+    body?: unknown;
+  };
+};
+
+class Other extends Error {
+  status: ErrorStatus;
+  data?: Record<string, unknown>;
+
+  constructor(code: 'invalid_request', options: InvalidRequestErrorOptions);
+
+  constructor(code: 'unauthorized', options?: UnauthorizedErrorOptions);
+
+  constructor(code: 'request_timeout', options: TimeoutErrorOptions);
+
+  constructor(code: 'limit_exceeded', options: RateLimitErrorOptions);
+
+  constructor(code: 'invalid_config', options: ConfigErrorOptions);
+
+  constructor(code: 'persistence_error', options?: _PersistenceErrorOptions);
+
+  constructor(code: 'service_error', options: _ResponseErrorOptions);
+
+  constructor(code: 'server_error');
+
+  constructor(code: ErrorCode, options?: OtherErrorOptions) {
+    super(options?.message ?? 'Unknown exception');
+    this.status = errorCodes[code] ?? 500;
+  }
+}
+
+// https://github.com/cellajs/cella/blob/development/backend/src/lib/error.ts
+type OopsData = {
+  name: string;
+  message: string;
+  type: string; // idk
+  status: number; // error status
+  // severity -- this is a log
+  // entityType -- (scope)
+
+  // logId
+  // request path
+  // request method
+  // timestamp
+  // userId
+  // etc
+};

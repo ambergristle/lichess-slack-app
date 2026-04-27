@@ -7,7 +7,7 @@ import {
 } from '.';
 import { hmac } from '../utils/hmac';
 import { secret } from '../utils/env';
-import { KnownError } from '../utils/errors';
+import { Oops } from '../utils/errors';
 
 const toUnix = (date: Date) => {
   return `${Math.floor(date.valueOf() / 1000)}`;
@@ -18,7 +18,7 @@ describe('Verify Slack Signature', () => {
     .use(verifySlackSignature())
     .get('/', (c) => c.text('ok'))
     .onError((error, c) => {
-      const status = error instanceof KnownError ? error.status : 500;
+      const status = error instanceof Oops ? error.status : 500;
       return c.body(null, status);
     });
 
@@ -160,7 +160,7 @@ describe('Validate Registration Request', () => {
     .use(validateRegistrationRequest())
     .get('/', (c) => c.text('ok'))
     .onError((error, c) => {
-      const status = error instanceof KnownError ? error.status : 500;
+      const status = error instanceof Oops ? error.status : 500;
       return c.body(null, status);
     });
 

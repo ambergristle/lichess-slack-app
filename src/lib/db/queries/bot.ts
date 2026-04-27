@@ -48,7 +48,7 @@ export const getBotAccessToken = async (db: DB, identifier: BotIdentifier) => {
     try {
       decrypted = decrypt(Uint8Array.from(bot.accessToken));
     } catch (cause) {
-      throw Oops.fromError('Failed to decrypt access token', cause)
+      throw Oops.fromError('Failed to decrypt access token', cause);
     }
 
     return {
@@ -128,6 +128,6 @@ export const registerBot = async (
       });
     });
   } catch (cause) {
-    throw Oops.fromError('Failed to upsert Bot records', cause)
+    throw Oops.fromError('Failed to upsert Bot records', cause);
   }
 };

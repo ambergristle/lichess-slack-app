@@ -26,13 +26,13 @@ export const zChannelInfoResponse = z.object({
   channel: z.object({
     locale: z.string(),
   }),
-})
+});
 
 export const zUserInfoResponse = z.object({
   user: z.object({
     tz: z.string(),
   }),
-})
+});
 
 // #region Slash Commands
 
@@ -54,6 +54,8 @@ export const zSlashCommandRequestBody = z
     text: body.text,
     responseUrl: body.response_url,
   }));
+
+export type SlashCommandRequestBody = z.infer<typeof zSlashCommandRequestBody>;
 
 // #endregion
 

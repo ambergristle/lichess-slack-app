@@ -13,7 +13,11 @@ import { AuthorizationError, Oops, ResponseError } from '@/lib/utils/errors';
 import { secret } from '@/lib/utils/env';
 import { SUPPORTED_TIME_ZONES } from '@/locale/time-zones';
 import { createMiddleware } from 'hono/factory';
-import { zChannelInfoResponse, zOAuthAccessResponseBody, zUserInfoResponse } from '@/lib/dtos/slack';
+import {
+  zChannelInfoResponse,
+  zOAuthAccessResponseBody,
+  zUserInfoResponse,
+} from '@/lib/dtos/slack';
 import type { DB } from '../db';
 import { encodeBase64urlNoPadding } from '@oslojs/encoding';
 import config from '@/config';
@@ -117,21 +121,23 @@ export const getBotContext = async (db: DB, channelId: string) => {
         headers: {
           authorization: `Bearer ${accessToken}`,
         },
+        signal: AbortSignal.timeout(2.5 * 1000),
       }
     );
 
     const json = await res.json();
     if (!res.ok) {
-      const message = json.errror === 'channel_not_found'
-        ? 'Specified Channel is private'
-        : 'Failed to get Channel info'
+      const message =
+        json.error === 'channel_not_found'
+          ? 'Specified Channel is private'
+          : 'Failed to get Channel info';
 
       throw new ResponseError(message, {
         service: 'slack',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
         code: json.error,
-      })
+      });
     }
 
     const { channel } = zChannelInfoResponse.parse(json);
@@ -141,7 +147,7 @@ export const getBotContext = async (db: DB, channelId: string) => {
       locale: channel.locale,
     };
   } catch (cause) {
-    throw Oops.fromError('Failed to get Bot context', cause)
+    throw Oops.fromError('Failed to get Bot context', cause);
   }
 };
 
@@ -170,6 +176,7 @@ export const getUserTimeZone = async <V extends { db: DB }>(
         headers: {
           authorization: `Bearer ${accessToken}`,
         },
+        signal: AbortSignal.timeout(2.5 * 1000),
       }
     );
 
@@ -178,18 +185,17 @@ export const getUserTimeZone = async <V extends { db: DB }>(
     if (!res.ok) {
       throw new ResponseError('Failed to get User info', {
         service: 'slack',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
         code: json.error,
       });
     }
 
-
     const { user } = zUserInfoResponse.parse(json);
 
     return user.tz;
   } catch (cause) {
-    throw Oops.fromError('Failed to get User time zone', cause)
+    throw Oops.fromError('Failed to get User time zone', cause);
   }
 };
 
@@ -213,6 +219,7 @@ export const exchangeCodeGrant = async (code: string) => {
       headers: {
         authorization: `Basic ${btoa(`${config.slack.clientId}:${clientSecret}`)}`,
       },
+      signal: AbortSignal.timeout(2.5 * 1000),
     });
 
     const json = await res.json();
@@ -221,20 +228,21 @@ export const exchangeCodeGrant = async (code: string) => {
     if (!res.ok || !result.ok) {
       throw new ResponseError('Failed to exchange auth code', {
         service: 'slack',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
         code: json.error,
       });
     }
 
-    const { app_id, bot_user_id, incoming_webhook, scope, access_token } = result;
+    const { app_id, bot_user_id, incoming_webhook, scope, access_token } =
+      result;
 
     if (app_id !== config.slack.appId) {
       throw new ResponseError('Invalid Slack app ID', {
         service: 'slack',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
-        received: { app_id, bot_user_id, incoming_webhook, scope }
+        received: { app_id, bot_user_id, incoming_webhook, scope },
       });
     }
 
@@ -269,7 +277,7 @@ export const generateAuthorizationUrl = (c: Context): string => {
       client_id: config.slack.clientId,
       scope: APP_SCOPE,
       state,
-      redirect_uri: `${config.baseUrl}/register`,
+      redirect_uri: config.baseUrl + config.paths.register,
     }).toString();
 
     setCookie(c, config.oauthStateCookieName, state, {
@@ -284,7 +292,7 @@ export const generateAuthorizationUrl = (c: Context): string => {
       `https://slack.com/oauth/v2/authorize?${queryParams}`
     ).toString();
   } catch (cause) {
-    throw Oops.fromError('Failed to generate Authorization URL', cause)
+    throw Oops.fromError('Failed to generate Authorization URL', cause);
   }
 };
 
@@ -321,9 +329,10 @@ export const validateRegistrationRequest = <E extends Env = Env>() => {
 
 const unixMilliseconds = (timestamp: string) => {
   const epochSeconds = Number(timestamp);
-  if (isNaN(epochSeconds)) throw new TypeError('Invalid timestamp', {
-    cause: { timestamp },
-  });
+  if (isNaN(epochSeconds))
+    throw new TypeError('Invalid timestamp', {
+      cause: { timestamp },
+    });
 
   return epochSeconds * 1000;
 };
@@ -338,23 +347,28 @@ const unixMilliseconds = (timestamp: string) => {
  * @param timestamp Unix timestamp
  */
 const validateTimestamp = (timestamp: string) => {
-  const millisecondDifference = Date.now() - unixMilliseconds(timestamp);
-  if (millisecondDifference < 0) return false;
-  if (millisecondDifference > 1000 * 60 * 5) return false;
+  try {
+    const millisecondDifference = Date.now() - unixMilliseconds(timestamp);
+    if (millisecondDifference < 0) return false;
+    if (millisecondDifference > 1000 * 60 * 5) return false;
 
-  return true;
+    return true;
+  } catch {
+    return false;
+  }
 };
 
+type VerifiedSlackEnv = {
+  Variables: {
+    slackVerified?: boolean;
+  };
+};
 /**
  *
  * @see https://api.slack.com/interactivity/slash-commands#responding_to_commands
  */
 export const verifySlackSignature = () => {
-  return createMiddleware<{
-    Variables: {
-      slackVerified?: boolean;
-    }
-  }>(async (c, next) => {
+  return createMiddleware<VerifiedSlackEnv>(async (c, next) => {
     try {
       const {
         'user-agent': userAgent,
@@ -405,7 +419,7 @@ export const verifySlackSignature = () => {
 
       await next();
     } catch (cause) {
-      throw new AuthorizationError('Invalid request', { cause })
+      throw new AuthorizationError('Invalid request', { cause });
     }
   });
 };

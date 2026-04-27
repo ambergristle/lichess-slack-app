@@ -63,7 +63,11 @@ export const localizeUtc = (
   timeZone: string,
   locale: string
 ) => {
-  const utcDate = new UTCDate(2010, 6, 20, hour, minute, 0, 0);
+  const utcDate = new UTCDate();
+  utcDate.setUTCHours(hour);
+  utcDate.setUTCMinutes(minute);
+  utcDate.setUTCSeconds(0);
+  utcDate.setUTCMilliseconds(0);
 
   return {
     display: utcDate.toLocaleTimeString(locale, {

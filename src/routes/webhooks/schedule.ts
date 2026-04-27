@@ -1,20 +1,26 @@
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { timeout } from 'hono/timeout';
 
-import { getDailyPuzzle } from '@/lib/lichess';
+import { getScheduledDelivery } from '@/lib/db/queries/schedule';
 import { zScheduledDeliveryRequestBody } from '@/lib/dtos/qstash';
-import { blocks } from '@/lib/slack';
+import { getDailyPuzzle } from '@/lib/lichess';
 import { verifyQStashSignature } from '@/lib/qstash';
-import {
-  handleEffectError,
-  Oops,
-  RequestError,
-} from '@/lib/utils/errors';
+import { blocks } from '@/lib/slack';
+import { handleEffectError, Oops, RequestError } from '@/lib/utils/errors';
 import { getLocalized } from '@/lib/utils/locale';
 import { zodValidator } from '@/middleware/zod-validator';
 import { dbProvider } from '@/middleware/db-provider';
-import { getScheduledDelivery } from '@/lib/db/queries/schedule';
 
 export const schedule = new Hono()
+  .use(
+    '*',
+    timeout(2.8 * 1000, () => {
+      return new HTTPException(408, {
+        message: 'Request took longer than 2.8 seconds',
+      });
+    })
+  )
   /** Dispatch scheduled puzzle delivery */
   .post(
     '/',
@@ -56,13 +62,20 @@ export const schedule = new Hono()
           'content-type': 'application/json',
           'content-length': body.length.toString(),
         },
+        signal: AbortSignal.timeout(5 * 1000),
       }).catch(handleEffectError);
 
       return c.body(null, 200);
     }
   )
   .onError((error, c) => {
-    const { status, message } = Oops.parseError(error);
+    const { status } = Oops.parseError(error);
 
-    return c.body(message, 500);
+    if (status < 500) {
+      // Unverified or malformed requests
+      // should not be retried
+      c.header('upstash-nonretryable-error', `${true}`);
+    }
+
+    return c.body(null, status);
   });

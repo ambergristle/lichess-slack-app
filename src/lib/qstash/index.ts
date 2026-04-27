@@ -22,12 +22,13 @@ export const cancelJob = async (jobId: string) => {
       headers: {
         authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
       },
+      signal: AbortSignal.timeout(2.5 * 1000),
     });
 
     if (res.status !== 200) {
       throw new ResponseError(await res.text(), {
         service: 'qstash',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
       });
     }
@@ -51,26 +52,24 @@ export const scheduleJob = async (
     } satisfies ScheduledDeliveryRequestBody);
 
     const redirectUrl = `${config.baseUrl}/webhooks/schedule`;
-    const res = await fetch(
-      `${QSTASH_BASE_URL}/schedules/${redirectUrl}`,
-      {
-        method: 'POST',
-        body,
-        headers: {
-          authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
-          'content-type': 'application/json',
-          'content-length': body.length.toString(),
-          'upstash-cron': schedule.cron,
-          'upstash-schedule-id': schedule.jobId,
-        },
-      }
-    );
+    const res = await fetch(`${QSTASH_BASE_URL}/schedules/${redirectUrl}`, {
+      method: 'POST',
+      body,
+      headers: {
+        authorization: `Bearer ${secret('QSTASH_TOKEN')}`,
+        'content-type': 'application/json',
+        'content-length': body.length.toString(),
+        'upstash-cron': schedule.cron,
+        'upstash-schedule-id': schedule.jobId,
+      },
+      signal: AbortSignal.timeout(2.5 * 1000),
+    });
 
     const json = await res.json();
     if (!res.ok) {
       throw new ResponseError(json.error, {
         service: 'qstash',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
       });
     }
@@ -79,7 +78,7 @@ export const scheduleJob = async (
     if (!jobId || typeof jobId !== 'string') {
       throw new ResponseError('Unexpected Create Schedule response', {
         service: 'qstash',
-        statusCode: res.status,
+        status: res.status,
         headers: res.headers,
         received: json,
       });
@@ -110,7 +109,7 @@ export const verifyQStashSignature = () => {
   };
 
   return createMiddleware<{
-    Variables: { qstashVerified?: boolean }
+    Variables: { qstashVerified?: boolean };
   }>(async (c: Context, next: Next) => {
     try {
       const signature = c.req.header('upstash-signature');
@@ -129,7 +128,7 @@ export const verifyQStashSignature = () => {
         payload = verifySignature(signature, nextKey);
       }
 
-      if (payload.sub !== `${config.baseUrl}/webhooks/scheduled-puzzle`) {
+      if (payload.sub !== config.baseUrl + config.paths.schedule) {
         throw new AuthorizationError('Invalid token subject');
       }
 
@@ -139,6 +138,8 @@ export const verifyQStashSignature = () => {
 
       let bodyHash: string;
       try {
+        //
+        // digest param specifies returned encoding
         bodyHash = createHash('sha256').update(body).digest('base64url');
       } catch {
         throw new AuthorizationError('Invalid token body');

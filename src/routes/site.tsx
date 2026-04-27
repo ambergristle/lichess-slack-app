@@ -22,7 +22,7 @@ export const site = new Hono()
     '/public/*',
     serveStatic({
       root: './',
-    }),
+    })
   )
   /**
    * Simple landing page to facilitate registration, and
@@ -53,7 +53,7 @@ export const site = new Hono()
             {repoUrl}
           </a>
         </p>
-      </div>,
+      </div>
     );
   })
   /**
@@ -70,7 +70,7 @@ export const site = new Hono()
       <div>
         <h1>{localized.registrationSucceeded}</h1>
         <p>{localized.closeWindowPrompt}</p>
-      </div>,
+      </div>
     );
   })
   .onError((error, c) => {

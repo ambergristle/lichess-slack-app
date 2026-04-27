@@ -27,18 +27,15 @@ export const deleteSchedule = async (
         });
 
       if (result.length !== 1 || !result[0]) {
-        throw new PersistenceError(
-          'Multiple items found',
-          {
-            identifier: { botId, channelId },
-          }
-        );
+        throw new PersistenceError('Multiple items found', {
+          identifier: { botId, channelId },
+        });
       }
 
       await cancelJob(result[0].jobId);
     });
   } catch (cause) {
-    throw Oops.fromError('Failed to cancel Schedule', cause)
+    throw Oops.fromError('Failed to cancel Schedule', cause);
   }
 };
 
@@ -64,8 +61,8 @@ export const getSchedule = async (
   } catch (cause) {
     throw new PersistenceError('Failed to get current Schedule', {
       identifier: { jobId },
-      cause
-    })
+      cause,
+    });
   }
 };
 

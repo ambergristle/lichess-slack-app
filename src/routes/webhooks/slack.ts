@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 
 import { generateRowId } from '@/lib/db/utils';
 import {
@@ -7,27 +8,43 @@ import {
   getSchedule,
 } from '@/lib/db/queries/schedule';
 import {
+  type SlashCommandRequestBody,
   zInteractiveRequestBody,
   zSlashCommandRequestBody,
 } from '@/lib/dtos/slack';
 import { getDailyPuzzle } from '@/lib/lichess';
 import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
-import { handleEffectError, Oops } from '@/lib/utils/errors';
+import { handleEffectError, Oops, RequestError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
+import { rateLimit } from '@/middleware/rate-limit';
 import { zodValidator } from '@/middleware/zod-validator';
+import { timeout } from 'hono/timeout';
 
 const SET_SCHEDULE_ID = 'schedule:set';
 const CANCEL_SCHEDULE_ID = 'schedule:cancel';
 
 export const slack = new Hono()
-  .use(verifySlackSignature())
+  // .use('*', cors())
+  .use(
+    '*',
+    timeout(2.8 * 1000, () => {
+      return new HTTPException(408, {
+        message: 'Request took longer than 2.8 seconds',
+      });
+    })
+  )
+  .use('*', verifySlackSignature())
   .post(
     '/commands/:command',
     zodValidator('form', zSlashCommandRequestBody),
-    // userLimiter(slackBucket, 1),
+    // rateLimit<{}, string, { out: { form: SlashCommandRequestBody } }>({
+    //   cost: 1,
+    //   getKey: (c) => c.req.valid("form").userId,
+    //   getStore: (c) => { },
+    // }),
     dbProvider(),
     botContext(),
     async (c) => {
@@ -106,18 +123,18 @@ export const slack = new Hono()
 
           const actions = schedule
             ? [
-              blocks.actions([
-                {
-                  type: 'button',
-                  action_id: CANCEL_SCHEDULE_ID,
-                  value: schedule.jobId,
-                  text: {
-                    type: 'plain_text',
-                    text: localized.blocks.cancelSchedule,
+                blocks.actions([
+                  {
+                    type: 'button',
+                    action_id: CANCEL_SCHEDULE_ID,
+                    value: schedule.jobId,
+                    text: {
+                      type: 'plain_text',
+                      text: localized.blocks.cancelSchedule,
+                    },
                   },
-                },
-              ]),
-            ]
+                ]),
+              ]
             : [];
 
           return c.json(
@@ -156,7 +173,11 @@ export const slack = new Hono()
   .post(
     '/interactions',
     zodValidator('form', zInteractiveRequestBody),
-    // userLimiter(slackBucket, 1),
+    // rateLimit<{}, string, { out: { form: SlashCommandRequestBody } }>({
+    //   cost: 1,
+    //   getKey: (c) => c.req.valid("form").userId,
+    //   getStore: (c) => { },
+    // }),
     dbProvider(),
     botContext(),
     async (c) => {
@@ -178,6 +199,7 @@ export const slack = new Hono()
                 text: 'Your scheduled Daily Puzzle has been canceled!',
               }),
               headers: { 'content-type': 'application/json' },
+              signal: AbortSignal.timeout(5 * 1000),
             }).catch(handleEffectError);
           }
           // #endregion
@@ -212,25 +234,39 @@ export const slack = new Hono()
               text: message,
             }),
             headers: { 'content-type': 'application/json' },
+            signal: AbortSignal.timeout(5 * 1000),
           }).catch(handleEffectError);
           // #endregion
           break;
         }
         default: {
-          break;
+          throw new RequestError('Invalid Action payload.', {
+            headers: c.req.raw.headers,
+            body: { channelId, userId, actions, responseUrl },
+          });
         }
       }
 
       return c.body(null, 200);
     }
   )
-  .onError(async (error, c) => {
+  .onError((error, c) => {
     const { status } = Oops.parseError(error);
 
     if (c.var.slackVerified) {
-      if ()
+      if (c.req.path.startsWith('/commands')) {
+        return c.json({
+          response_type: 'ephemeral',
+          text: 'Something went wrong',
+        });
+      }
+
+      // if a response url is available
+      // and the error is a 500?
+      // use the response url?
+
+      return c.json(null, status);
     }
 
-
-    return c.text('Something went wrong.', status);
+    return c.json({ error: 'Forbidden' }, 403);
   });

@@ -1,7 +1,7 @@
 import { ConfigurationError } from './lib/utils/errors';
 
 const config = {
-  environment: 'development',
+  environment: env('ENVIRONMENT') ?? 'development',
 
   databaseUrl: '',
 
@@ -11,9 +11,15 @@ const config = {
   },
 
   baseUrl: '',
+  paths: {
+    landing: '/',
+    register: '/register',
+    slack: '/webhooks/slack',
+    schedule: '/webhooks/schedule',
+  },
 
   oauthStateCookieName: 'lsa_auth_state',
-};
+} as const;
 
 export default config;
 
