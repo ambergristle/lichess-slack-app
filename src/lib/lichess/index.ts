@@ -1,10 +1,31 @@
 import { Oops, ResponseError } from '@/lib/utils/errors';
 
+const checkPuzzleCache = async (): Promise<string | null> => {
+  console.log('todo')
+  return null
+}
+
+const setPuzzleCache = async (puzzleId: string): Promise<void> => {
+  console.log({ puzzleId })
+}
+
+const formatPuzzleUris = (puzzleId: string) => {
+  return {
+    puzzleUrl: `https://lichess.org/training/${puzzleId}`,
+    puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
+  };
+}
+
 /**
  * @see https://lichess.org/api#tag/puzzles/GET/api/puzzle/daily
  */
 export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
   try {
+    const cached = await checkPuzzleCache();
+    if (cached) {
+      return formatPuzzleUris(cached);
+    }
+
     const res = await fetch('https://lichess.org/api/puzzle/daily', {
       signal: AbortSignal.timeout(2 * 1000),
     });
@@ -29,10 +50,8 @@ export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
       });
     }
 
-    return {
-      puzzleUrl: `https://lichess.org/training/${puzzleId}`,
-      puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
-    };
+    setPuzzleCache(puzzleId);
+    return formatPuzzleUris(puzzleId);
   } catch (cause) {
     throw Oops.fromError('Failed to get Daily Puzzle', cause);
   }

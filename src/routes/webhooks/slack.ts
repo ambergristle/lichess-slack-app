@@ -12,9 +12,9 @@ import {
   zSlashCommandRequestBody,
 } from '@/lib/dtos/slack';
 import { getDailyPuzzle } from '@/lib/lichess';
-import { blocks, getUserTimeZone, verifySlackSignature } from '@/lib/slack';
+import { blocks, getUserTimeZone, replaceOriginal, verifySlackSignature } from '@/lib/slack';
 import { localizeUtc, parseCronTime, zonedToUtc } from '@/lib/utils/cron';
-import { handleEffectError, Oops, RequestError } from '@/lib/utils/errors';
+import { Oops, RequestError } from '@/lib/utils/errors';
 import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
@@ -196,15 +196,7 @@ export const slack = new Hono()
           if (action.actionId === CANCEL_SCHEDULE_ID) {
             await deleteSchedule(c.var.db, botId, channelId);
 
-            fetch(responseUrl, {
-              method: 'POST',
-              body: JSON.stringify({
-                replace_original: true,
-                text: 'Your scheduled Daily Puzzle has been canceled!',
-              }),
-              headers: { 'content-type': 'application/json' },
-              signal: AbortSignal.timeout(5 * 1000),
-            }).catch(handleEffectError);
+            replaceOriginal(responseUrl, 'Your scheduled Daily Puzzle has been canceled!')
           }
           // #endregion
           break;
@@ -231,15 +223,7 @@ export const slack = new Hono()
             timeString: display,
           });
 
-          fetch(responseUrl, {
-            method: 'POST',
-            body: JSON.stringify({
-              replace_original: true,
-              text: message,
-            }),
-            headers: { 'content-type': 'application/json' },
-            signal: AbortSignal.timeout(5 * 1000),
-          }).catch(handleEffectError);
+          replaceOriginal(responseUrl, message)
           // #endregion
           break;
         }

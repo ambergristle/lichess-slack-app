@@ -1,6 +1,6 @@
 import type { Context, Env, Input } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import { ConfigurationError, RateLimitError } from '@/lib/utils/errors';
+import { ConfigurationError } from '@/lib/utils/errors';
 
 type RateLimitResult = {
   ok: boolean;
@@ -35,11 +35,11 @@ export const rateLimit = <
     }
 
     // inject store
-    const algorithm: Algorithm = {};
-    const result = await algorithm.limit(key, options.cost);
-    if (!result.ok) {
-      throw new RateLimitError();
-    }
+    // const algorithm: Algorithm = {};
+    // const result = await algorithm.limit(key, options.cost);
+    // if (!result.ok) {
+    //   throw new RateLimitError();
+    // }
 
     await next();
   });

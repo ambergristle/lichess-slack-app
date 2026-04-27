@@ -99,6 +99,26 @@ export const blocks = {
 
 const SLACK_BASE_URL = 'https://slack.com/api';
 
+export const replaceOriginal = async (
+  responseUrl: string,
+  text: string,
+): Promise<void> => {
+  try {
+    await fetch(responseUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        // response_type: 'ephemeral',
+        replace_original: true,
+        text,
+      }),
+      headers: { 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(5 * 1000),
+    })
+  } catch (cause) {
+    console.error(cause)
+  }
+}
+
 // #region Fetch Preferences
 
 /**
