@@ -17,6 +17,8 @@ node_modules/
 # TypeScript output
 /build
 
+drizzle/migrations/
+
 # SQLite
 *.sqlite
 *.sqlite-shm
