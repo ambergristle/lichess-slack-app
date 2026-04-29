@@ -33,7 +33,6 @@ function generateLocalDrizzleConfig() {
     //   console.error('Configuration Failed: Missing Local DB');
     //   process.exit(1);
     // }
-    console.log(process.env.DEVELOPENT_SECRET);
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
       console.error('Configuration Failed: Missing Local DB URL');
