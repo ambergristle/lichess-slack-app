@@ -1,27 +1,63 @@
-import wretch from 'wretch';
+import { Oops, ResponseError } from '@/lib/utils/errors';
 
-import { parseDailyPuzzleResponse } from './parsers';
-import { DailyPuzzleMetadata } from './types';
-import { LichessError } from '../errors';
+const checkPuzzleCache = async (): Promise<string | null> => {
+  console.log('todo')
+  return null
+}
 
-const LichessApi = wretch('https://lichess.org/api');
+const setPuzzleCache = async (puzzleId: string): Promise<void> => {
+  console.log({ puzzleId })
+}
 
-export const getDailyPuzzle = async (): Promise<DailyPuzzleMetadata> => {
+const formatPuzzleUris = (puzzleId: string) => {
+  return {
+    puzzleUrl: `https://lichess.org/training/${puzzleId}`,
+    puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzleId}.gif`,
+  };
+}
+
+/**
+ * @see https://lichess.org/api#tag/puzzles/GET/api/puzzle/daily
+ */
+export const getDailyPuzzle = async (): Promise<DailyPuzzle> => {
   try {
-  /**
-   * @see https://lichess.org/api#tag/Puzzles/operation/apiPuzzleDaily
-   */
-    const { puzzle } = await LichessApi
-      .get('/puzzle/daily')
-      .json(parseDailyPuzzleResponse);
+    const cached = await checkPuzzleCache();
+    if (cached) {
+      return formatPuzzleUris(cached);
+    }
 
-    /** @todo safely construct query strings */
-    return {
-      puzzleUrl: `https://lichess.org/training/${puzzle.id}`,
-      puzzleThumbUrl: `https://lichess1.org/training/export/gif/thumbnail/${puzzle.id}.gif`,
-    };
+    const res = await fetch('https://lichess.org/api/puzzle/daily', {
+      signal: AbortSignal.timeout(2 * 1000),
+    });
 
+    const json = await res.json();
+
+    if (!res.ok) {
+      throw new ResponseError(json.error, {
+        service: 'lichess',
+        status: res.status,
+        headers: res.headers,
+      });
+    }
+
+    const puzzleId = json.puzzle.id;
+    if (!puzzleId || typeof puzzleId !== 'string') {
+      throw new ResponseError('Unexpected Daily Puzzle response', {
+        service: 'lichess',
+        status: res.status,
+        headers: res.headers,
+        received: json,
+      });
+    }
+
+    setPuzzleCache(puzzleId);
+    return formatPuzzleUris(puzzleId);
   } catch (cause) {
-    throw new LichessError('Failed to connect to Lichess', { cause });
+    throw Oops.fromError('Failed to get Daily Puzzle', cause);
   }
+};
+
+export type DailyPuzzle = {
+  puzzleUrl: string;
+  puzzleThumbUrl: string;
 };

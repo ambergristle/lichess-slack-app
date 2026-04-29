@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-duplicate-imports": [
+      "error",
+      {
+        "allowSeparateTypeImports": true
+      }
+    ],
+    "no-nested-ternary": "error",
+    "typescript/consistent-type-imports": "error",
+    "unicorn/empty-brace-spaces": "error"
+  },
+  "env": {
+    "builtin": true
+  }
+}

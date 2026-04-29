@@ -1,12 +1,11 @@
-
 const locale = {
-
   title: 'Lichess Slack App',
 
-  pageTitle: 'Lichess Daily Puzzle Slack App',
+  appName: 'Lichess Daily Puzzle Slack App',
 
-  appDescription: 'Schedule daily puzzle delivery, or get it on demand,'
-    + ' directly in the Slack channel of your choice.',
+  appDescription:
+    'Schedule daily puzzle delivery, or get it on demand,' +
+    ' directly in the Slack channel of your choice.',
 
   addToSlack: 'Add to Slack',
   sourceCode: 'Source code',
@@ -21,19 +20,29 @@ const locale = {
   registrationSucceeded: 'App registered successfully!',
   closeWindowPrompt: 'You can now close this window',
 
+  puzzleCommandInfo:
+    'Get a link to the Lichess Daily puzzle' +
+    ' with a screenshot of the starting position.',
+  scheduleCommandInfo:
+    'Select a time to recieve the Lichess Daily Puzzle' +
+    ' in the registered Slack channel',
+
   blocks: {
     /** @token message */
     error: '${message} Please try again later, or contact support.',
     helpInfo: 'Get the Lichess Daily puzzle right in Slack!',
-    helpPuzzle: '*Get today\'s puzzle*\n`/puzzle`',
+    helpPuzzle: "*Get today's puzzle*\n`/puzzle`",
     helpSchedule: '*View and set schedule*\n`/schedule`',
-    puzzleTitle: 'Today\'s Lichess Daily Puzzle',
-    scheduleInfo: 'Your are scheduled to recieve the next puzzle at ${timeString}.'
-      + ' You can update or cancel at any time:',
+    puzzleTitle: "Today's Lichess Daily Puzzle",
+    scheduleInfo:
+      'Your are scheduled to recieve the next puzzle at ${timeString}.' +
+      ' You can update or cancel at any time.',
     schedulePrompt: 'Select a time to recieve the Lichess Daily Puzzle',
     scheduleSelectTime: 'Select time',
     /** @token timeString */
-    scheduleConfirmation: 'The daily puzzle will now be delivered at ${timeString}',
+    scheduleConfirmation:
+      'The daily puzzle will now be delivered at ${timeString}',
+    cancelSchedule: 'Cancel Schedule',
   },
 
   commandErrors: {
@@ -41,6 +50,7 @@ const locale = {
     puzzle: 'The daily puzzle is currently unavailable.',
     schedule: 'Your scheduling preferences could not be retrieved.',
     set: 'Puzzle delivery could not be scheduled.',
+    unknownCommand: 'Unknown command.',
   },
 
   httpErrors: {

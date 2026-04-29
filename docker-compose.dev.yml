@@ -1,0 +1,15 @@
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env.local
+    ports:
+      - 8080:8080
+    restart: on-failure

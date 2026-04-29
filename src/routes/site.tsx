@@ -1,0 +1,84 @@
+import { Hono } from 'hono';
+import { serveStatic } from 'hono/bun';
+import { jsxRenderer } from 'hono/jsx-renderer';
+
+import { ErrorView } from '@/lib/components/errors';
+import { Layout } from '@/lib/components/layout';
+import { registerBot } from '@/lib/db/queries/bot';
+import {
+  exchangeCodeGrant,
+  generateAuthorizationUrl,
+  validateRegistrationRequest,
+} from '@/lib/slack';
+import { Oops } from '@/lib/utils/errors';
+import { dbProvider } from '@/middleware/db-provider';
+import { localizer } from '@/middleware/localizer';
+
+export const site = new Hono()
+  // .use(globalRateLimiter())
+  .use(localizer())
+  .use(jsxRenderer(Layout))
+  .get(
+    '/public/*',
+    serveStatic({
+      root: './',
+    })
+  )
+  /**
+   * Simple landing page to facilitate registration, and
+   * link to docs and privacy info.
+   */
+  .get('/', (c) => {
+    const { localized } = c.var;
+    const registrationHref = generateAuthorizationUrl(c);
+
+    const repoUrl = 'https://github.com/ambergristle/lichess-slack-app';
+
+    return c.render(
+      <div>
+        <h1>{localized.appName}</h1>
+        <p>{localized.appDescription}</p>
+        <a href={registrationHref} class="register-button">
+          <img
+            src="/public/assets/slack/slack-logo.svg"
+            height="16"
+            width="16"
+            alt="Slack logo"
+          />
+          {localized.addToSlack}
+        </a>
+        <p class="text-small">
+          {`${localized.sourceCode}:`}&nbsp;
+          <a href={repoUrl} target="_blank">
+            {repoUrl}
+          </a>
+        </p>
+      </div>
+    );
+  })
+  /**
+   * Complete OAuth code exchange and register bot if successful.
+   */
+  .get('/register', validateRegistrationRequest(), dbProvider(), async (c) => {
+    const { code } = c.req.valid('query');
+
+    const grant = await exchangeCodeGrant(code);
+    await registerBot(c.var.db, grant);
+
+    const { localized } = c.var;
+    return c.render(
+      <div>
+        <h1>{localized.registrationSucceeded}</h1>
+        <p>{localized.closeWindowPrompt}</p>
+      </div>
+    );
+  })
+  .onError((error, c) => {
+    // registration errors should prompt re-try
+    // or admin contact
+    // ig can revoke hanging at some point?
+    // https://docs.slack.dev/reference/methods/auth.revoke/
+    const { message } = Oops.parseError(error);
+
+    return c.render(<ErrorView heading={'Error'} details={message} />);
+  });

@@ -1,20 +1,7 @@
 {
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
-    },
-    "editor.defaultFormatter": "vscode.typescript-language-features",
-    "editor.detectIndentation": false,
-    "editor.insertSpaces": true,
-    "editor.tabSize": 2,
-
-    "eslint.format.enable": true,
-    "eslint.experimental.useFlatConfig": true,
-    "eslint.runtime": "bun",
-    "eslint.execArgv": ["--bun"],
-    "eslint.trace.server": "messages",
-    "eslint.workingDirectories": [{ "mode": "auto" }],
-
-    "files.insertFinalNewline": true,
-
-    "typescript.preferences.quoteStyle": "single",
-  }
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "oxc.fmt.configPath": ".oxfmtrc.json"
+}
