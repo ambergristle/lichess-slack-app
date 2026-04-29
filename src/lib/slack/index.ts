@@ -123,6 +123,7 @@ export const replaceOriginal = async (
 
 /**
  * @see https://api.slack.com/methods/conversations.info
+ * Limit 50 requests/minute
  */
 export const getChannelLocale = async (db: DB, channelId: string) => {
   try {
@@ -158,11 +159,19 @@ export const getChannelLocale = async (db: DB, channelId: string) => {
       });
     }
 
-    const { channel } = zChannelInfoResponse.parse(json);
+    const result = zChannelInfoResponse.safeParse(json);
+    if (!result.success) {
+      throw new ResponseError('Unexpected response', {
+        service: 'slack',
+        status: res.status,
+        headers: res.headers,
+        received: json,
+      });
+    }
 
     return {
       botId,
-      locale: channel.locale,
+      locale: result.data.channel.locale,
     };
   } catch (cause) {
     throw Oops.fromError('Failed to get Channel locale', cause);
@@ -210,9 +219,17 @@ export const getUserTimeZone = async (
       });
     }
 
-    const { user } = zUserInfoResponse.parse(json);
+    const result = zUserInfoResponse.safeParse(json);
+    if (!result.success) {
+      throw new ResponseError('Unexpected response', {
+        service: 'slack',
+        status: res.status,
+        headers: res.headers,
+        received: json,
+      });
+    }
 
-    return user.tz;
+    return result.data.user.tz;
   } catch (cause) {
     throw Oops.fromError('Failed to get User time zone', cause);
   }

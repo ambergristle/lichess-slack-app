@@ -1,24 +1,14 @@
 import type { Context, Env, Input } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { ConfigurationError } from '@/lib/utils/errors';
-
-type RateLimitResult = {
-  ok: boolean;
-};
-
-type Algorithm = {
-  limit: (
-    key: string,
-    cost: number
-  ) => RateLimitResult | Promise<RateLimitResult>;
-};
+import type { LimitingAlgorithm, Store } from '@/lib/rate-limiter/types';
 
 export const rateLimit = <
   E extends Env,
   P extends string,
   I extends Input,
 >(options: {
-  algo?: Algorithm;
+  algo?: (store: Store) => LimitingAlgorithm;
   cost: number;
   getKey: (c: Context<E, P, I>) => string | Promise<string>;
   getStore: (c: Context<E, P, I>) => any | Promise<any>;

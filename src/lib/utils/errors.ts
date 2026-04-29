@@ -169,8 +169,8 @@ export class RateLimitError extends Oops {
   public readonly name = 'RateLimitError';
   public readonly status = 429;
 
-  constructor() {
-    super('Rate limit exceeded');
+  constructor(message?: string) {
+    super(message ?? 'Rate limit exceeded');
   }
 }
 

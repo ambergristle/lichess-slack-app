@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { timeout } from 'hono/timeout';
 
 import { generateRowId } from '@/lib/db/utils';
 import {
@@ -19,7 +20,6 @@ import { interpolate } from '@/lib/utils/locale';
 import { botContext } from '@/middleware/bot-context';
 import { dbProvider } from '@/middleware/db-provider';
 import { zodValidator } from '@/middleware/zod-validator';
-import { timeout } from 'hono/timeout';
 
 const SET_SCHEDULE_ID = 'schedule:set';
 const CANCEL_SCHEDULE_ID = 'schedule:cancel';
@@ -39,7 +39,8 @@ export const slack = new Hono()
     '/commands/:command',
     zodValidator('form', zSlashCommandRequestBody),
     // rateLimit<{}, string, { out: { form: SlashCommandRequestBody } }>({
-    //   cost: 1,
+    //   algo: TokenBucket.init(5, 1),
+    //   cost: 5,
     //   getKey: (c) => c.req.valid("form").userId,
     //   getStore: (c) => { },
     // }),

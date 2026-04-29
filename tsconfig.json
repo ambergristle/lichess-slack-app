@@ -1,7 +1,6 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
   "compilerOptions": {
-    "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -34,11 +33,11 @@
 
     /* Emit */
     "noEmit": true /* Disable emitting files from a compilation. */,
-    "downlevelIteration": false /* Emit more compliant, but verbose and less performant JavaScript for iteration. */,
 
     /* Interop Constraints */
     "allowSyntheticDefaultImports": true /* Allow 'import x from y' when a module doesn't have a default export. */,
     "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
+    "allowArbitraryExtensions": true,
 
     /* Type Checking */
     "strict": true /* Enable all strict type-checking options. */,

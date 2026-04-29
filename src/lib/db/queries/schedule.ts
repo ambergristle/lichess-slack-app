@@ -133,13 +133,11 @@ export const createSchedule = async (
         });
       }
 
-      const updatedAt = new Date();
       const updates = {
         cron: formatCronExpression(cronTime),
         timeZone,
         locale,
         deliveryUrl: botChannel.webhookUrl,
-        updatedAt,
       };
 
       const [schedule] = await tx
@@ -149,7 +147,6 @@ export const createSchedule = async (
           botId,
           channelId,
           ...updates,
-          createdAt: updatedAt,
         })
         .onConflictDoUpdate({
           target: ScheduledPuzzleJob.jobId,
